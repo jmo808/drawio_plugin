@@ -137,6 +137,7 @@ Create a 3-tier AWS architecture diagram showing:
 3. **Applies the rigid grid system** — places nodes at calculated positions
 4. **Uses proper containment** — VPC is a swimlane, AZs are nested swimlanes inside VPC, instances have `parent="az1"` with relative coordinates
 5. **Calls `open_drawio_xml`** — with the generated XML and `routing: "libavoid"` for clean edge routing
+6. **Validates the diagram** — Runs the bundled `validate.js` script to compute absolute bounds and ensure no nodes are overlapping or out-of-bounds before presenting the final result.
 
 ### Generated Output
 
@@ -160,7 +161,7 @@ The diagram opens in the draw.io web editor in your browser. Every shape is a **
 | **Relative coordinates** | Children positioned relative to their container, not the canvas |
 | **Cross-container edges** | Edges between AZs use `parent="1"` so they route correctly |
 | **Semantic shapes** | `shape=mxgraph.aws4.resourceIcon` with `resIcon` for AWS services, matching the official icon set |
-| **HTML labels** | Bold titles + descriptions using `&lt;b&gt;` and `&lt;br&gt;` with `html=1` |
+| **Shape labels** | Plain-text newlines (`&#xa;`) for AWS/GCP icons to ensure perfect rendering across engines |
 | **Edge routing** | `routing: "libavoid"` makes connectors route around shapes cleanly |
 
 ---
@@ -186,7 +187,7 @@ The diagram opens in the draw.io web editor in your browser. Every shape is a **
 
 | File | Contents |
 |------|----------|
-| `validate.js` | Diagram linter that detects node collisions and HTML formatting errors (missing `whiteSpace=wrap`) |
+| `validate.js` | Diagram linter that parses XML, computes absolute bounds across nested containers, and detects node collisions and HTML formatting errors. |
 
 ---
 
