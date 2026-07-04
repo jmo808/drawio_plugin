@@ -34,3 +34,6 @@ double-alb-spaghetti|correction:represent-ALB-as-single-logical-icon-spanning-AZ
 missing-internal-decoupling|correction:insert-internal-ALB-between-Web-and-App-tiers
 web-to-app-coupling|correction:prevent-direct-lines-from-Web-to-App-compute+insert-Internal-ALB-between-tiers
 floating-igw|correction:attach-IGW-directly-to-VPC-boundary-edge
+
+## [Visual Styling]
+icon-style:enforce-aws-silhouettes|correction:use-shape=mxgraph.aws4.resourceIcon-for-services-and-shape=mxgraph.aws4.user-for-clients+never-use-flowchart-clouds-or-generic-text-boxes
