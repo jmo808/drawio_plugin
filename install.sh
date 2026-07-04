@@ -48,6 +48,12 @@ if [ -d "$GEMINI_PLUGINS_DIR" ]; then
     rm -rf "$GEMINI_PLUGINS_DIR/drawio/skills/drawio/examples"
     cp -r "$SCRIPT_DIR/skills/drawio/examples" "$GEMINI_PLUGINS_DIR/drawio/skills/drawio/examples"
   fi
+  
+  # Copy scripts
+  if [ -d "$SCRIPT_DIR/scripts" ]; then
+    rm -rf "$GEMINI_PLUGINS_DIR/drawio/skills/drawio/scripts"
+    cp -r "$SCRIPT_DIR/scripts" "$GEMINI_PLUGINS_DIR/drawio/skills/drawio/scripts"
+  fi
 fi
 
 # Extract the body of SKILL.md (strip lines 1-8 which contain the original YAML frontmatter)

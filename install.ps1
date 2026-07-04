@@ -45,6 +45,11 @@ if (Test-Path $GeminiPluginsDir) {
     if (Test-Path $ExamplesDir) {
         Copy-Item -Recurse -Force $ExamplesDir (Join-Path $SkillDest "examples")
     }
+    
+    $ScriptsDir = Join-Path $ScriptDir "scripts"
+    if (Test-Path $ScriptsDir) {
+        Copy-Item -Recurse -Force $ScriptsDir (Join-Path $SkillDest "scripts")
+    }
 }
 
 $DrawioMdPath = Join-Path $ScriptDir "skills\drawio\SKILL.md"

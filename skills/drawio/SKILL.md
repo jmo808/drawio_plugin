@@ -30,6 +30,17 @@ ALWAYS-USE:
 | `search_shapes` | `query` | string (required) | Search term for shape libraries |
 | `search_shapes` | `limit` | integer | Max results (default 10, max 50) |
 
+## [Validation (MANDATORY)]
+
+After generating a draw.io XML file, you **MUST** validate it using the bundled validation script to catch layout collisions and HTML formatting errors.
+
+Run: `node scripts/validate.js <path_to_diagram.xml>`
+
+If the script reports errors:
+1. Fix the coordinate overlaps (adjust `x`/`y` or container sizes).
+2. Fix HTML label errors (ensure `html=1;whiteSpace=wrap;` are both present if using `<b>`, `<br>`, etc.).
+3. Re-run the validation script until it passes.
+
 ## [Decision: XML vs CSV]
 
 ```

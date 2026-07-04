@@ -11,6 +11,7 @@ This plugin connects the [draw.io MCP server](https://github.com/jgraph/drawio-m
 - **🎨 Native draw.io shapes** — Every diagram is built with native mxGraph XML, producing fully editable shapes, connectors, and containers
 - **🔌 Multi-client support** — One installer for Kiro CLI, Claude Desktop, Claude Code, Cursor, Copilot CLI, and Antigravity
 - **📁 Codebase-to-diagram** — Generate architecture, class, ER, and dependency diagrams directly from your project structure
+- **✅ Auto-validation** — Bundled Node.js script checks diagrams for layout collisions and formatting errors before presenting them to the user
 - **🔄 Round-trip editing** — Read existing `.drawio` files, modify them, and re-render
 - **📚 Rich skill knowledge** — Bundled reference docs and examples ensure the AI produces correct, beautiful diagrams on the first try
 - **🔒 Security hardened** — Pinned package versions, atomic config writes, config backups, least-privilege agent access
@@ -180,6 +181,12 @@ The diagram opens in the draw.io web editor in your browser. Every shape is a **
 |------|------|
 | `aws-architecture.xml` | 3-tier AWS architecture with nested VPC/AZ swimlanes |
 | `org-chart.csv` | Org chart using draw.io's CSV import format |
+
+### Validation Tools (`skills/drawio/scripts/`)
+
+| File | Contents |
+|------|----------|
+| `validate.js` | Diagram linter that detects node collisions and HTML formatting errors (missing `whiteSpace=wrap`) |
 
 ---
 
