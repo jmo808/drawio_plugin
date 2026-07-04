@@ -39,7 +39,6 @@
     </mxCell>
 
     <!-- Stream: Feed Inlet -->
-    <!-- Enters from left of separator -->
     <mxCell id="feed-line" value="Wellhead Fluid" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;labelBackgroundColor=#ffffff;entryX=0;entryY=0.5;" edge="1" parent="1" source="title" target="V-100">
       <mxGeometry relative="1" as="geometry">
         <Array as="points">
@@ -50,16 +49,33 @@
     </mxCell>
 
     <!-- Stream: Gas Outlet to Compressor -->
-    <!-- Exits from TOP of separator, completely avoiding the oil line -->
-    <!-- target is K-102 without entryX to allow clean perimeter routing -->
-    <mxCell id="gas-line" value="Gas" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;labelBackgroundColor=#ffffff;exitX=0.5;exitY=0;exitDx=0;exitDy=0;" edge="1" parent="1" source="V-100" target="K-102">
-      <mxGeometry relative="1" as="geometry" />
+    <mxCell id="gas-line" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;" edge="1" parent="1" source="V-100" target="K-102">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="340" y="260" />
+          <mxPoint x="340" y="115" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+    
+    <!-- Explicit Gas Label -->
+    <mxCell id="gas-label" value="Gas" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="300" y="235" width="40" height="30" as="geometry" />
     </mxCell>
 
     <!-- Stream: Oil Outlet to Pump -->
-    <!-- Exits from BOTTOM of separator, completely avoiding the gas line -->
-    <mxCell id="oil-line" value="Oil" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="V-100" target="P-101A">
-      <mxGeometry relative="1" as="geometry" />
+    <mxCell id="oil-line" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;" edge="1" parent="1" source="V-100" target="P-101A">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="380" y="260" />
+          <mxPoint x="380" y="430" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- Explicit Oil Label -->
+    <mxCell id="oil-label" value="Oil" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="340" y="235" width="40" height="30" as="geometry" />
     </mxCell>
 
     <!-- Stream: Pump to Control Valve -->
@@ -68,10 +84,15 @@
     </mxCell>
 
     <!-- Stream: Export Oil -->
-    <mxCell id="export-line" value="Export Oil" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="LCV-100">
+    <mxCell id="export-line" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;" edge="1" parent="1" source="LCV-100">
       <mxGeometry relative="1" as="geometry">
         <mxPoint x="780" y="430" as="targetPoint" />
       </mxGeometry>
+    </mxCell>
+
+    <!-- Explicit Export Oil Label -->
+    <mxCell id="export-label" value="Export Oil" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="690" y="405" width="80" height="30" as="geometry" />
     </mxCell>
 
     <!-- Signal: LT to LIC -->
