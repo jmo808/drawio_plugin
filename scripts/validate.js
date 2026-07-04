@@ -96,13 +96,18 @@ for (const id in cells) {
     const hasHtmlTags = /<[^>]+>/.test(cell.value);
     const hasHtmlStyle = cell.style.includes('html=1');
     const hasWrap = cell.style.includes('whiteSpace=wrap');
+    const isAwsShape = cell.style.includes('shape=mxgraph.aws');
 
-    if (hasHtmlTags && !hasHtmlStyle) {
-        reportError('FORMAT', id, `Contains HTML tags (e.g. <b>, <br>) but missing 'html=1' in style.`);
-    }
+    if (isAwsShape && hasHtmlTags) {
+        reportError('FORMAT', id, `AWS shapes do not reliably render HTML labels in headless mode. Remove HTML tags like <b> and <br> and use plain text with &#xa; for newlines.`);
+    } else {
+        if (hasHtmlTags && !hasHtmlStyle) {
+            reportError('FORMAT', id, `Contains HTML tags (e.g. <b>, <br>) but missing 'html=1' in style.`);
+        }
 
-    if (hasHtmlStyle && hasHtmlTags && !hasWrap) {
-        reportError('FORMAT', id, `Has HTML tags and html=1, but missing 'whiteSpace=wrap'. This often causes labels to render as literal text instead of formatted HTML on custom shapes.`);
+        if (hasHtmlStyle && hasHtmlTags && !hasWrap) {
+            reportError('FORMAT', id, `Has HTML tags and html=1, but missing 'whiteSpace=wrap'. This often causes labels to render as literal text instead of formatted HTML on custom shapes.`);
+        }
     }
 
     if (cell.value.includes('&lt;') || cell.value.includes('&gt;')) {

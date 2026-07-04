@@ -71,7 +71,8 @@ Pick a `(col, row)` for each node. Don't think about centers, gaps, or overlap.
 - Do NOT compute or verify coordinates in prose — use the grid, write the XML
 - Do NOT narrate "building the diagram" — just emit XML
 - Do NOT use self-closing edge cells (`<mxCell ... edge="1" ... />`) — always include `<mxGeometry relative="1" as="geometry" />`
-- Do NOT generate executable HTML in `value` attributes (no `<script>`, `onerror=`, `onclick=`, `<iframe>`, or any event handlers). Labels must contain only safe formatting tags (`<b>`, `<i>`, `<u>`, `<br>`, `<font>`, `<hr>`, `<p>`, `<table>`)
+- DO NOT generate executable HTML in `value` attributes (no `<script>`, `onerror=`, `onclick=`, `<iframe>`, or any event handlers). Labels must contain only safe formatting tags (`<b>`, `<i>`, `<u>`, `<br>`, `<font>`, `<hr>`, `<p>`, `<table>`)
+- DO NOT use HTML tags (`<b>`, `<br>`) for labels on AWS/GCP icons (`shape=mxgraph.aws4...`). The headless renderer cannot display them correctly. Use plain text with `&#xa;` for newlines instead.
 
 ## [XML Critical Rules — DO]
 - DO include `html=1` in every cell style
