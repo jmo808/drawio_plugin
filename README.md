@@ -183,6 +183,18 @@ The diagram opens in the draw.io web editor in your browser. Every shape is a **
 | `aws-architecture.xml` | 3-tier AWS architecture with nested VPC/AZ swimlanes |
 | `org-chart.csv` | Org chart using draw.io's CSV import format |
 
+### 📊 CSV Org Chart Configuration
+
+When importing organizational charts via CSV (`open_drawio_csv`), draw.io relies on configuration comments (prefixed with `#`) at the top of the file to determine layout and connectivity. To generate a correct top-down tree hierarchy, the CSV must include:
+
+1. **`# layout: orgchart`** — Directs the layout engine to use its specialized, compact organizational chart tree layout instead of generic hierarchical or linear stacking.
+2. **`# connect: {"from": "manager", "to": "name", "invert": true, "style": "..."}`** — Configures parent-to-child relationships. 
+   - `"from": "manager"` specifies the column representing the supervisor's identifier.
+   - `"to": "name"` specifies the unique column identifying each node.
+   - `"invert": true` is **critical**. Because draw.io naturally connects source-to-target (Employee $\rightarrow$ Manager), inverting the edge direction forces the layout engine to treat the Manager as the root node, placing them at the top of the canvas, while the arrowheads still point down towards the reports.
+3. **No hardcoded edge exit/entry constraints** — Do not specify `exitX/Y` or `entryX/Y` in the edge `"style"`. Leaving these out allows the layout engine to automatically route lines orthogonally without creating awkward loops or overlapping nodes.
+
+
 ### Validation Tools (`skills/drawio/scripts/`)
 
 | File | Contents |
