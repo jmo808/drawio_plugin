@@ -166,6 +166,61 @@ The diagram opens in the draw.io web editor in your browser. Every shape is a **
 
 ---
 
+## 📊 Example: Generating an Org Chart (CSV)
+
+While most diagrams are generated via native XML, structured tabular data like organizational charts is best built using draw.io's CSV import feature.
+
+> [!IMPORTANT]
+> To ensure the org chart imports with the correct hierarchical structure, the CSV file must include specific configuration comments at the top. See the [CSV Org Chart Configuration](#-csv-org-chart-configuration) section below for detailed setup rules.
+
+### Prompt
+
+```
+Create an organizational chart from the following company roles:
+- Emily Chen is CEO
+- Marcus Johnson (VP Engineering), Sarah Kim (VP Product), and David Okafor (VP Sales) report to Emily Chen
+- Lisa Park (Director Frontend), James Wright (Director Backend), and Priya Sharma (Director DevOps) report to Marcus Johnson
+- Alex Rivera (TL - React) and Nina Torres (TL - Design System) report to Lisa Park
+- Omar Hassan (TL - API), Rachel Green (TL - Data), and Wei Zhang (TL - Microservices) report to James Wright
+- Carlos Mendez (TL - Infrastructure) and Amy Liu (TL - SRE) report to Priya Sharma
+- Tom Baker (PM - Mobile) and Jessica Nguyen (PM - Platform) report to Sarah Kim
+- Ryan Cooper (Sales Lead - East) and Maria Santos (Sales Lead - West) report to David Okafor
+```
+
+### CSV Snippet
+
+The AI translates this hierarchical data into a CSV format pre-pended with the required configuration comments:
+
+```csv
+# label: %name%<br><i style="font-size:11px;">%title%</i>
+# style: label;image=%image%;whiteSpace=wrap;html=1;fontSize=12;fontStyle=1;rounded=1;arcSize=10;fillColor=%fill%;strokeColor=%stroke%;imageWidth=0;imageHeight=0;spacingTop=4;spacingBottom=4;spacing=8;
+# connect: {"from": "manager", "to": "name", "invert": true, "style": "edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;"}
+# width: 190
+# height: 60
+# padding: 30
+# ignore: image,fill,stroke
+# nodespacing: 20
+# levelspacing: 60
+# edgespacing: 20
+# layout: orgchart
+## Organizational Chart — Acme Corp
+name,title,manager,image,fill,stroke
+Emily Chen,CEO,,,#dae8fc,#6c8ebf
+Marcus Johnson,VP Engineering,Emily Chen,,#dae8fc,#6c8ebf
+Sarah Kim,VP Product,Emily Chen,,#d5e8d4,#82b366
+...
+```
+
+### Generated Output
+
+![Org Chart Example Diagram](skills/drawio/examples/org-chart.png)
+
+### Result
+
+By combining `# layout: orgchart` with `"invert": true` and a clean edge style, draw.io parses the CSV and immediately opens a perfectly organized, top-down tree diagram where the CEO is at the top and reporting lines are neatly routed around nodes.
+
+---
+
 ## 📂 Bundled Resources
 
 ### Reference Docs (`skills/drawio/references/`)
