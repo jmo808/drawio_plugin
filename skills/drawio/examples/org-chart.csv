@@ -8,7 +8,7 @@
 # nodespacing: 20
 # levelspacing: 60
 # edgespacing: 20
-# layout: {"layout":"orgChart", "config":{"orgChartType":"hanger4", "parentChildSpacing":40, "siblingSpacing":40}}
+# layout: auto
 ## Organizational Chart — Acme Corp
 name,title,manager,image,fill,stroke
 Emily Chen,CEO,,,#dae8fc,#6c8ebf
