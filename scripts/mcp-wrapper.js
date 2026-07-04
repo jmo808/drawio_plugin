@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 
-const child = spawn('npx', ['-y', '@drawio/mcp@1.3.4'], {
+const child = spawn('node', [path.join(__dirname, '..', 'node_modules', '@drawio', 'mcp', 'src', 'index.js')], {
     stdio: ['pipe', 'pipe', 'pipe']
 });
 

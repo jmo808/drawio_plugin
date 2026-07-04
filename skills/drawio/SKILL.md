@@ -32,14 +32,13 @@ ALWAYS-USE:
 
 ## [Validation (MANDATORY)]
 
-Because the `open_drawio_xml` tool accepts an XML string directly, agents frequently skip validation because they don't have a file to run the script against. You **MUST** use the following workflow to prevent this:
+The `@drawio/open_drawio_xml` tool is protected by an **MCP Server Proxy Interceptor**. 
 
-1. Generate your draft XML and **save it to a local file** (e.g., `diagram-draft.xml`) using your file writing tools.
-2. Run the validator: `node scripts/validate.js diagram-draft.xml`
-3. If the script reports errors, analyze them, update `diagram-draft.xml`, and run the script again.
-4. Once validation passes with 0 errors, read the XML from the file and pass it to the `@drawio/open_drawio_xml` tool.
+When you call the tool, the proxy automatically runs a strict `validate.js` engine against your XML before passing it to the draw.io canvas. The validator catches layout collisions, HTML formatting errors, and domain topology violations (e.g., AWS stranded compute, ALB bypasses, cross-AZ routing).
 
-The validation script catches layout collisions, HTML formatting errors, and AWS topology violations (like stranded compute, ALB bypasses, and cross-AZ routing). Do NOT call the MCP tool until validation passes.
+1. Generate your XML and pass it directly to the `@drawio/open_drawio_xml` tool.
+2. **If validation fails**, the tool will return a `[TOPOLOGY_ERROR]` or `[COLLISION]` response. You MUST analyze the error stack trace, fix the XML routing/coordinates, and call the tool again until it succeeds.
+3. You do NOT need to write files or run `validate.js` manually. The proxy handles it all.
 
 ## [Decision: XML vs CSV]
 

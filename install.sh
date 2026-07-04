@@ -19,6 +19,10 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 HOME_DIR="$HOME"
 
+echo "Installing local dependencies..."
+cd "$SCRIPT_DIR"
+npm install --silent
+
 # 1. Setup Kiro CLI Agents
 KIRO_DIR="$HOME/.kiro"
 KIRO_AGENTS_DIR="$KIRO_DIR/agents"
@@ -166,8 +170,8 @@ paths.forEach(client => {
 });
 ' "$SCRIPT_DIR"
 
-echo "Verifying @drawio/mcp package..."
-if npx -y @drawio/mcp@1.3.4 --help >/dev/null 2>&1; then
+echo "Verifying local @drawio/mcp package..."
+if node ./node_modules/@drawio/mcp/src/index.js --help >/dev/null 2>&1; then
   echo "✓ @drawio/mcp package verified successfully"
 else
   echo "⚠ WARNING: @drawio/mcp package could not be verified. The MCP server may not work until the package is available."
