@@ -32,14 +32,15 @@ ALWAYS-USE:
 
 ## [Validation (MANDATORY)]
 
-After generating a draw.io XML file, you **MUST** validate it using the bundled validation script to catch layout collisions and HTML formatting errors.
+After generating a draw.io XML file, you **MUST** validate it using the bundled validation script to catch layout collisions, HTML formatting errors, and AWS topology violations.
 
 Run: `node scripts/validate.js <path_to_diagram.xml>`
 
 If the script reports errors:
 1. Fix the coordinate overlaps (adjust `x`/`y` or container sizes).
 2. Fix HTML label errors (ensure `html=1;whiteSpace=wrap;` are both present if using `<b>`, `<br>`, etc.).
-3. Re-run the validation script until it passes.
+3. Fix topological routing errors (ensure Web Tier is not stranded, ALBs don't bypass tiers, and stateless nodes don't route horizontally across AZs).
+4. Re-run the validation script until it passes.
 
 ## [Decision: XML vs CSV]
 

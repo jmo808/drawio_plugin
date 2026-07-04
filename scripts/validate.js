@@ -224,10 +224,113 @@ for (const id in cells) {
     }
 }
 
+// --- AWS TOPOLOGY VALIDATION ---
+// Helper to get AWS node type from style string
+function getAwsNodeType(style) {
+    if (!style) return null;
+    const match = style.match(/resIcon=mxgraph\.aws4\.([a-zA-Z0-9_]+)/);
+    if (match) return match[1];
+    
+    // Check for ALB generic shape fallback
+    if (style.includes('shape=mxgraph.aws4.application_load_balancer') || style.includes('resIcon=mxgraph.aws4.application_load_balancer')) return 'application_load_balancer';
+    
+    return null;
+}
+
+// Helper to determine if an ALB is internal or external based on its value/label
+function isInternalAlb(value) {
+    return value && value.toLowerCase().includes('internal');
+}
+
+// Find all AWS nodes and categorize them
+const awsNodes = {};
+const webTierNodes = [];
+for (const id in cells) {
+    const cell = cells[id];
+    if (cell.isEdge) continue;
+    
+    const type = getAwsNodeType(cell.style);
+    if (type) {
+        awsNodes[id] = { id, type, value: cell.value, parent: cell.parent };
+        
+        // Identify Web Tier nodes: type is 'ec2' and parent value/label contains 'web' or 'public' (or just ec2)
+        // Usually, EC2s in Web Tier are just labeled Web Tier EC2 or live in a "Web" subnet.
+        const parentCell = cells[cell.parent];
+        if (type === 'ec2' && ((cell.value && cell.value.toLowerCase().includes('web')) || (parentCell && parentCell.value && parentCell.value.toLowerCase().includes('web')))) {
+            webTierNodes.push(id);
+        }
+    }
+}
+
+// Check edges for topology rules
+for (const id in cells) {
+    const cell = cells[id];
+    if (!cell.isEdge) continue;
+    
+    // We only care about edges with explicit source and target in the DOM (not just visually overlapping)
+    const el = doc.getElementById(id) || mxCells[Array.from(mxCells).findIndex(e => e.getAttribute('id') === id)];
+    if (!el) continue;
+    
+    const sourceId = el.getAttribute('source');
+    const targetId = el.getAttribute('target');
+    
+    if (!sourceId || !targetId || !awsNodes[sourceId] || !awsNodes[targetId]) continue;
+    
+    const source = awsNodes[sourceId];
+    const target = awsNodes[targetId];
+    
+    // Rule 1: The Grand Bypass (External ALB routing directly to Internal ALB)
+    if (source.type === 'application_load_balancer' && !isInternalAlb(source.value) && 
+        target.type === 'application_load_balancer' && isInternalAlb(target.value)) {
+        reportError('TOPOLOGY_ERROR', id, `External ALB cannot bypass Web Tier and route directly to Internal ALB.`);
+    }
+    
+    // Rule 3: Stateless Horizontal Routing (Compute to Compute across different AZs)
+    const statelessComputeTypes = ['ec2', 'ecs', 'lambda'];
+    if (statelessComputeTypes.includes(source.type) && statelessComputeTypes.includes(target.type)) {
+        // If they have different parent AZs (we climb the parent tree to find the AZ swimlane, usually parent of subnet)
+        let sourceAz = null;
+        let p1 = cells[source.parent];
+        while (p1 && p1.id !== "1" && p1.id !== "0") {
+            if (p1.value && p1.value.toLowerCase().includes('az ')) { sourceAz = p1.id; break; }
+            p1 = cells[p1.parent];
+        }
+        
+        let targetAz = null;
+        let p2 = cells[target.parent];
+        while (p2 && p2.id !== "1" && p2.id !== "0") {
+            if (p2.value && p2.value.toLowerCase().includes('az ')) { targetAz = p2.id; break; }
+            p2 = cells[p2.parent];
+        }
+        
+        if (sourceAz && targetAz && sourceAz !== targetAz) {
+            reportError('TOPOLOGY_ERROR', id, `Stateless compute nodes (${source.type} -> ${target.type}) cannot route horizontally across different AZs.`);
+        }
+    }
+}
+
+// Rule 2: Stranded Compute (Web Tier MUST route to Internal ALB or App Tier)
+for (const webNodeId of webTierNodes) {
+    let hasOutboundEdge = false;
+    let hasInboundEdge = false;
+    for (const id in cells) {
+        const cell = cells[id];
+        if (!cell.isEdge) continue;
+        const el = doc.getElementById(id) || mxCells[Array.from(mxCells).findIndex(e => e.getAttribute('id') === id)];
+        if (el) {
+            if (el.getAttribute('source') === webNodeId) hasOutboundEdge = true;
+            if (el.getAttribute('target') === webNodeId) hasInboundEdge = true;
+        }
+    }
+    if (!hasOutboundEdge || !hasInboundEdge) {
+        reportError('TOPOLOGY_ERROR', webNodeId, `Web Tier compute node is stranded. It must receive inbound traffic from an ALB and route outbound traffic forward to the App Tier or Internal ALB.`);
+    }
+}
+
 if (errorsFound > 0) {
     console.log(`\n❌ Validation failed: ${errorsFound} issues found.`);
-    console.log(`Please adjust coordinates to prevent collisions, and fix formatting errors.`);
+    console.log(`Please adjust coordinates to prevent collisions, fix formatting errors, and resolve topological routing violations.`);
     process.exit(1);
 } else {
-    console.log(`\n✅ Validation passed! No collisions or formatting issues detected.`);
+    console.log(`\n✅ Validation passed! No collisions, formatting issues, or topological routing violations detected.`);
 }
