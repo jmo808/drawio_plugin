@@ -1,0 +1,95 @@
+<mxGraphModel dx="1000" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+  <root>
+    <mxCell id="0" />
+    <mxCell id="1" parent="0" />
+    
+    <!-- Title -->
+    <mxCell id="title" value="&lt;b&gt;Example Process Flow Diagram (PFD)&lt;/b&gt;&lt;br&gt;Wellhead Separation Train" style="text;html=1;align=left;verticalAlign=top;fontSize=16;whiteSpace=wrap;" vertex="1" parent="1">
+      <mxGeometry x="40" y="20" width="400" height="40" as="geometry" />
+    </mxCell>
+
+    <!-- Equipment: Separator -->
+    <!-- y=200 to 320 -->
+    <mxCell id="V-100" value="V-100&#xa;3-Phase Separator" style="verticalLabelPosition=bottom;align=center;dashed=0;html=1;verticalAlign=top;shape=mxgraph.pid.separators.gravity_separator,_settling_chamber2;" vertex="1" parent="1">
+      <mxGeometry x="220" y="200" width="80" height="120" as="geometry" />
+    </mxCell>
+
+    <!-- Equipment: Gas Compressor -->
+    <!-- y=80 to 150 -->
+    <mxCell id="K-102" value="K-102&#xa;Gas Compressor" style="verticalLabelPosition=bottom;outlineConnect=0;align=center;dashed=0;html=1;verticalAlign=top;shape=mxgraph.pid.compressors.centrifugal_compressor" vertex="1" parent="1">
+      <mxGeometry x="460" y="80" width="70" height="70" as="geometry" />
+    </mxCell>
+
+    <!-- Equipment: Oil Pump -->
+    <!-- y=400 to 460 -->
+    <mxCell id="P-101A" value="P-101A&#xa;Oil Export Pump" style="dashed=0;outlineConnect=0;align=center;html=1;verticalLabelPosition=bottom;verticalAlign=top;shape=mxgraph.pid.engines.electric_motor;" vertex="1" parent="1">
+      <mxGeometry x="460" y="400" width="60" height="60" as="geometry" />
+    </mxCell>
+
+    <!-- Valve: Level Control Valve on Oil Line -->
+    <!-- y=390 to 470 -->
+    <mxCell id="LCV-100" value="LCV-100" style="verticalLabelPosition=bottom;align=center;html=1;verticalAlign=top;pointerEvents=1;dashed=0;shape=mxgraph.pid2valves.valve;valveType=gate;actuator=diaphragm" vertex="1" parent="1">
+      <mxGeometry x="640" y="390" width="40" height="80" as="geometry" />
+    </mxCell>
+
+    <!-- Instrument: Level Transmitter on Separator -->
+    <mxCell id="LT-100" value="LT&#xa;100" style="html=1;outlineConnect=0;align=center;dashed=0;aspect=fixed;shape=mxgraph.pid2inst.discInst;mounting=field;" vertex="1" parent="1">
+      <mxGeometry x="100" y="280" width="40" height="40" as="geometry" />
+    </mxCell>
+
+    <!-- Instrument: Level Indicating Controller in Control Room -->
+    <mxCell id="LIC-100" value="LIC&#xa;100" style="html=1;outlineConnect=0;align=center;dashed=0;aspect=fixed;shape=mxgraph.pid2inst.sharedCont;mounting=room;" vertex="1" parent="1">
+      <mxGeometry x="100" y="380" width="40" height="40" as="geometry" />
+    </mxCell>
+
+    <!-- Stream: Feed Inlet -->
+    <mxCell id="feed-line" value="Wellhead Fluid" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;labelBackgroundColor=#ffffff;entryX=0.5;entryY=0;" edge="1" parent="1" source="title" target="V-100">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Stream: Gas Outlet to Compressor -->
+    <!-- Exits at 25% height (y=230), goes to compressor (y=115) -->
+    <mxCell id="gas-line" value="Gas" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;labelBackgroundColor=#ffffff;exitX=1;exitY=0.25;entryX=0;entryY=0.5;exitDx=0;exitDy=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="V-100" target="K-102">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Stream: Oil Outlet to Pump -->
+    <!-- Exits at 75% height (y=290), goes to pump (y=430) -->
+    <mxCell id="oil-line" value="Oil" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;labelBackgroundColor=#ffffff;exitX=1;exitY=0.75;entryX=0;entryY=0.5;exitDx=0;exitDy=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="V-100" target="P-101A">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Stream: Pump to Control Valve -->
+    <mxCell id="pump-discharge" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;exitX=1;exitY=0.5;entryX=0;entryY=0.5;exitDx=0;exitDy=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="P-101A" target="LCV-100">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Stream: Export Oil -->
+    <mxCell id="export-line" value="Export Oil" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;labelBackgroundColor=#ffffff;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="LCV-100">
+      <mxGeometry relative="1" as="geometry">
+        <mxPoint x="780" y="430" as="targetPoint" />
+      </mxGeometry>
+    </mxCell>
+
+    <!-- Signal: LT to LIC -->
+    <mxCell id="lt-to-lic" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;dashPattern=1 4;exitX=0.5;exitY=1;entryX=0.5;entryY=0;exitDx=0;exitDy=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="LT-100" target="LIC-100">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+    <!-- Signal: LIC to LCV -->
+    <mxCell id="lic-to-lcv" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;dashed=1;dashPattern=1 4;exitX=0.5;exitY=1;entryX=0.5;entryY=1;exitDx=0;exitDy=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="LIC-100" target="LCV-100">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="120" y="520" />
+          <mxPoint x="660" y="520" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- Connection: LT to Vessel -->
+    <mxCell id="vessel-to-lt" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;strokeWidth=1;exitX=0;exitY=0.83;entryX=1;entryY=0.5;exitDx=0;exitDy=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="V-100" target="LT-100">
+      <mxGeometry relative="1" as="geometry" />
+    </mxCell>
+
+  </root>
+</mxGraphModel>
