@@ -2,6 +2,20 @@
 
 Write-Host "=== Draw.io MCP Server & Agent Installer (Windows) ===" -ForegroundColor Cyan
 
+# Pre-flight check: Verify Node.js is installed and version is 24+
+$NodeExists = Get-Command node -ErrorAction SilentlyContinue
+if (-not $NodeExists) {
+    Write-Host "Error: Node.js is required but was not found in your PATH." -ForegroundColor Red
+    Write-Host "Please install Node.js 24+ and try again." -ForegroundColor Red
+    exit 1
+}
+
+$NodeVersion = & node -e "console.log(process.versions.node.split('.')[0])"
+if ([int]$NodeVersion -lt 24) {
+    Write-Host "Error: Node.js version 24 or higher is required. You have version $($NodeVersion)." -ForegroundColor Red
+    exit 1
+}
+
 $HomeDir = $env:USERPROFILE
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Definition
 if ([string]::IsNullOrEmpty($ScriptDir)) {

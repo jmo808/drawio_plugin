@@ -30,7 +30,7 @@ This plugin connects the [draw.io MCP server](https://github.com/jgraph/drawio-m
 
 ## 📦 Prerequisites
 
-- **Node.js** ≥ 18 and **npm** installed and in your PATH.
+- **Node.js** ≥ 24 and **npm** installed and in your PATH.
 
 ## 🚀 Installation
 

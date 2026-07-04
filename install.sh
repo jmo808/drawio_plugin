@@ -3,10 +3,15 @@ set -euo pipefail
 
 echo "=== Draw.io MCP Server & Agent Installer ==="
 
-# Pre-flight check: Verify Node.js is installed
+# Pre-flight check: Verify Node.js is installed and is version 24+
 if ! command -v node >/dev/null 2>&1; then
   echo "Error: Node.js is required but was not found in your PATH."
-  echo "Please install Node.js and try again."
+  echo "Please install Node.js 24+ and try again."
+  exit 1
+fi
+
+if ! node -e 'process.exit(parseInt(process.versions.node.split(".")[0]) >= 24 ? 0 : 1)' >/dev/null 2>&1; then
+  echo "Error: Node.js version 24 or higher is required. You have version $(node -v)."
   exit 1
 fi
 
