@@ -290,6 +290,44 @@ The SKILL.md teaches the AI:
 - **Edge routing** for clean, non-crossing connectors
 - **Codebase scanning workflows** for auto-generating diagrams from code
 
+## 🌐 Enterprise & Self-Hosting Configuration
+
+In enterprise or air-gapped environments, loading diagrams through the default public editor (`https://embed.diagrams.net`) may not be permitted. The `@drawio/mcp` server natively supports routing all requests to a self-hosted or locally-run draw.io instance.
+
+### Configuring a Custom Base URL
+
+You can override the editor URL by setting the `DRAWIO_BASE_URL` environment variable within your MCP client's configuration file (e.g., `mcp_config.json`, `claude_desktop_config.json` depending on your agent setup).
+
+Add the `env` object to your `drawio` server configuration:
+
+```json
+{
+  "mcpServers": {
+    "drawio": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@drawio/mcp@1.3.4"
+      ],
+      "env": {
+        "DRAWIO_BASE_URL": "http://localhost:8080"
+      }
+    }
+  }
+}
+```
+
+Replace `http://localhost:8080` with your company's internal draw.io domain (e.g., `https://drawio.internal.net`).
+
+### Self-Hosting Draw.io Locally
+If you want to run a lightweight local instance, you can spin up the official Draw.io Docker container:
+
+```bash
+docker run -d --name drawio -p 8080:8080 -p 8443:8443 jgraph/drawio
+```
+
+Once running, setting `DRAWIO_BASE_URL` to `http://localhost:8080` guarantees that all diagram generation opens purely within your local network.
+
 ---
 
 ## 📄 License
