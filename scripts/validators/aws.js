@@ -1,10 +1,30 @@
-// Helper to get AWS node type from style string
-function getAwsNodeType(style) {
-    if (!style) return null;
-    const match = style.match(/resIcon=mxgraph\.aws4\.([a-zA-Z0-9_]+)/);
-    if (match) return match[1];
-    if (style.includes('shape=mxgraph.aws4.application_load_balancer') || style.includes('resIcon=mxgraph.aws4.application_load_balancer')) return 'application_load_balancer';
-    return null;
+// Helper to get AWS node type from style string or value label
+function getAwsNodeType(style, value) {
+    const s = (style || '').toLowerCase();
+    const v = (value || '').toLowerCase();
+    
+    let type = null;
+    const matchResIcon = s.match(/resicon=mxgraph\.aws[34]\.([a-z0-9_]+)/);
+    const matchShape = s.match(/shape=mxgraph\.aws[34]\.([a-z0-9_]+)/);
+    
+    if (matchResIcon) type = matchResIcon[1];
+    else if (matchShape) type = matchShape[1];
+    
+    // Fallback to label inspection if XML shapes aren't perfectly matched
+    if (!type) {
+        if (v.includes('alb') || v.includes('load balancer')) type = 'application_load_balancer';
+        else if (v.includes('ec2') || v.includes('web tier')) type = 'ec2';
+        else if (v.includes('ecs') || v.includes('fargate')) type = 'ecs';
+        else if (v.includes('lambda')) type = 'lambda';
+        else if (v.includes('rds') || v.includes('database')) type = 'rds';
+    }
+    
+    if (type === 'application_load_balancer' || type === 'alb') return 'application_load_balancer';
+    if (type && type.includes('ec2')) return 'ec2';
+    if (type && type.includes('ecs')) return 'ecs';
+    if (type && type.includes('lambda')) return 'lambda';
+    
+    return type;
 }
 
 // Helper to determine if an ALB is internal or external based on its value/label
@@ -20,7 +40,7 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
         const cell = cells[id];
         if (cell.isEdge) continue;
         
-        const type = getAwsNodeType(cell.style);
+        const type = getAwsNodeType(cell.style, cell.value);
         if (type) {
             awsNodes[id] = { id, type, value: cell.value, parent: cell.parent };
             const parentCell = cells[cell.parent];
