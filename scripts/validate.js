@@ -167,12 +167,15 @@ for (const id in cells) {
     const source = el.getAttribute('source');
     const target = el.getAttribute('target');
 
-    // Rule: MISSING_EXPLICIT_ROUTING for complex shapes
+    // Rule: MISSING_EXPLICIT_ROUTING and MISSING_PERIMETER for complex shapes
     if (source && cells[source]) {
         const sourceStyle = cells[source].style;
         if (sourceStyle.includes('mxgraph.pid.separators')) {
             if (!cell.style.includes('exitX=') || !cell.style.includes('exitY=')) {
                 reportError('MISSING_EXPLICIT_ROUTING', id, `Edge connects to separator ${source} but is missing explicit 'exitX' and 'exitY' in its style. Draw.io defaults will cause overlapping lines. Explicitly define exits (e.g., top=0.5,0; bottom=0.5,1).`);
+            }
+            if (!sourceStyle.includes('perimeter=')) {
+                reportError('MISSING_PERIMETER', source, `Separator shape must have 'perimeter=rectanglePerimeter;' (or similar) to allow explicit edge routing to work, otherwise exitX/Y is ignored.`);
             }
         }
     }
@@ -181,6 +184,9 @@ for (const id in cells) {
         if (targetStyle.includes('mxgraph.pid.separators')) {
             if (!cell.style.includes('entryX=') || !cell.style.includes('entryY=')) {
                 reportError('MISSING_EXPLICIT_ROUTING', id, `Edge connects to separator ${target} but is missing explicit 'entryX' and 'entryY' in its style. Explicitly define entries to prevent routing overlaps.`);
+            }
+            if (!targetStyle.includes('perimeter=')) {
+                reportError('MISSING_PERIMETER', target, `Separator shape must have 'perimeter=rectanglePerimeter;' (or similar) to allow explicit edge routing to work, otherwise entryX/Y is ignored.`);
             }
         }
     }

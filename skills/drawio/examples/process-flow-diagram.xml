@@ -9,7 +9,7 @@
     </mxCell>
 
     <!-- Equipment: Separator -->
-    <mxCell id="V-100" value="V-100&#xa;3-Phase Separator" style="verticalLabelPosition=bottom;align=center;dashed=0;html=1;verticalAlign=top;shape=mxgraph.pid.separators.gravity_separator,_settling_chamber2;" vertex="1" parent="1">
+    <mxCell id="V-100" value="V-100&#xa;3-Phase Separator" style="verticalLabelPosition=bottom;align=center;dashed=0;html=1;verticalAlign=top;shape=mxgraph.pid.separators.gravity_separator,_settling_chamber2;perimeter=rectanglePerimeter;" vertex="1" parent="1">
       <mxGeometry x="220" y="200" width="80" height="120" as="geometry" />
     </mxCell>
 
@@ -59,7 +59,7 @@
     </mxCell>
 
     <!-- Stream: Gas Outlet to Compressor -->
-    <mxCell id="gas-line" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;exitX=0.5;exitY=0;exitDx=0;exitDy=0;" edge="1" parent="1" source="V-100" target="K-102">
+    <mxCell id="gas-line" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;exitX=0.5;exitY=0;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="V-100" target="K-102">
       <mxGeometry relative="1" as="geometry">
         <Array as="points">
           <mxPoint x="260" y="115" />
@@ -73,7 +73,7 @@
     </mxCell>
 
     <!-- Stream: Oil Outlet to Pump -->
-    <mxCell id="oil-line" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="V-100" target="P-101A">
+    <mxCell id="oil-line" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="V-100" target="P-101A">
       <mxGeometry relative="1" as="geometry">
         <Array as="points">
           <mxPoint x="360" y="260" />
