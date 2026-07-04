@@ -30,5 +30,7 @@ az-isolated-db-writes|correction:route-AZ-B-compute→AZ-A-Primary-RDS-for-write
 flat-az-network|correction:wrap-resources-in-explicit-Public/Private-Subnet-boundaries-inside-AZs
 unreplicated-stateful-cache|correction:draw-dashed-replication-line-between-AZ-A+AZ-B-ElastiCache
 internet-facing-db|correction:move-RDS/Cache-to-private-data-subnet+remove-igw-route
-double-alb-spaghetti|correction:represent-ALB-as-single-logical-icon-spanning-AZs-instead-of-duplicate-ALBs
+double-alb-spaghetti|correction:represent-ALB-as-single-logical-icon-spanning-AZs-instead-of-duplicate-ALBs+place-inside-VPC-container
 missing-internal-decoupling|correction:insert-internal-ALB-between-Web-and-App-tiers
+web-to-app-coupling|correction:prevent-direct-lines-from-Web-to-App-compute+insert-Internal-ALB-between-tiers
+floating-igw|correction:attach-IGW-directly-to-VPC-boundary-edge
