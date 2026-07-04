@@ -40,3 +40,12 @@ stateless-horizontal-routing|correction:delete-all-horizontal-lines-between-comp
 
 ## [Visual Styling]
 icon-style:enforce-aws-silhouettes|correction:use-shape=mxgraph.aws4.resourceIcon-for-services-and-shape=mxgraph.aws4.user-for-clients+never-use-flowchart-clouds-or-generic-text-boxes
+
+## [XML Graph DOM Rules]
+xml-containment:resource-is-in-subnet-ONLY-IF-parent-attr-matches-subnet-id|prevent:relying-on-xy-geometry-for-containment
+xml-edges:edge=network-traffic|prevent:using-edges-for-logical-grouping(ASG/Cluster)
+xml-routing-validation:Client→Ext-ALB→Web(EC2)→Int-ALB→App(ECS/Lambda)→Data(RDS/Cache)
+xml-anti-patterns:
+  - edge-source="Ext-ALB"+target="Int-ALB"→violation(bypasses-web-tier)
+  - edge-source="EC2"+target="EC2"→violation(stateless-horizontal-traffic)
+  - parent="1"(default-layer)-for-Ext-ALB→violation(must-set-parent="public-subnet-id")
