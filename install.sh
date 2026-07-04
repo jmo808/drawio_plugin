@@ -151,10 +151,12 @@ paths.forEach(client => {
     data.mcpServers = {};
   }
 
+  const wrapperPath = path.join(process.argv[1], "scripts", "mcp-wrapper.js");
   data.mcpServers.drawio = {
-    command: "npx",
-    args: ["-y", "@drawio/mcp@1.3.4"]
+    command: "node",
+    args: [wrapperPath]
   };
+
 
   const tmpPath = client.path + ".tmp";
   fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2), "utf8");
@@ -162,7 +164,7 @@ paths.forEach(client => {
   try { fs.chmodSync(client.path, 0o600); } catch(e) {}
   console.log(`- Configured ${client.name} at: ${client.path}`);
 });
-'
+' "$SCRIPT_DIR"
 
 echo "Verifying @drawio/mcp package..."
 if npx -y @drawio/mcp@1.3.4 --help >/dev/null 2>&1; then
