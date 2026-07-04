@@ -139,7 +139,7 @@ Create a 3-tier AWS architecture diagram showing:
 
 ### Generated Output
 
-![AWS Architecture Example Diagram](examples/aws-architecture.png)
+![AWS Architecture Example Diagram](skills/drawio/examples/aws-architecture.png)
 
 ### Result
 
@@ -147,9 +147,8 @@ The diagram opens in the draw.io web editor in your browser. Every shape is a **
 
 - 🟦 **Blue containers** = VPC boundary with nested AZ swimlanes
 - 🟨 **Yellow containers** = Availability Zones
-- 🟩 **Green node** = Load balancer
-- 🔵 **Blue nodes** = Compute (EC2, ECS, Lambda)
-- ⬡ **Cylinders** = Data stores (RDS, ElastiCache)
+- 🟣 **Purple icons** = Load Balancer & Data Stores (ALB, RDS, ElastiCache)
+- 🟠 **Orange icons** = Compute Services (EC2, ECS, Lambda)
 - ┄ **Dashed lines** = Replication between AZs
 
 ### Key things to notice
@@ -159,7 +158,7 @@ The diagram opens in the draw.io web editor in your browser. Every shape is a **
 | **Nested containers** | VPC → AZ → Instance using `parent` hierarchy |
 | **Relative coordinates** | Children positioned relative to their container, not the canvas |
 | **Cross-container edges** | Edges between AZs use `parent="1"` so they route correctly |
-| **Semantic shapes** | `shape=cylinder3` for databases, `shape=mxgraph.flowchart.cloud` for internet |
+| **Semantic shapes** | `shape=mxgraph.aws4.resourceIcon` with `resIcon` for AWS services, matching the official icon set |
 | **HTML labels** | Bold titles + descriptions using `&lt;b&gt;` and `&lt;br&gt;` with `html=1` |
 | **Edge routing** | `routing: "libavoid"` makes connectors route around shapes cleanly |
 
@@ -167,7 +166,7 @@ The diagram opens in the draw.io web editor in your browser. Every shape is a **
 
 ## 📂 Bundled Resources
 
-### Reference Docs (`references/`)
+### Reference Docs (`skills/drawio/references/`)
 
 | File | Contents |
 |------|----------|
@@ -175,7 +174,7 @@ The diagram opens in the draw.io web editor in your browser. Every shape is a **
 | `layout-patterns.md` | Swimlane, nested container, and cross-functional table templates |
 | `edge-routing-guide.md` | Routing decisions: default vs libavoid, edge style compatibility |
 
-### Example Diagrams (`examples/`)
+### Example Diagrams (`skills/drawio/examples/`)
 
 | File | Type |
 |------|------|
