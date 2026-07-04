@@ -21,6 +21,7 @@ This plugin connects the [draw.io MCP server](https://github.com/jgraph/drawio-m
 | Client | What gets installed |
 |--------|-------------------|
 | **Kiro CLI** | Custom `@drawio` steering agent + MCP server registration |
+| **Kiro IDE** | GUI Powers panel plugin setup |
 | **Claude Desktop** | MCP server registration |
 | **Claude Code** | Native SKILL.md file + MCP server registration |
 | **Cursor** | Native `.mdc` rule file + MCP server registration |
