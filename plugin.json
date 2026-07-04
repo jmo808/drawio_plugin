@@ -1,0 +1,31 @@
+{
+  "name": "drawio",
+  "version": "1.1.0",
+  "description": "Draw.io diagramming agent plugin for generating, updating, and exporting technical diagrams via Mermaid, XML, or CSV",
+  "author": {
+    "name": "Antigravity Agent"
+  },
+  "license": "Apache-2.0",
+  "keywords": [
+    "drawio",
+    "diagram",
+    "mermaid",
+    "flowchart",
+    "architecture",
+    "sequence diagram",
+    "class diagram",
+    "ER diagram",
+    "ERD",
+    "state diagram",
+    "UML",
+    "network diagram",
+    "C4",
+    "BPMN",
+    "org chart",
+    "mindmap",
+    "gantt",
+    "swimlane",
+    "infrastructure",
+    "cloud architecture"
+  ]
+}

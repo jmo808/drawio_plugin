@@ -1,0 +1,50 @@
+sequenceDiagram
+    autonumber
+
+    participant C as Client
+    participant GW as API Gateway
+    participant Auth as Auth Service
+    participant US as User Service
+    participant OS as Order Service
+    participant DB as Database
+
+    C->>+GW: POST /api/orders (JWT)
+    GW->>+Auth: Validate Token
+
+    alt Token Valid
+        Auth-->>-GW: 200 OK (user_id, roles)
+        Note right of Auth: Token cached for 5 min
+
+        GW->>+US: GET /users/{user_id}
+        US->>+DB: SELECT * FROM users WHERE id = ?
+        DB-->>-US: User Record
+        US-->>-GW: 200 User Profile
+
+        GW->>+OS: POST /orders (user context)
+        Note over GW,OS: Forwarded with X-User-Id header
+
+        OS->>+DB: BEGIN TRANSACTION
+        OS->>DB: INSERT INTO orders (...)
+        OS->>DB: UPDATE inventory SET qty = qty - 1
+        DB-->>-OS: COMMIT OK
+
+        OS->>+US: PATCH /users/{user_id}/stats
+        Note right of US: Update order count
+        US->>+DB: UPDATE user_stats SET total_orders = total_orders + 1
+        DB-->>-US: 1 row updated
+        US-->>-OS: 200 OK
+
+        OS-->>-GW: 201 Created (order_id)
+        GW-->>C: 201 Created
+
+    else Token Expired
+        Auth-->>GW: 401 Token Expired
+        GW-->>C: 401 Unauthorized
+
+    else Token Invalid
+        Auth-->>GW: 403 Forbidden
+        Note over Auth,GW: Log suspicious activity
+        GW-->>C: 403 Forbidden
+    end
+
+    deactivate GW

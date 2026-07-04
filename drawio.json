@@ -1,0 +1,26 @@
+{
+  "name": "drawio",
+  "description": "Specialized agent for generating, updating, and exporting technical diagrams using the Draw.io MCP server.",
+  "prompt": "file://{{HOME}}/.kiro/agents/drawio.md",
+  "tools": [
+    "read",
+    "write",
+    "grep",
+    "glob",
+    "shell",
+    "@drawio"
+  ],
+  "allowedTools": [
+    "read",
+    "write",
+    "grep",
+    "glob",
+    "shell",
+    "@drawio"
+  ],
+  "resources": [],
+  "mcpServers": {},
+  "toolsSettings": {},
+  "hooks": {},
+  "includeMcpJson": true
+}
