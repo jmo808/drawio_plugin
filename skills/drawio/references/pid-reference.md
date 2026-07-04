@@ -49,14 +49,13 @@ When an architectural description calls for industrial equipment, use the follow
 - Control Valve (Pneumatic Actuator): `shape=mxgraph.pid2valves.valve;valveType=gate;actuator=diaphragm`
 
 ### Pumps and Compressors
-- Centrifugal Pump: `shape=mxgraph.pid.pumps.centrifugal_pump_1;` or `shape=mxgraph.pid.engines.electric_motor;` attached to a pump casing.
-- Centrifugal Compressor: `shape=mxgraph.pid.compressors.centrifugal_compressor`
-- Positive Displacement Pump: `shape=mxgraph.pid.pumps.positive_displacement_pump_1;`
+**WARNING**: Draw.io's `mxgraph.pid` shapes have hardcoded connection ports that often CANNOT be overridden. This causes bizarre internal routing, reversed arrows, and overlapping lines. For PFDs where precise physical routing (top/bottom/side) is required, **DO NOT USE `mxgraph.pid` shapes for major equipment**. Instead, use basic primitives:
+- Centrifugal Pump / Compressor: `shape=ellipse;`
 
 ### Vessels, Tanks, and Columns
-- Separator / Settling Vessel: `shape=mxgraph.pid.separators.gravity_separator,_settling_chamber2;`
-- Distillation Column: `shape=mxgraph.pid2misc.column;columnType=tray`
-- Simple Storage Tank: Use a generic cylinder or `shape=mxgraph.pid.vessels.tank;`
+- Separator / Settling Vessel: `shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=15;`
+- Distillation Column: `shape=cylinder3;` (drawn taller)
+- Simple Storage Tank: `shape=cylinder3;`
 
 ### Heat Exchangers
 Since a dedicated "Shell and Tube" specific shape may not surface directly via simple queries, use the closest approximation or combine primitives:
@@ -76,6 +75,6 @@ Since a dedicated "Shell and Tube" specific shape may not surface directly via s
    - **Gas/Vapor**: Exits from the **top** of the vessel (`exitX=0.5;exitY=0`).
    - **Light Liquid (Oil)**: Exits from the **side/weir** or middle (`exitX=1;exitY=0.5`).
    - **Heavy Liquid (Water)**: Exits from the **bottom** (`exitX=0.5;exitY=1`).
-4. **Overriding Shape Perimeters (CRITICAL)**: Many complex P&ID shapes (like `mxgraph.pid.separators.*`) have hardcoded connection ports. If you specify `entryX` or `exitX`, Draw.io will **ignore** them and force lines through the center of the shape, creating visually impossible overlapping routes. To fix this, you MUST add `perimeter=rectanglePerimeter;` to the style of vessels, or `perimeter=ellipsePerimeter;` to the style of pumps/compressors. This disables the hardcoded ports and allows your custom `entryX`/`exitX` coordinates to work.
+4. **Overriding Shape Perimeters (CRITICAL)**: Many complex P&ID shapes (like `mxgraph.pid.separators.*`) have hardcoded connection ports. If you specify `entryX` or `exitX`, Draw.io will **ignore** them and force lines through the center of the shape, creating visually impossible overlapping routes. To fix this, you MUST either use basic primitive shapes (like `cylinder3` or `ellipse`) or attempt to add `perimeter=rectanglePerimeter;` / `perimeter=ellipsePerimeter;` to the style. Note that perimeter overrides do not always work on complex PID shapes, so **primitives are strongly preferred** for exact routing.
 5. **Spacing**: Leave ample room between major equipment nodes to route process lines and place instrumentation loops without clutter. Use the standard rigid grid but space equipment further apart (e.g., every 2 or 3 columns) compared to software architecture diagrams.
 6. **Standalone Edge Labels**: Do NOT use the `value` attribute on edges to label process streams (e.g., `value="Gas"`). Draw.io's orthogonal router will often overlap labels if lines share any axis segments. Instead, create a completely separate `<mxCell style="text;...">` text node for the label and position it manually (using absolute coordinates via `mxGeometry`) just above the horizontal segment of the edge.

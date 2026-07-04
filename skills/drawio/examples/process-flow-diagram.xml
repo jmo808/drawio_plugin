@@ -9,17 +9,17 @@
     </mxCell>
 
     <!-- Equipment: Separator -->
-    <mxCell id="V-100" value="V-100&#xa;3-Phase Separator" style="verticalLabelPosition=bottom;align=center;dashed=0;html=1;verticalAlign=top;shape=mxgraph.pid.separators.gravity_separator,_settling_chamber2;perimeter=rectanglePerimeter;" vertex="1" parent="1">
+    <mxCell id="V-100" value="V-100&#xa;3-Phase Separator" style="verticalLabelPosition=bottom;align=center;dashed=0;html=1;verticalAlign=top;shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=15;" vertex="1" parent="1">
       <mxGeometry x="220" y="200" width="80" height="120" as="geometry" />
     </mxCell>
 
     <!-- Equipment: Gas Compressor -->
-    <mxCell id="K-102" value="K-102&#xa;Gas Compressor" style="verticalLabelPosition=bottom;outlineConnect=0;align=center;dashed=0;html=1;verticalAlign=top;shape=mxgraph.pid.compressors.centrifugal_compressor;perimeter=ellipsePerimeter;" vertex="1" parent="1">
+    <mxCell id="K-102" value="K-102&#xa;Gas Compressor" style="verticalLabelPosition=bottom;align=center;dashed=0;html=1;verticalAlign=top;shape=ellipse;whiteSpace=wrap;" vertex="1" parent="1">
       <mxGeometry x="460" y="80" width="70" height="70" as="geometry" />
     </mxCell>
 
     <!-- Equipment: Oil Pump -->
-    <mxCell id="P-101A" value="P-101A&#xa;Oil Export Pump" style="dashed=0;outlineConnect=0;align=center;html=1;verticalLabelPosition=bottom;verticalAlign=top;shape=mxgraph.pid.engines.electric_motor;perimeter=ellipsePerimeter;" vertex="1" parent="1">
+    <mxCell id="P-101A" value="P-101A&#xa;Oil Export Pump" style="verticalLabelPosition=bottom;align=center;dashed=0;html=1;verticalAlign=top;shape=ellipse;whiteSpace=wrap;" vertex="1" parent="1">
       <mxGeometry x="460" y="400" width="60" height="60" as="geometry" />
     </mxCell>
 
