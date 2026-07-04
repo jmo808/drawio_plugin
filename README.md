@@ -206,6 +206,32 @@ Create a Two-Stage Gas Compression Train Process Flow Diagram (PFD):
 
 ---
 
+## ⛏️ Example: Mining Flotation Circuit (PFD)
+
+The same strict physical routing rules apply seamlessly to other heavy industries like mining, where slurry, froth, and tailings have strictly defined exit vectors.
+
+### Prompt
+
+```
+Create a Copper Froth Flotation Circuit PFD:
+- Milled Ore Slurry enters P-301 Slurry Pump
+- P-301 pumps pressurized feed into CY-301 Hydrocyclone
+- CY-301 underflow (coarse rock) drains back to the mill
+- CY-301 overflow (fine slurry) goes to TK-301 Rougher Flotation Cell
+- TK-301 floats Copper Concentrate out the top
+- TK-301 drains Tailings Waste out the bottom
+```
+
+### Generated Output
+
+![Copper Flotation Example](skills/drawio/examples/copper-flotation-pfd.png)
+
+This diagram enforces:
+- Native Draw.io `mxgraph.pid.misc.cyclone` and `mxgraph.pid.vessels.tank` shapes.
+- Complete absence of algorithmic routing (`libavoid`), ensuring the cyclone's fine overflow strictly exits the absolute top and coarse underflow drops from the absolute bottom.
+
+---
+
 ## 📊 Example: Generating an Org Chart (CSV)
 
 While most diagrams are generated via native XML, structured tabular data like organizational charts is best built using draw.io's CSV import feature.
