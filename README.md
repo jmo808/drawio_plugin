@@ -83,7 +83,7 @@ powershell -ExecutionPolicy Bypass -File install.ps1
 ```
 
 The installer:
-1. Detects which clients are present and configures only those
+1. Detects which clients are present (including **Kiro CLI**, Claude Desktop, etc.) and configures only those
 2. Creates `.bak` backups of all modified config files
 3. Verifies the `@drawio/mcp` package is accessible
 
@@ -91,8 +91,8 @@ The installer:
 
 | Location | Contents |
 |----------|----------|
-| `~/.kiro/agents/drawio.json` | Kiro agent manifest |
-| `~/.kiro/agents/drawio.md` | Kiro agent skill instructions |
+| `~/.kiro/agents/drawio.json` | Kiro CLI agent manifest |
+| `~/.kiro/agents/drawio.md` | Kiro CLI agent skill instructions |
 | `~/.gemini/config/plugins/drawio/` | Antigravity plugin (SKILL.md, references, examples) |
 | `~/.claude/skills/drawio/SKILL.md` | Claude Code skill instructions |
 | `~/.cursor/rules/drawio.mdc` | Cursor rule instructions |
