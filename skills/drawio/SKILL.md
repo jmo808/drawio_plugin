@@ -113,11 +113,11 @@ For BPMN-style swimlanes:
 - Cross-lane edges: `parent="1"`
 - Lane colors in order: `#f5f5f5, #e8f4f8, #fff0e6, #e8f5e9, #fff9e6, #fce4ec`
 
-## [Oil & Gas PFD Domain Rules (CRITICAL)]
-If generating or editing an Oil & Gas Process Flow Diagram (PFD), you MUST follow these physics and engineering rules:
-1. **Separator Outlets (V-100)**: Do NOT share a single bottom nozzle for oil and water.
-   - **Gas/Vapor**: Exit from absolute-top-center (`exitX=0.5;exitY=0`).
-   - **Light Liquid (Oil)**: Exit from side-mid-elevation (`exitX=1;exitY=0.5`).
+## [Process Engineering PFD Domain Rules (CRITICAL)]
+If generating or editing a heavy industry Process Flow Diagram (PFD) (e.g., Oil & Gas, Mining, Chemical), you MUST follow these physics and engineering rules:
+1. **Separator Outlets**: Do NOT share a single bottom nozzle for mixed phases.
+   - **Gas/Froth (Lightest)**: Exit from absolute top-center (`exitX=0.5;exitY=0`).
+   - **Mid-Phase Liquid**: Exit from side-mid-elevation (`exitX=1;exitY=0.5`).
    - **Heavy Liquid (Water)**: Exit from absolute-bottom-cone (`exitX=0.5;exitY=1`).
    - **Feed Inlet**: Enter side-upper-left (`entryX=0;entryY=0.33`).
 2. **Compressor (K-102)**: Use `shape=trapezoid;direction=south;`. This represents a centrifugal compressor casing converging left-to-right. Route the inlet to the left side (`entryX=0;entryY=0.5`) and discharge out the right side (`exitX=1;exitY=0.5`).
@@ -190,5 +190,5 @@ For detailed syntax and patterns, consult:
 - `references/layout-patterns.md` — swimlane, container, and table layout templates
 - `references/edge-routing-guide.md` — routing and layout pass decision guide
 - `references/pid-reference.md` — ISA conventions and native draw.io shapes for industrial P&ID / PFDs
-- `references/ogpfdexpert.md` — Oil & Gas / process flow diagram (PFD) domain rules and validation instructions
+- `references/pfd-engineering-expert.md` — Process engineering (PFD) domain rules and validation instructions (Oil & Gas, Mining, etc.)
 - `examples/` — reference diagram implementations (AWS architecture XML, org chart CSV, process flow diagram XML)

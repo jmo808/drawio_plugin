@@ -324,6 +324,19 @@ When importing organizational charts via CSV (`open_drawio_csv`), draw.io relies
 
 ---
 
+## 🧠 Extending with Domain Experts
+
+You can effortlessly teach the agent entirely new diagramming domains (like electrical schematics, HVAC layouts, or UML patterns) without modifying its core prompt.
+
+To extend the agent's capabilities:
+1. Create a markdown file ending with `expert.md` (e.g., `electrical-expert.md`).
+2. Inside, define the strict rules for that domain (e.g., standard shapes, grid snapping, routing restrictions, and anti-patterns to avoid).
+3. Drop the file into the `skills/drawio/references/` folder.
+
+When a user asks to draw an electrical schematic, the AI will naturally retrieve and ingest the `electrical-expert.md` rules alongside the standard draw.io layout tools, acting as a modular, highly-specialized domain expert.
+
+---
+
 ## 🔒 Security
 
 This plugin has been security-audited. Key protections:
