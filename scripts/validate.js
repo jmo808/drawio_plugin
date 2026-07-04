@@ -155,6 +155,49 @@ for (let i = 0; i < nodeIds.length; i++) {
     }
 }
 
+// Check edge waypoints against node bounding boxes
+for (const id in cells) {
+    const cell = cells[id];
+    if (!cell.isEdge) continue;
+
+    // Find all mxPoint elements inside Array as="points"
+    const el = doc.getElementById(id) || mxCells[Array.from(mxCells).findIndex(e => e.getAttribute('id') === id)];
+    if (!el) continue;
+    
+    const geom = el.getElementsByTagName('mxGeometry')[0];
+    if (!geom) continue;
+    
+    const arrayEl = geom.getElementsByTagName('Array')[0];
+    if (!arrayEl) continue;
+
+    const points = arrayEl.getElementsByTagName('mxPoint');
+    for (let k = 0; k < points.length; k++) {
+        const px = parseFloat(points[k].getAttribute('x') || '0');
+        const py = parseFloat(points[k].getAttribute('y') || '0');
+        
+        // Convert point to absolute if edge has parent (though edges are usually parent="1")
+        let abs_px = px;
+        let abs_py = py;
+        if (cell.parent && cells[cell.parent]) {
+            abs_px += cells[cell.parent].abs_x;
+            abs_py += cells[cell.parent].abs_y;
+        }
+
+        // Check against all nodes
+        for (let i = 0; i < nodeIds.length; i++) {
+            const n = cells[nodeIds[i]];
+            // Don't flag collision if the edge connects to this node (source or target)
+            if (el.getAttribute('source') === n.id || el.getAttribute('target') === n.id) continue;
+            
+            // Add a small 2px buffer to allow routing along the edge of a node
+            if (abs_px > n.abs_x + 2 && abs_px < n.abs_x + n.width - 2 && 
+                abs_py > n.abs_y + 2 && abs_py < n.abs_y + n.height - 2) {
+                reportError('WAYPOINT_COLLISION', id, `Edge waypoint [${abs_px}, ${abs_py}] is inside node ${n.id} [${n.abs_x}, ${n.abs_y}, ${n.width}x${n.height}]. This causes the line to cut through the shape.`);
+            }
+        }
+    }
+}
+
 if (errorsFound > 0) {
     console.log(`\n❌ Validation failed: ${errorsFound} issues found.`);
     console.log(`Please adjust coordinates to prevent collisions, and fix formatting errors.`);

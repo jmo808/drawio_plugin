@@ -175,4 +175,5 @@ For detailed syntax and patterns, consult:
 - `references/xml-style-reference.md` — complete XML style properties, shapes, colors, HTML labels
 - `references/layout-patterns.md` — swimlane, container, and table layout templates
 - `references/edge-routing-guide.md` — routing and layout pass decision guide
-- `examples/` — reference diagram implementations (AWS architecture XML, org chart CSV)
+- `references/pid-reference.md` — ISA conventions and native draw.io shapes for industrial P&ID / PFDs
+- `examples/` — reference diagram implementations (AWS architecture XML, org chart CSV, process flow diagram XML)
