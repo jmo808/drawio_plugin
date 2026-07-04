@@ -23,6 +23,11 @@
       <mxGeometry x="460" y="400" width="60" height="60" as="geometry" />
     </mxCell>
 
+    <!-- Destination: Water Treatment -->
+    <mxCell id="water-dest" value="Produced Water" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;" vertex="1" parent="1">
+      <mxGeometry x="460" y="550" width="100" height="40" as="geometry" />
+    </mxCell>
+
     <!-- Valve: Level Control Valve on Oil Line -->
     <mxCell id="LCV-100" value="LCV-100" style="verticalLabelPosition=bottom;align=center;html=1;verticalAlign=top;pointerEvents=1;dashed=0;shape=mxgraph.pid2valves.valve;valveType=gate;actuator=diaphragm" vertex="1" parent="1">
       <mxGeometry x="640" y="390" width="40" height="80" as="geometry" />
@@ -39,7 +44,7 @@
     </mxCell>
 
     <!-- Stream: Feed Inlet -->
-    <mxCell id="feed-line" value="Wellhead Fluid" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;labelBackgroundColor=#ffffff;entryX=0;entryY=0.5;" edge="1" parent="1" source="title" target="V-100">
+    <mxCell id="feed-line" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;entryX=0;entryY=0.5;entryDx=0;entryDy=0;exitX=0.35;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="title" target="V-100">
       <mxGeometry relative="1" as="geometry">
         <Array as="points">
           <mxPoint x="180" y="60" />
@@ -47,35 +52,53 @@
         </Array>
       </mxGeometry>
     </mxCell>
+    
+    <!-- Explicit Feed Label -->
+    <mxCell id="feed-label" value="Wellhead Fluid" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="80" y="235" width="100" height="30" as="geometry" />
+    </mxCell>
 
     <!-- Stream: Gas Outlet to Compressor -->
-    <mxCell id="gas-line" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;" edge="1" parent="1" source="V-100" target="K-102">
+    <mxCell id="gas-line" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;exitX=0.5;exitY=0;exitDx=0;exitDy=0;" edge="1" parent="1" source="V-100" target="K-102">
       <mxGeometry relative="1" as="geometry">
         <Array as="points">
-          <mxPoint x="340" y="260" />
-          <mxPoint x="340" y="115" />
+          <mxPoint x="260" y="115" />
         </Array>
       </mxGeometry>
     </mxCell>
     
     <!-- Explicit Gas Label -->
     <mxCell id="gas-label" value="Gas" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=12;" vertex="1" parent="1">
-      <mxGeometry x="300" y="235" width="40" height="30" as="geometry" />
+      <mxGeometry x="270" y="95" width="40" height="30" as="geometry" />
     </mxCell>
 
     <!-- Stream: Oil Outlet to Pump -->
-    <mxCell id="oil-line" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;" edge="1" parent="1" source="V-100" target="P-101A">
+    <mxCell id="oil-line" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;" edge="1" parent="1" source="V-100" target="P-101A">
       <mxGeometry relative="1" as="geometry">
         <Array as="points">
-          <mxPoint x="380" y="260" />
-          <mxPoint x="380" y="430" />
+          <mxPoint x="360" y="260" />
+          <mxPoint x="360" y="430" />
         </Array>
       </mxGeometry>
     </mxCell>
 
     <!-- Explicit Oil Label -->
     <mxCell id="oil-label" value="Oil" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=12;" vertex="1" parent="1">
-      <mxGeometry x="340" y="235" width="40" height="30" as="geometry" />
+      <mxGeometry x="320" y="235" width="40" height="30" as="geometry" />
+    </mxCell>
+
+    <!-- Stream: Water Outlet -->
+    <mxCell id="water-line" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" parent="1" source="V-100" target="water-dest">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="260" y="570" />
+        </Array>
+      </mxGeometry>
+    </mxCell>
+
+    <!-- Explicit Water Label -->
+    <mxCell id="water-label" value="Water" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;fontSize=12;" vertex="1" parent="1">
+      <mxGeometry x="270" y="550" width="50" height="30" as="geometry" />
     </mxCell>
 
     <!-- Stream: Pump to Control Valve -->

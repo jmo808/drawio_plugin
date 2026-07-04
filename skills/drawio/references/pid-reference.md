@@ -71,4 +71,10 @@ Since a dedicated "Shell and Tube" specific shape may not surface directly via s
 ## 4. Diagram Layout Strategy (PFDs)
 1. **Flow Direction**: Flow typically goes from **Left to Right**. Feed streams enter on the left, and products exit on the right.
 2. **Gravity**: Place equipment relative to its physical elevation (e.g., distillation columns span multiple vertical rows, pumps are at the bottom, condensers are higher up).
-3. **Spacing**: Leave ample room between major equipment nodes to route process lines and place instrumentation loops without clutter. Use the standard rigid grid but space equipment further apart (e.g., every 2 or 3 columns) compared to software architecture diagrams.
+3. **Phase Separation Rules (CRITICAL)**: When routing into or out of separation vessels (e.g., 3-Phase Separators), you MUST respect physical reality and strictly enforce `entryX`/`exitX` constraints to override default routing:
+   - **Feed**: Enters the side of the vessel (`entryX=0;entryY=0.5`).
+   - **Gas/Vapor**: Exits from the **top** of the vessel (`exitX=0.5;exitY=0`).
+   - **Light Liquid (Oil)**: Exits from the **side/weir** or middle (`exitX=1;exitY=0.5`).
+   - **Heavy Liquid (Water)**: Exits from the **bottom** (`exitX=0.5;exitY=1`).
+4. **Spacing**: Leave ample room between major equipment nodes to route process lines and place instrumentation loops without clutter. Use the standard rigid grid but space equipment further apart (e.g., every 2 or 3 columns) compared to software architecture diagrams.
+5. **Standalone Edge Labels**: Do NOT use the `value` attribute on edges to label process streams (e.g., `value="Gas"`). Draw.io's orthogonal router will often overlap labels if lines share any axis segments. Instead, create a completely separate `<mxCell style="text;...">` text node for the label and position it manually (using absolute coordinates via `mxGeometry`) just above the horizontal segment of the edge.

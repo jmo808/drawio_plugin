@@ -155,7 +155,7 @@ for (let i = 0; i < nodeIds.length; i++) {
     }
 }
 
-// Check edge waypoints against node bounding boxes
+// Check edge waypoints against node bounding boxes and check for missing explicit routing
 for (const id in cells) {
     const cell = cells[id];
     if (!cell.isEdge) continue;
@@ -163,6 +163,27 @@ for (const id in cells) {
     // Find all mxPoint elements inside Array as="points"
     const el = doc.getElementById(id) || mxCells[Array.from(mxCells).findIndex(e => e.getAttribute('id') === id)];
     if (!el) continue;
+
+    const source = el.getAttribute('source');
+    const target = el.getAttribute('target');
+
+    // Rule: MISSING_EXPLICIT_ROUTING for complex shapes
+    if (source && cells[source]) {
+        const sourceStyle = cells[source].style;
+        if (sourceStyle.includes('mxgraph.pid.separators')) {
+            if (!cell.style.includes('exitX=') || !cell.style.includes('exitY=')) {
+                reportError('MISSING_EXPLICIT_ROUTING', id, `Edge connects to separator ${source} but is missing explicit 'exitX' and 'exitY' in its style. Draw.io defaults will cause overlapping lines. Explicitly define exits (e.g., top=0.5,0; bottom=0.5,1).`);
+            }
+        }
+    }
+    if (target && cells[target]) {
+        const targetStyle = cells[target].style;
+        if (targetStyle.includes('mxgraph.pid.separators')) {
+            if (!cell.style.includes('entryX=') || !cell.style.includes('entryY=')) {
+                reportError('MISSING_EXPLICIT_ROUTING', id, `Edge connects to separator ${target} but is missing explicit 'entryX' and 'entryY' in its style. Explicitly define entries to prevent routing overlaps.`);
+            }
+        }
+    }
     
     const geom = el.getElementsByTagName('mxGeometry')[0];
     if (!geom) continue;
