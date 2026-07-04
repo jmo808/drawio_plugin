@@ -7,35 +7,39 @@
     </mxCell>
     
     <mxCell id="vpc" value="VPC (10.0.0.0/16)" style="swimlane;startSize=24;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;fontSize=12;fontStyle=1;" vertex="1" parent="1">
-      <mxGeometry x="40" y="100" width="800" height="740" as="geometry"/>
+      <mxGeometry x="40" y="100" width="800" height="820" as="geometry"/>
     </mxCell>
     
-    <!-- External ALB Spanning AZs -->
+    <!-- External ALB Spanning AZs (inside VPC, above AZs) -->
     <mxCell id="ext-alb" value="External ALB" style="shape=mxgraph.aws4.application_load_balancer;fillColor=#8C4FFF;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;pointerEvents=1;" vertex="1" parent="vpc">
       <mxGeometry x="361" y="40" width="78" height="78" as="geometry"/>
     </mxCell>
 
     <!-- AZ 1 -->
     <mxCell id="az1" value="AZ us-east-1a" style="swimlane;startSize=24;fillColor=#fff2cc;strokeColor=#d6b656;html=1;fontSize=11;fontStyle=1;" vertex="1" parent="vpc">
-      <mxGeometry x="20" y="140" width="360" height="580" as="geometry"/>
+      <mxGeometry x="20" y="140" width="360" height="660" as="geometry"/>
+    </mxCell>
+
+    <mxCell id="pub-sub-1" value="Public Subnet" style="swimlane;startSize=24;fillColor=#e1d5e7;strokeColor=#9673a6;html=1;fontSize=11;fontStyle=1;" vertex="1" parent="az1">
+      <mxGeometry x="20" y="40" width="320" height="60" as="geometry"/>
     </mxCell>
 
     <mxCell id="web-sub-1" value="Private Web Subnet" style="swimlane;startSize=24;fillColor=#e1d5e7;strokeColor=#9673a6;html=1;fontSize=11;fontStyle=1;" vertex="1" parent="az1">
-      <mxGeometry x="20" y="40" width="320" height="140" as="geometry"/>
+      <mxGeometry x="20" y="120" width="320" height="140" as="geometry"/>
     </mxCell>
     <mxCell id="web1" value="Web Tier&#xa;EC2 (t3.large)" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.ec2;fillColor=#ED7100;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;" vertex="1" parent="web-sub-1">
       <mxGeometry x="121" y="40" width="78" height="78" as="geometry"/>
     </mxCell>
 
     <mxCell id="app-sub-1" value="Private App Subnet" style="swimlane;startSize=24;fillColor=#d5e8d4;strokeColor=#82b366;html=1;fontSize=11;fontStyle=1;" vertex="1" parent="az1">
-      <mxGeometry x="20" y="200" width="320" height="140" as="geometry"/>
+      <mxGeometry x="20" y="280" width="320" height="140" as="geometry"/>
     </mxCell>
     <mxCell id="app1" value="App Tier&#xa;ECS Task" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.ecs;fillColor=#ED7100;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;" vertex="1" parent="app-sub-1">
       <mxGeometry x="121" y="40" width="78" height="78" as="geometry"/>
     </mxCell>
 
     <mxCell id="data-sub-1" value="Private Data Subnet" style="swimlane;startSize=24;fillColor=#f8cecc;strokeColor=#b85450;html=1;fontSize=11;fontStyle=1;" vertex="1" parent="az1">
-      <mxGeometry x="20" y="360" width="320" height="200" as="geometry"/>
+      <mxGeometry x="20" y="440" width="320" height="200" as="geometry"/>
     </mxCell>
     <mxCell id="rds-primary" value="RDS Primary&#xa;PostgreSQL" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.rds;fillColor=#C925D1;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;" vertex="1" parent="data-sub-1">
       <mxGeometry x="41" y="60" width="78" height="78" as="geometry"/>
@@ -46,25 +50,29 @@
 
     <!-- AZ 2 -->
     <mxCell id="az2" value="AZ us-east-1b" style="swimlane;startSize=24;fillColor=#fff2cc;strokeColor=#d6b656;html=1;fontSize=11;fontStyle=1;" vertex="1" parent="vpc">
-      <mxGeometry x="420" y="140" width="360" height="580" as="geometry"/>
+      <mxGeometry x="420" y="140" width="360" height="660" as="geometry"/>
+    </mxCell>
+
+    <mxCell id="pub-sub-2" value="Public Subnet" style="swimlane;startSize=24;fillColor=#e1d5e7;strokeColor=#9673a6;html=1;fontSize=11;fontStyle=1;" vertex="1" parent="az2">
+      <mxGeometry x="20" y="40" width="320" height="60" as="geometry"/>
     </mxCell>
     
     <mxCell id="web-sub-2" value="Private Web Subnet" style="swimlane;startSize=24;fillColor=#e1d5e7;strokeColor=#9673a6;html=1;fontSize=11;fontStyle=1;" vertex="1" parent="az2">
-      <mxGeometry x="20" y="40" width="320" height="140" as="geometry"/>
+      <mxGeometry x="20" y="120" width="320" height="140" as="geometry"/>
     </mxCell>
     <mxCell id="web2" value="Web Tier&#xa;EC2 (t3.large)" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.ec2;fillColor=#ED7100;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;" vertex="1" parent="web-sub-2">
       <mxGeometry x="121" y="40" width="78" height="78" as="geometry"/>
     </mxCell>
 
     <mxCell id="app-sub-2" value="Private App Subnet" style="swimlane;startSize=24;fillColor=#d5e8d4;strokeColor=#82b366;html=1;fontSize=11;fontStyle=1;" vertex="1" parent="az2">
-      <mxGeometry x="20" y="200" width="320" height="140" as="geometry"/>
+      <mxGeometry x="20" y="280" width="320" height="140" as="geometry"/>
     </mxCell>
     <mxCell id="app2" value="App Tier&#xa;ECS Task" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.ecs;fillColor=#ED7100;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;" vertex="1" parent="app-sub-2">
       <mxGeometry x="121" y="40" width="78" height="78" as="geometry"/>
     </mxCell>
 
     <mxCell id="data-sub-2" value="Private Data Subnet" style="swimlane;startSize=24;fillColor=#f8cecc;strokeColor=#b85450;html=1;fontSize=11;fontStyle=1;" vertex="1" parent="az2">
-      <mxGeometry x="20" y="360" width="320" height="200" as="geometry"/>
+      <mxGeometry x="20" y="440" width="320" height="200" as="geometry"/>
     </mxCell>
     <mxCell id="rds-replica" value="RDS Replica&#xa;Read-Only" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.rds;fillColor=#C925D1;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;" vertex="1" parent="data-sub-2">
       <mxGeometry x="41" y="60" width="78" height="78" as="geometry"/>
@@ -75,7 +83,7 @@
 
     <!-- Internal ALB Spanning AZs -->
     <mxCell id="int-alb" value="Internal ALB" style="shape=mxgraph.aws4.application_load_balancer;fillColor=#8C4FFF;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;pointerEvents=1;" vertex="1" parent="vpc">
-      <mxGeometry x="361" y="300" width="78" height="78" as="geometry"/>
+      <mxGeometry x="361" y="380" width="78" height="78" as="geometry"/>
     </mxCell>
 
     <!-- Edges -->
