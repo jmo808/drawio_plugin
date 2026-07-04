@@ -9,25 +9,21 @@
     </mxCell>
 
     <!-- Equipment: Separator -->
-    <!-- y=200 to 320 -->
     <mxCell id="V-100" value="V-100&#xa;3-Phase Separator" style="verticalLabelPosition=bottom;align=center;dashed=0;html=1;verticalAlign=top;shape=mxgraph.pid.separators.gravity_separator,_settling_chamber2;" vertex="1" parent="1">
       <mxGeometry x="220" y="200" width="80" height="120" as="geometry" />
     </mxCell>
 
     <!-- Equipment: Gas Compressor -->
-    <!-- y=80 to 150 -->
-    <mxCell id="K-102" value="K-102&#xa;Gas Compressor" style="verticalLabelPosition=bottom;outlineConnect=0;align=center;dashed=0;html=1;verticalAlign=top;shape=mxgraph.pid.compressors.centrifugal_compressor" vertex="1" parent="1">
+    <mxCell id="K-102" value="K-102&#xa;Gas Compressor" style="verticalLabelPosition=bottom;outlineConnect=0;align=center;dashed=0;html=1;verticalAlign=top;shape=mxgraph.pid.compressors.centrifugal_compressor;perimeter=ellipsePerimeter;" vertex="1" parent="1">
       <mxGeometry x="460" y="80" width="70" height="70" as="geometry" />
     </mxCell>
 
     <!-- Equipment: Oil Pump -->
-    <!-- y=400 to 460 -->
-    <mxCell id="P-101A" value="P-101A&#xa;Oil Export Pump" style="dashed=0;outlineConnect=0;align=center;html=1;verticalLabelPosition=bottom;verticalAlign=top;shape=mxgraph.pid.engines.electric_motor;" vertex="1" parent="1">
+    <mxCell id="P-101A" value="P-101A&#xa;Oil Export Pump" style="dashed=0;outlineConnect=0;align=center;html=1;verticalLabelPosition=bottom;verticalAlign=top;shape=mxgraph.pid.engines.electric_motor;perimeter=ellipsePerimeter;" vertex="1" parent="1">
       <mxGeometry x="460" y="400" width="60" height="60" as="geometry" />
     </mxCell>
 
     <!-- Valve: Level Control Valve on Oil Line -->
-    <!-- y=390 to 470 -->
     <mxCell id="LCV-100" value="LCV-100" style="verticalLabelPosition=bottom;align=center;html=1;verticalAlign=top;pointerEvents=1;dashed=0;shape=mxgraph.pid2valves.valve;valveType=gate;actuator=diaphragm" vertex="1" parent="1">
       <mxGeometry x="640" y="390" width="40" height="80" as="geometry" />
     </mxCell>
@@ -43,19 +39,26 @@
     </mxCell>
 
     <!-- Stream: Feed Inlet -->
-    <mxCell id="feed-line" value="Wellhead Fluid" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;labelBackgroundColor=#ffffff;entryX=0.5;entryY=0;" edge="1" parent="1" source="title" target="V-100">
-      <mxGeometry relative="1" as="geometry" />
+    <!-- Enters from left of separator -->
+    <mxCell id="feed-line" value="Wellhead Fluid" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;labelBackgroundColor=#ffffff;entryX=0;entryY=0.5;" edge="1" parent="1" source="title" target="V-100">
+      <mxGeometry relative="1" as="geometry">
+        <Array as="points">
+          <mxPoint x="180" y="60" />
+          <mxPoint x="180" y="260" />
+        </Array>
+      </mxGeometry>
     </mxCell>
 
     <!-- Stream: Gas Outlet to Compressor -->
-    <!-- Exits at 25% height (y=230), goes to compressor (y=115) -->
-    <mxCell id="gas-line" value="Gas" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;labelBackgroundColor=#ffffff;exitX=1;exitY=0.25;entryX=0;entryY=0.5;exitDx=0;exitDy=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="V-100" target="K-102">
+    <!-- Exits from TOP of separator, completely avoiding the oil line -->
+    <!-- target is K-102 without entryX to allow clean perimeter routing -->
+    <mxCell id="gas-line" value="Gas" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;labelBackgroundColor=#ffffff;exitX=0.5;exitY=0;exitDx=0;exitDy=0;" edge="1" parent="1" source="V-100" target="K-102">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>
 
     <!-- Stream: Oil Outlet to Pump -->
-    <!-- Exits at 75% height (y=290), goes to pump (y=430) -->
-    <mxCell id="oil-line" value="Oil" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;labelBackgroundColor=#ffffff;exitX=1;exitY=0.75;entryX=0;entryY=0.5;exitDx=0;exitDy=0;entryDx=0;entryDy=0;" edge="1" parent="1" source="V-100" target="P-101A">
+    <!-- Exits from BOTTOM of separator, completely avoiding the gas line -->
+    <mxCell id="oil-line" value="Oil" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;strokeWidth=2;labelBackgroundColor=#ffffff;exitX=0.5;exitY=1;exitDx=0;exitDy=0;" edge="1" parent="1" source="V-100" target="P-101A">
       <mxGeometry relative="1" as="geometry" />
     </mxCell>
 
