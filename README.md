@@ -98,80 +98,14 @@ Create a 3-tier AWS architecture diagram showing:
 ### What the AI does
 
 1. **Identifies the diagram type** — cloud architecture with nested containers
-2. **Chooses XML** (not Mermaid) — because the diagram needs nested containers (VPC > AZ > instances) and domain-specific shapes
+2. **Uses XML for all diagrams** — as strictly instructed by the skill rules, ensuring reliable parsing
 3. **Applies the rigid grid system** — places nodes at calculated positions
 4. **Uses proper containment** — VPC is a swimlane, AZs are nested swimlanes inside VPC, instances have `parent="az1"` with relative coordinates
 5. **Calls `open_drawio_xml`** — with the generated XML and `routing: "libavoid"` for clean edge routing
 
-### Generated XML (abbreviated)
+### Generated Output
 
-```xml
-<mxGraphModel>
-  <root>
-    <mxCell id="0"/>
-    <mxCell id="1" parent="0"/>
-
-    <!-- Cloud shape for internet users -->
-    <mxCell id="users" value="&lt;b&gt;Internet / Users&lt;/b&gt;"
-            style="shape=mxgraph.flowchart.cloud;whiteSpace=wrap;html=1;
-                   fillColor=#f5f5f5;strokeColor=#666666;"
-            vertex="1" parent="1">
-      <mxGeometry x="310" y="40" width="140" height="80" as="geometry"/>
-    </mxCell>
-
-    <!-- ALB -->
-    <mxCell id="alb" value="&lt;b&gt;ALB&lt;/b&gt;&lt;br&gt;Application Load Balancer"
-            style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;"
-            vertex="1" parent="1">
-      <mxGeometry x="310" y="180" width="140" height="60" as="geometry"/>
-    </mxCell>
-
-    <!-- VPC container (outermost swimlane) -->
-    <mxCell id="vpc" value="VPC (10.0.0.0/16)"
-            style="swimlane;startSize=24;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;"
-            vertex="1" parent="1">
-      <mxGeometry x="40" y="300" width="700" height="620" as="geometry"/>
-    </mxCell>
-
-    <!-- AZ 1 (nested inside VPC) -->
-    <mxCell id="az1" value="AZ us-east-1a"
-            style="swimlane;startSize=24;fillColor=#fff2cc;strokeColor=#d6b656;html=1;"
-            vertex="1" parent="vpc">
-      <mxGeometry x="20" y="36" width="320" height="560" as="geometry"/>
-    </mxCell>
-
-    <!-- EC2 instance (nested inside AZ) — note parent="az1" -->
-    <mxCell id="web1" value="&lt;b&gt;EC2&lt;/b&gt;&lt;br&gt;web-1 (t3.large)"
-            style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;"
-            vertex="1" parent="az1">
-      <mxGeometry x="90" y="40" width="140" height="60" as="geometry"/>
-    </mxCell>
-
-    <!-- RDS cylinder shape -->
-    <mxCell id="rds_primary" value="&lt;b&gt;RDS Primary&lt;/b&gt;&lt;br&gt;PostgreSQL"
-            style="shape=cylinder3;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;"
-            vertex="1" parent="az1">
-      <mxGeometry x="20" y="360" width="120" height="80" as="geometry"/>
-    </mxCell>
-
-    <!-- Cross-container edge (parent="1", not inside any container) -->
-    <mxCell id="e_alb_web1" value="HTTPS" edge="1" parent="1"
-            source="alb" target="web1"
-            style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;">
-      <mxGeometry relative="1" as="geometry"/>
-    </mxCell>
-
-    <!-- Dashed replication edge -->
-    <mxCell id="e_rds_repl" value="Replication" edge="1" parent="1"
-            source="rds_primary" target="rds_replica"
-            style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;dashed=1;strokeColor=#999;">
-      <mxGeometry relative="1" as="geometry"/>
-    </mxCell>
-
-    <!-- ... more nodes and edges ... -->
-  </root>
-</mxGraphModel>
-```
+![AWS Architecture Example Diagram](examples/aws-architecture.png)
 
 ### Result
 
@@ -232,12 +166,13 @@ This plugin has been security-audited. Key protections:
 
 ## 🛠️ How It Works
 
-The plugin uses the [draw.io MCP server](https://github.com/jgraph/drawio-mcp) (`@drawio/mcp`) which exposes three tools:
+The plugin uses the [draw.io MCP server](https://github.com/jgraph/drawio-mcp) (`@drawio/mcp`) which exposes four tools:
 
 | Tool | Purpose |
 |------|---------|
 | `open_drawio_xml` | Opens draw.io editor with native XML diagram |
 | `open_drawio_csv` | Opens draw.io editor with a CSV-generated diagram |
+| `open_drawio_mermaid` | Exists in MCP, but is **explicitly disabled** by the skill instructions to enforce native XML |
 | `search_shapes` | Searches draw.io's shape libraries for domain icons (AWS, GCP, Cisco, etc.) |
 
 The SKILL.md teaches the AI:
