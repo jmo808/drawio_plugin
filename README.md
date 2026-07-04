@@ -186,14 +186,14 @@ Create a Two-Stage Gas Compression Train Process Flow Diagram (PFD):
 
 ### What the AI does
 
-1. **Identifies Domain Constraints** — Consults `ogpfdexpert.md` to learn that gas must exit the absolute top of scrubbers, and liquids the absolute bottom.
+1. **Identifies Domain Constraints** — Consults `pfd-engineering-expert.md` to learn that gas must exit the absolute top of scrubbers, and liquids the absolute bottom.
 2. **Uses Standard P&ID Shapes** — Uses `shape=mxgraph.pid.compressors.centrifugal_compressor` and `shape=mxgraph.pid.heat_exchangers.shell_and_tube_heat_exchanger_1` with `perimeter=ellipsePerimeter` to ensure lines snap to boundaries.
 3. **Disables Layout Engines** — Explicitly omits `routing: libavoid` to prevent algorithmic interference.
 4. **Calculates Physical Routing** — Hardcodes `exitX/Y`, `entryX/Y`, and `<Array as="points">` to perfectly route lines orthogonally according to physical laws (e.g., Condensate drops straight down).
 
 ### Generated Output
 
-![Process Flow Diagram Example](skills/drawio/examples/compression-train-pfd.png)
+![Process Flow Diagram Example](skills/drawio/examples/gas-compression.png)
 
 ### Key things to notice
 
@@ -224,7 +224,7 @@ Create a Copper Froth Flotation Circuit PFD:
 
 ### Generated Output
 
-![Copper Flotation Example](skills/drawio/examples/copper-flotation-pfd.png)
+![Copper Flotation Example](skills/drawio/examples/copper-flotation.png)
 
 This diagram enforces:
 - Native Draw.io `mxgraph.pid.misc.cyclone` and `mxgraph.pid.vessels.tank` shapes.
