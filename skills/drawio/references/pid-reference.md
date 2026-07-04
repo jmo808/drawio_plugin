@@ -50,11 +50,12 @@ When an architectural description calls for industrial equipment, use the follow
 
 ### Pumps and Compressors
 **WARNING**: Draw.io's `mxgraph.pid` shapes have hardcoded connection ports that often CANNOT be overridden. This causes bizarre internal routing, reversed arrows, and overlapping lines. For PFDs where precise physical routing (top/bottom/side) is required, **DO NOT USE `mxgraph.pid` shapes for major equipment**. Instead, use basic primitives:
-- Centrifugal Pump / Compressor: `shape=ellipse;`
+- Centrifugal Compressor: `shape=trapezoid;direction=south;` (representing a casing converging left-to-right)
+- Centrifugal Pump: `shape=mxgraph.pid.pumps.centrifugal_pump_1;` (let routing snap to standard side inlet and top discharge nozzles)
 
 ### Vessels, Tanks, and Columns
-- Separator / Settling Vessel: `shape=cylinder3;boundedLbl=1;backgroundOutline=1;size=15;`
-- Distillation Column: `shape=cylinder3;` (drawn taller)
+- Separator / Settling Vessel: `shape=rectangle;rounded=1;arcSize=20;` (strongly preferred over cylinders/P&ID stencils to allow 100% correct custom nozzle elevations)
+- Distillation Column: `shape=rectangle;rounded=1;arcSize=10;` (drawn taller)
 - Simple Storage Tank: `shape=cylinder3;`
 
 ### Heat Exchangers
