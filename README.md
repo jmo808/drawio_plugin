@@ -4,6 +4,7 @@ This plugin enables Draw.io diagramming capabilities across multiple coding assi
 
 ## Features
 - **Multi-client support:** Works with Kiro CLI, Claude Desktop/Code, Cursor, Copilot CLI, and Antigravity.
+- **Native XML diagrams:** Generates fully editable draw.io diagrams using native shapes (not Mermaid imports).
 - **Codebase-to-diagram:** Generate architecture diagrams directly from your project structure.
 - **Round-trip workflow:** Edit diagrams in Draw.io and sync changes back through the MCP server.
 - **References & examples:** Bundled reference documentation and example diagrams for Antigravity skill usage.
@@ -30,11 +31,17 @@ chmod +x install.sh
 ### Windows
 Open PowerShell and run:
 ```powershell
-Set-ExecutionPolicy Bypass -Scope Process -Force
-.\install.ps1
+powershell -ExecutionPolicy Bypass -File install.ps1
 ```
 
 The installer automatically detects which clients are present and configures them. After installation, a verification step confirms the `@drawio/mcp` package is accessible.
+
+**What gets installed:**
+- **Kiro:** `~/.kiro/agents/drawio.json` and `~/.kiro/agents/drawio.md`
+- **Antigravity:** `~/.gemini/config/plugins/drawio/` (plugin.json, SKILL.md, references/, examples/)
+- **MCP configs:** The `drawio` server entry is added to each detected client's MCP config file
+
+> **Note:** The installer creates `.bak` backups of all MCP config files before modifying them.
 
 ## Uninstallation
 
@@ -46,8 +53,7 @@ chmod +x uninstall.sh
 
 ### Windows
 ```powershell
-Set-ExecutionPolicy Bypass -Scope Process -Force
-.\uninstall.ps1
+powershell -ExecutionPolicy Bypass -File uninstall.ps1
 ```
 
 The uninstaller removes Kiro agent files, the Antigravity plugin directory, and the `drawio` entry from all MCP configuration files. Clients that aren't installed are skipped automatically.
@@ -65,3 +71,9 @@ Start a session and invoke the drawio skill:
 ```text
 using drawio to generate an architecture diagram
 ```
+
+## Security
+- The `@drawio/mcp` npm package is pinned to a specific version to prevent supply chain attacks.
+- Config file modifications use atomic writes (temp file + rename) to prevent corruption.
+- All MCP config files are backed up (`.bak`) before modification.
+- The Kiro agent uses least-privilege tool access (no shell access).

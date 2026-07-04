@@ -1,31 +1,19 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 echo "=== Draw.io MCP Server & Agent Uninstaller ==="
 
 HOME_DIR="$HOME"
 
-# 1. Remove Kiro agent files
-KIRO_AGENTS_DIR="$HOME_DIR/.kiro/agents"
-if [ -f "$KIRO_AGENTS_DIR/drawio.json" ]; then
-  rm "$KIRO_AGENTS_DIR/drawio.json"
-  echo "- Removed Kiro agent config: $KIRO_AGENTS_DIR/drawio.json"
-fi
-if [ -f "$KIRO_AGENTS_DIR/drawio.md" ]; then
-  rm "$KIRO_AGENTS_DIR/drawio.md"
-  echo "- Removed Kiro agent spec: $KIRO_AGENTS_DIR/drawio.md"
-fi
-
-# 2. Remove Antigravity plugin directory
-GEMINI_PLUGIN_DIR="$HOME_DIR/.gemini/config/plugins/drawio"
-if [ -d "$GEMINI_PLUGIN_DIR" ]; then
-  rm -rf "$GEMINI_PLUGIN_DIR"
-  echo "- Removed Antigravity plugin: $GEMINI_PLUGIN_DIR"
-fi
-
-# 3. Remove 'drawio' key from MCP config files
-echo "Cleaning MCP configurations..."
-node -e '
+# Pre-flight: Node.js needed for JSON cleanup
+if ! command -v node >/dev/null 2>&1; then
+  echo "Error: Node.js is required for JSON config cleanup but was not found."
+  echo "Skipping MCP config cleanup. Manually remove 'drawio' from your MCP config files."
+  echo "Continuing with file removal..."
+else
+  # 3. Remove 'drawio' key from MCP config files
+  echo "Cleaning MCP configurations..."
+  node -e '
 const fs = require("fs");
 const path = require("path");
 const os = require("os");
@@ -47,6 +35,10 @@ paths.forEach(client => {
     return;
   }
 
+  if (fs.existsSync(client.path)) {
+    fs.copyFileSync(client.path, client.path + ".bak");
+  }
+
   let data;
   try {
     data = JSON.parse(fs.readFileSync(client.path, "utf8"));
@@ -57,10 +49,32 @@ paths.forEach(client => {
 
   if (data.mcpServers && data.mcpServers.drawio) {
     delete data.mcpServers.drawio;
-    fs.writeFileSync(client.path, JSON.stringify(data, null, 2), "utf8");
+    const tmpPath = client.path + ".tmp";
+    fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2), "utf8");
+    fs.renameSync(tmpPath, client.path);
+    try { fs.chmodSync(client.path, 0o600); } catch(e) {}
     console.log(`- Removed drawio from ${client.name}: ${client.path}`);
   }
 });
 '
+fi
+
+# 1. Remove Kiro agent files
+KIRO_AGENTS_DIR="$HOME_DIR/.kiro/agents"
+if [ -f "$KIRO_AGENTS_DIR/drawio.json" ]; then
+  rm "$KIRO_AGENTS_DIR/drawio.json"
+  echo "- Removed Kiro agent config: $KIRO_AGENTS_DIR/drawio.json"
+fi
+if [ -f "$KIRO_AGENTS_DIR/drawio.md" ]; then
+  rm "$KIRO_AGENTS_DIR/drawio.md"
+  echo "- Removed Kiro agent spec: $KIRO_AGENTS_DIR/drawio.md"
+fi
+
+# 2. Remove Antigravity plugin directory
+GEMINI_PLUGIN_DIR="$HOME_DIR/.gemini/config/plugins/drawio"
+if [ -d "$GEMINI_PLUGIN_DIR" ] && [ ! -L "$GEMINI_PLUGIN_DIR" ]; then
+  rm -rf "$GEMINI_PLUGIN_DIR"
+  echo "- Removed Antigravity plugin: $GEMINI_PLUGIN_DIR"
+fi
 
 echo "Uninstallation complete! Please restart your client sessions."

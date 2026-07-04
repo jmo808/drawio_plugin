@@ -27,7 +27,6 @@ Use in order: `#f5f5f5`, `#e8f4f8`, `#fff0e6`, `#e8f5e9`, `#fff9e6`, `#fce4ec`
 ### Example
 
 ```xml
-<!-- Lane 0: Customer -->
 <mxCell id="lane1" value="Customer"
         style="swimlane;horizontal=0;startSize=110;fillColor=#f5f5f5;html=1;"
         vertex="1" parent="1">
@@ -38,7 +37,6 @@ Use in order: `#f5f5f5`, `#e8f4f8`, `#fff0e6`, `#e8f5e9`, `#fff9e6`, `#fce4ec`
   <mxGeometry x="120" y="45" width="140" height="60" as="geometry"/>
 </mxCell>
 
-<!-- Lane 1: System -->
 <mxCell id="lane2" value="System"
         style="swimlane;horizontal=0;startSize=110;fillColor=#e8f4f8;html=1;"
         vertex="1" parent="1">
@@ -49,7 +47,6 @@ Use in order: `#f5f5f5`, `#e8f4f8`, `#fff0e6`, `#e8f5e9`, `#fff9e6`, `#fce4ec`
   <mxGeometry x="300" y="45" width="140" height="60" as="geometry"/>
 </mxCell>
 
-<!-- Cross-lane edge -->
 <mxCell id="e1" edge="1" parent="1" source="n1" target="n2"
         style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;">
   <mxGeometry relative="1" as="geometry"/>
@@ -82,21 +79,18 @@ Every container is a `swimlane` with `startSize=24`.
 ### Example: VPC → AZ → Instances
 
 ```xml
-<!-- VPC (outermost) -->
 <mxCell id="vpc" value="VPC"
         style="swimlane;startSize=24;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;"
         vertex="1" parent="1">
   <mxGeometry x="0" y="0" width="720" height="360" as="geometry"/>
 </mxCell>
 
-<!-- AZ (nested in VPC) -->
 <mxCell id="az1" value="AZ us-east-1a"
         style="swimlane;startSize=24;fillColor=#fff2cc;strokeColor=#d6b656;html=1;"
         vertex="1" parent="vpc">
   <mxGeometry x="20" y="36" width="320" height="300" as="geometry"/>
 </mxCell>
 
-<!-- Instance (nested in AZ) -->
 <mxCell id="web1" value="web-1" style="rounded=1;whiteSpace=wrap;html=1;"
         vertex="1" parent="az1">
   <mxGeometry x="30" y="40" width="120" height="60" as="geometry"/>
@@ -106,7 +100,6 @@ Every container is a `swimlane` with `startSize=24`.
   <mxGeometry x="180" y="40" width="100" height="70" as="geometry"/>
 </mxCell>
 
-<!-- Second AZ (nested in VPC) -->
 <mxCell id="az2" value="AZ us-east-1b"
         style="swimlane;startSize=24;fillColor=#fff2cc;strokeColor=#d6b656;html=1;"
         vertex="1" parent="vpc">
@@ -117,7 +110,6 @@ Every container is a `swimlane` with `startSize=24`.
   <mxGeometry x="30" y="40" width="120" height="60" as="geometry"/>
 </mxCell>
 
-<!-- Edge between AZs — parent="1" -->
 <mxCell id="e1" edge="1" parent="1" source="web1" target="web2"
         style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;">
   <mxGeometry relative="1" as="geometry"/>
@@ -177,7 +169,6 @@ table (shape=table;childLayout=tableLayout)
   <mxGeometry x="0" y="0" width="900" height="320" as="geometry"/>
 </mxCell>
 
-<!-- Header row -->
 <mxCell id="r0" style="shape=tableRow;horizontal=0;startSize=0;collapsible=0;"
         vertex="1" parent="tbl">
   <mxGeometry width="900" height="40" as="geometry"/>
@@ -194,7 +185,6 @@ table (shape=table;childLayout=tableLayout)
   <mxGeometry x="520" width="380" height="40" as="geometry"/>
 </mxCell>
 
-<!-- Actor row 1 -->
 <mxCell id="r1" style="shape=tableRow;horizontal=0;startSize=0;collapsible=0;"
         vertex="1" parent="tbl">
   <mxGeometry y="40" width="900" height="140" as="geometry"/>

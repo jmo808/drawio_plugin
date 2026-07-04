@@ -114,13 +114,11 @@ Is it a dense architecture/network with precise positions?
 ### Every edge needs an mxGeometry child
 
 ```xml
-<!-- CORRECT -->
 <mxCell id="e1" edge="1" parent="1" source="a" target="b"
         style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;">
   <mxGeometry relative="1" as="geometry" />
 </mxCell>
 
-<!-- WRONG — self-closing, will not render -->
 <mxCell id="e1" edge="1" parent="1" source="a" target="b" style="..." />
 ```
 

@@ -7,7 +7,6 @@
     "write",
     "grep",
     "glob",
-    "shell",
     "@drawio"
   ],
   "allowedTools": [
@@ -15,7 +14,6 @@
     "write",
     "grep",
     "glob",
-    "shell",
     "@drawio"
   ],
   "resources": [],

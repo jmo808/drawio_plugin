@@ -1,5 +1,5 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 echo "=== Draw.io MCP Server & Agent Installer ==="
 
@@ -41,11 +41,13 @@ if [ -d "$GEMINI_PLUGINS_DIR" ]; then
   cp "$SCRIPT_DIR/plugin.json" "$GEMINI_PLUGINS_DIR/drawio/"
   cp "$SCRIPT_DIR/drawio.md" "$GEMINI_PLUGINS_DIR/drawio/skills/drawio/SKILL.md"
 
-  if [ -d "$SCRIPT_DIR/references" ]; then
-    cp -r "$SCRIPT_DIR/references" "$GEMINI_PLUGINS_DIR/drawio/skills/drawio/references/"
+  if [ -d "$SCRIPT_DIR/references" ] && [ ! -L "$SCRIPT_DIR/references" ]; then
+    rm -rf "$GEMINI_PLUGINS_DIR/drawio/skills/drawio/references"
+    cp -r "$SCRIPT_DIR/references" "$GEMINI_PLUGINS_DIR/drawio/skills/drawio/references"
   fi
-  if [ -d "$SCRIPT_DIR/examples" ]; then
-    cp -r "$SCRIPT_DIR/examples" "$GEMINI_PLUGINS_DIR/drawio/skills/drawio/examples/"
+  if [ -d "$SCRIPT_DIR/examples" ] && [ ! -L "$SCRIPT_DIR/examples" ]; then
+    rm -rf "$GEMINI_PLUGINS_DIR/drawio/skills/drawio/examples"
+    cp -r "$SCRIPT_DIR/examples" "$GEMINI_PLUGINS_DIR/drawio/skills/drawio/examples"
   fi
 fi
 
@@ -74,6 +76,10 @@ paths.forEach(client => {
     return;
   }
 
+  if (fs.existsSync(client.path)) {
+    fs.copyFileSync(client.path, client.path + ".bak");
+  }
+
   let data = { mcpServers: {} };
   if (fs.existsSync(client.path)) {
     try {
@@ -90,16 +96,19 @@ paths.forEach(client => {
 
   data.mcpServers.drawio = {
     command: "npx",
-    args: ["-y", "@drawio/mcp"]
+    args: ["-y", "@drawio/mcp@1.3.4"]
   };
 
-  fs.writeFileSync(client.path, JSON.stringify(data, null, 2), "utf8");
+  const tmpPath = client.path + ".tmp";
+  fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2), "utf8");
+  fs.renameSync(tmpPath, client.path);
+  try { fs.chmodSync(client.path, 0o600); } catch(e) {}
   console.log(`- Configured ${client.name} at: ${client.path}`);
 });
 '
 
 echo "Verifying @drawio/mcp package..."
-if npx -y @drawio/mcp --help >/dev/null 2>&1; then
+if npx -y @drawio/mcp@1.3.4 --help >/dev/null 2>&1; then
   echo "✓ @drawio/mcp package verified successfully"
 else
   echo "⚠ WARNING: @drawio/mcp package could not be verified. The MCP server may not work until the package is available."

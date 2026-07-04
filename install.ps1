@@ -20,7 +20,7 @@ if (Test-Path $KiroDir) {
     $FormattedHome = $HomeDir.Replace("\", "/")
     $JsonTemplate = Get-Content (Join-Path $ScriptDir "drawio.json") -Raw
     $ResolvedJson = $JsonTemplate.Replace("{{HOME}}", $FormattedHome)
-    Set-Content -Path (Join-Path $KiroAgentsDir "drawio.json") -Value $ResolvedJson -Encoding utf8
+    [System.IO.File]::WriteAllText((Join-Path $KiroAgentsDir "drawio.json"), $ResolvedJson, [System.Text.UTF8Encoding]::new($false))
     
     Copy-Item -Force (Join-Path $ScriptDir "drawio.md") (Join-Path $KiroAgentsDir "drawio.md")
 }
@@ -69,6 +69,10 @@ foreach ($Client in $Paths) {
     if (-not (Test-Path $ParentDir)) {
         continue
     }
+
+    if (Test-Path $FilePath) {
+        Copy-Item -Force $FilePath "$FilePath.bak"
+    }
     
     $Data = [PSCustomObject]@{ mcpServers = [PSCustomObject]@{} }
     if (Test-Path $FilePath) {
@@ -89,19 +93,21 @@ foreach ($Client in $Paths) {
     
     $DrawioConfig = [PSCustomObject]@{
         command = "npx"
-        args = @("-y", "@drawio/mcp")
+        args = @("-y", "@drawio/mcp@1.3.4")
     }
     
     $Data.mcpServers | Add-Member -NotePropertyName "drawio" -NotePropertyValue $DrawioConfig -Force
     
     $UpdatedJson = ConvertTo-Json $Data -Depth 100
-    Set-Content -Path $FilePath -Value $UpdatedJson -Encoding utf8
+    $TmpPath = "$FilePath.tmp"
+    [System.IO.File]::WriteAllText($TmpPath, $UpdatedJson, [System.Text.UTF8Encoding]::new($false))
+    Move-Item -Force $TmpPath $FilePath
     Write-Host "- Configured $($Client.Name) at: $FilePath" -ForegroundColor Yellow
 }
 
 Write-Host "Verifying @drawio/mcp package..." -ForegroundColor Cyan
 try {
-    $null = & npx -y @drawio/mcp --help 2>&1
+    $null = & npx -y @drawio/mcp@1.3.4 --help 2>&1
     if ($LASTEXITCODE -eq 0) {
         Write-Host "`u{2713} @drawio/mcp package verified successfully" -ForegroundColor Green
     } else {

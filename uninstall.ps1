@@ -21,7 +21,7 @@ if (Test-Path $KiroMd) {
 
 # 2. Remove Antigravity plugin directory
 $GeminiPluginDir = Join-Path $HomeDir ".gemini\config\plugins\drawio"
-if (Test-Path $GeminiPluginDir) {
+if ((Test-Path $GeminiPluginDir) -and -not (Get-Item $GeminiPluginDir).Attributes.HasFlag([System.IO.FileAttributes]::ReparsePoint)) {
     Remove-Item -Recurse -Force $GeminiPluginDir
     Write-Host "- Removed Antigravity plugin: $GeminiPluginDir" -ForegroundColor Yellow
 }
@@ -46,6 +46,10 @@ foreach ($Client in $Paths) {
         continue
     }
 
+    if (Test-Path $FilePath) {
+        Copy-Item -Force $FilePath "$FilePath.bak"
+    }
+
     try {
         $Content = Get-Content $FilePath -Raw
         if ([string]::IsNullOrWhiteSpace($Content)) {
@@ -60,7 +64,9 @@ foreach ($Client in $Paths) {
     if ($Data.PSObject.Properties['mcpServers'] -and $Data.mcpServers.PSObject.Properties['drawio']) {
         $Data.mcpServers.PSObject.Properties.Remove('drawio')
         $UpdatedJson = ConvertTo-Json $Data -Depth 100
-        Set-Content -Path $FilePath -Value $UpdatedJson -Encoding utf8
+        $TmpPath = "$FilePath.tmp"
+        [System.IO.File]::WriteAllText($TmpPath, $UpdatedJson, [System.Text.UTF8Encoding]::new($false))
+        Move-Item -Force $TmpPath $FilePath
         Write-Host "- Removed drawio from $($Client.Name): $FilePath" -ForegroundColor Yellow
     }
 }

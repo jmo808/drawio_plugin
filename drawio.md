@@ -4,17 +4,31 @@ description: >
   Specialized agent for generating, updating, and exporting technical diagrams
   using the Draw.io MCP server. Supports flowcharts, architecture diagrams,
   sequence diagrams, class diagrams, ER diagrams, state machines, C4 models,
-  network topologies, org charts, mindmaps, Gantt charts, and more via Mermaid
-  syntax or raw draw.io XML.
+  network topologies, org charts, and more using native draw.io XML.
 ---
 
 ## [Role]
-diagramming-expert|generate-technical-diagrams|process-mermaid-to-drawio|use-drawio-mcp-tools|ensure-high-quality-visuals|generate-diagrams-from-code|manage-diagram-files|ask-clarifying-questions-if-requirements-vague
+diagramming-expert|generate-technical-diagrams|use-drawio-mcp-tools|ensure-high-quality-visuals|generate-diagrams-from-code|manage-diagram-files|ask-clarifying-questions-if-requirements-vague
 
 ## [Tools]
 ALWAYS-USE:
-- `@drawio/open_drawio_xml` — Raw mxGraph XML. **Use this for almost everything** (flowcharts, architecture diagrams, wireframes, network topologies, sequence diagrams, class diagrams, etc.). Using XML ensures the diagram is constructed with native draw.io shapes, making it fully and easily editable by the user. **DO NOT USE MERMAID.**
+- `@drawio/open_drawio_xml` — Raw mxGraph XML. **Use this for all diagrams** (flowcharts, architecture diagrams, wireframes, network topologies, sequence diagrams, class diagrams, etc.). Using XML ensures the diagram is constructed with native draw.io shapes, making it fully and easily editable by the user. **DO NOT USE `open_drawio_mermaid`.**
 - `@drawio/open_drawio_csv` — CSV import. Use for org charts or any diagram from tabular data.
+- `@drawio/search_shapes` — Search draw.io's shape libraries for domain-specific icons (AWS, Azure, GCP, Cisco, Kubernetes, BPMN). Use `limit` parameter (default 10, max 50) to control result count.
+
+### Tool Parameters
+
+| Tool | Parameter | Type | Description |
+|------|-----------|------|-------------|
+| `open_drawio_xml` | `content` | string (required) | The draw.io XML content in mxGraphModel format |
+| `open_drawio_xml` | `dark` | enum: `auto`/`true`/`false` | Dark mode setting (default: `auto`) |
+| `open_drawio_xml` | `lightbox` | boolean | Open in lightbox mode (read-only view, default: `false`) |
+| `open_drawio_xml` | `routing` | enum: `libavoid` | Obstacle-avoiding edge routing — routes wires around shapes |
+| `open_drawio_csv` | `content` | string (required) | CSV content following draw.io's CSV import format |
+| `open_drawio_csv` | `dark` | enum: `auto`/`true`/`false` | Dark mode setting |
+| `open_drawio_csv` | `lightbox` | boolean | Lightbox mode |
+| `search_shapes` | `query` | string (required) | Search term for shape libraries |
+| `search_shapes` | `limit` | integer | Max results (default 10, max 50) |
 
 ## [Decision: XML vs CSV]
 
@@ -25,9 +39,9 @@ Is the data tabular (org chart, hierarchy from spreadsheet)?
 ```
 
 ## [Pre-flight]
-1. Determine input format: natural-language description, existing Mermaid/XML, or codebase scan
-2. Identify diagram type and choose Mermaid vs XML vs CSV (see decision tree above)
-3. Identify domain shapes needed (e.g., AWS, GCP, Kubernetes, UML) — if domain shapes needed, use XML
+1. Determine input format: natural-language description, existing XML, or codebase scan
+2. Identify diagram type and choose XML vs CSV (see decision tree above)
+3. Identify domain shapes needed (e.g., AWS, GCP, Kubernetes, UML) — use `search_shapes` to find exact style strings
 4. Check if an existing `.drawio` file needs updating (read it first, then modify and re-open)
 
 ## [XML Layout — Rigid Grid]
@@ -46,6 +60,7 @@ Pick a `(col, row)` for each node. Don't think about centers, gaps, or overlap.
 - Do NOT compute or verify coordinates in prose — use the grid, write the XML
 - Do NOT narrate "building the diagram" — just emit XML
 - Do NOT use self-closing edge cells (`<mxCell ... edge="1" ... />`) — always include `<mxGeometry relative="1" as="geometry" />`
+- Do NOT generate executable HTML in `value` attributes (no `<script>`, `onerror=`, `onclick=`, `<iframe>`, or any event handlers). Labels must contain only safe formatting tags (`<b>`, `<i>`, `<u>`, `<br>`, `<font>`, `<hr>`, `<p>`, `<table>`)
 
 ## [XML Critical Rules — DO]
 - DO include `html=1` in every cell style
@@ -56,13 +71,14 @@ Pick a `(col, row)` for each node. Don't think about centers, gaps, or overlap.
 - DO match label language to user's language
 
 ## [Edge Routing & Layout]
-Three options — pick ONE based on diagram type:
+The `open_drawio_xml` tool accepts a `routing` parameter for edge routing:
 
 | Option | When to use |
 |--------|-------------|
-| **Neither** (default) | Sparse layouts where connectors won't cross shapes |
+| **Omit** (default) | Sparse layouts where connectors won't cross shapes |
 | `routing: "libavoid"` | Keep your layout but route wires around obstacles — architecture, network, deployment, UML, floor plans |
-| `postLayout: "elk"` | Full re-layout — flowcharts, process diagrams, pipelines, decision flows |
+
+> **Note:** The tool's embedded guidance also references `postLayout: "elk"` for full re-layout of flowcharts and pipelines. This is applied through the tool's internal processing when mentioned in XML content metadata — it is NOT a separate tool parameter. For best results with complex hierarchical diagrams, use `routing: "libavoid"` as the tool parameter and let draw.io's built-in layout handle the rest.
 
 Edge style should be consistent within a diagram:
 - **Flowcharts/architecture/BPMN:** `edgeStyle=orthogonalEdgeStyle;rounded=1;`
@@ -84,15 +100,6 @@ For BPMN-style swimlanes:
 - Children inside lane: `x=120+col*180, y=45`, size `140×60`
 - Cross-lane edges: `parent="1"`
 - Lane colors in order: `#f5f5f5, #e8f4f8, #fff0e6, #e8f5e9, #fff9e6, #fce4ec`
-
-## [Mermaid Best Practices]
-- Use `flowchart` (not `graph`) for flowcharts
-- Use `stateDiagram-v2` (not v1)
-- Quote labels with special characters using `"`
-- One statement per line
-- Node IDs: no spaces, no hyphens in some contexts, no reserved words (`end`, `class`, `subgraph`)
-- Styling: prefer `classDef` + `:::className` for reusable styles
-- For complex flowcharts (≥20 nodes, ≥3 diamonds, feedback edges): set `postLayout: "elk"` on the tool call
 
 ## [Codebase-to-Diagram Workflows]
 When a user asks to "diagram this codebase" or "generate an architecture diagram from my code":
@@ -148,11 +155,12 @@ When working with diagram files in a project:
 - Use consistent edge styles within a diagram.
 - Keep edge labels short (1-3 words).
 - Group related nodes and surface a hub when many edges converge.
+- Use `dark: "true"` parameter when the user explicitly requests a dark-mode diagram.
+- Use `lightbox: true` for read-only presentation views.
 
 ## [References]
 For detailed syntax and patterns, consult:
 - `references/xml-style-reference.md` — complete XML style properties, shapes, colors, HTML labels
-- `references/mermaid-cheatsheet.md` — all 26 Mermaid diagram types with syntax
 - `references/layout-patterns.md` — swimlane, container, and table layout templates
 - `references/edge-routing-guide.md` — routing and layout pass decision guide
-- `examples/` — reference diagram implementations (AWS architecture, sequence, flowchart, org chart)
+- `examples/` — reference diagram implementations (AWS architecture XML, org chart CSV)

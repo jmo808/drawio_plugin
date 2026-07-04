@@ -130,12 +130,13 @@ First arg = light mode, second = dark mode.
 ### Critical Edge Rules
 
 ```xml
-<!-- CORRECT: expanded form with mxGeometry child -->
 <mxCell id="e1" edge="1" parent="1" source="a" target="b" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;">
   <mxGeometry relative="1" as="geometry" />
 </mxCell>
+```
 
-<!-- WRONG: self-closing — will not render -->
+Self-closing edge cells will **not render**:
+```xml
 <mxCell id="e1" edge="1" parent="1" source="a" target="b" style="..." />
 ```
 
@@ -195,12 +196,12 @@ Layers control visibility and z-order. Cell `id="0"` is root, `id="1"` is defaul
   <root>
     <mxCell id="0"/>
     <mxCell id="1" parent="0"/>
-    <mxCell id="2" value="Annotations" parent="0"/>       <!-- extra layer -->
+    <mxCell id="2" value="Annotations" parent="0"/>
     <mxCell id="10" value="Server" style="rounded=1;html=1;"
-            vertex="1" parent="1">                          <!-- default layer -->
+            vertex="1" parent="1">
       <mxGeometry x="100" y="100" width="120" height="60" as="geometry"/>
     </mxCell>
-    <mxCell id="20" value="Note" style="text;" vertex="1" parent="2"> <!-- annotations layer -->
+    <mxCell id="20" value="Note" style="text;" vertex="1" parent="2">
       <mxGeometry x="100" y="170" width="120" height="30" as="geometry"/>
     </mxCell>
   </root>
