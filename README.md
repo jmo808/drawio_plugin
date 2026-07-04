@@ -197,6 +197,7 @@ Create a Two-Stage Gas Compression Train Process Flow Diagram (PFD):
 ### Generated Output
 
 ![Process Flow Diagram Example](skills/drawio/examples/gas-compression.png)
+*(Source XML: [gas-compression.xml](skills/drawio/examples/gas-compression.xml))*
 
 ### Key things to notice
 
@@ -228,6 +229,7 @@ Create a Copper Froth Flotation Circuit PFD:
 ### Generated Output
 
 ![Copper Flotation Example](skills/drawio/examples/copper-flotation.png)
+*(Source XML: [copper-flotation.xml](skills/drawio/examples/copper-flotation.xml))*
 
 This diagram enforces:
 - Native Draw.io `mxgraph.pid.misc.cyclone` and `mxgraph.pid.vessels.tank` shapes.
