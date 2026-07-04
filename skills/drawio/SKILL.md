@@ -113,6 +113,19 @@ For BPMN-style swimlanes:
 - Cross-lane edges: `parent="1"`
 - Lane colors in order: `#f5f5f5, #e8f4f8, #fff0e6, #e8f5e9, #fff9e6, #fce4ec`
 
+## [Oil & Gas PFD Domain Rules (CRITICAL)]
+If generating or editing an Oil & Gas Process Flow Diagram (PFD), you MUST follow these physics and engineering rules:
+1. **Separator Outlets (V-100)**: Do NOT share a single bottom nozzle for oil and water.
+   - **Gas/Vapor**: Exit from absolute-top-center (`exitX=0.5;exitY=0`).
+   - **Light Liquid (Oil)**: Exit from side-mid-elevation (`exitX=1;exitY=0.5`).
+   - **Heavy Liquid (Water)**: Exit from absolute-bottom-cone (`exitX=0.5;exitY=1`).
+   - **Feed Inlet**: Enter side-upper-left (`entryX=0;entryY=0.5`).
+2. **Compressor (K-102)**: Use `shape=mxgraph.pid.compressors.centrifugal_compressor;flipH=1;`. The `flipH=1` is mandatory so the internal flow arrow points left-to-right. Do not use explicit `entryX/exitX` on the edge; let the flipped shape's default ports route the inlet on the left and outlet on the right.
+3. **Export Pump (P-101A)**: Use centrifugal pump P&ID shape (`shape=mxgraph.pid.pumps.centrifugal_pump_1;`). Route the inlet to the left (`entryX=0;entryY=0.5`) and discharge out the top (`exitX=0.5;exitY=0`) to match real piping.
+4. **Vessels**: Use a rounded rectangle (`shape=rectangle;rounded=1;arcSize=20;`) instead of complex stencils to ensure Draw.io respects custom `entryX/exitX` nozzle elevations.
+5. **LT-100 (Level Transmitter)**: Connect directly to the vessel shell (`exitX=0;exitY=0.83`). NEVER connect it to the inlet piping.
+6. **No Dead-Ends or Bypasses**: Do not draw internal lines cutting through vessels. Draw feed streams coming from standard dashed page boundary blocks (e.g., `Wellhead Fluid` block).
+
 ## [Codebase-to-Diagram Workflows]
 When a user asks to "diagram this codebase" or "generate an architecture diagram from my code":
 
@@ -176,4 +189,5 @@ For detailed syntax and patterns, consult:
 - `references/layout-patterns.md` — swimlane, container, and table layout templates
 - `references/edge-routing-guide.md` — routing and layout pass decision guide
 - `references/pid-reference.md` — ISA conventions and native draw.io shapes for industrial P&ID / PFDs
+- `references/ogpfdexpert.md` — Oil & Gas / process flow diagram (PFD) domain rules and validation instructions
 - `examples/` — reference diagram implementations (AWS architecture XML, org chart CSV, process flow diagram XML)
