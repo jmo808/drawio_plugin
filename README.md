@@ -21,9 +21,9 @@ This plugin connects the [draw.io MCP server](https://github.com/jgraph/drawio-m
 |--------|-------------------|
 | **Kiro CLI** | Custom `@drawio` steering agent + MCP server registration |
 | **Claude Desktop** | MCP server registration |
-| **Claude Code** | MCP server registration |
-| **Cursor** | MCP server registration |
-| **Copilot CLI** | MCP server registration |
+| **Claude Code** | Native SKILL.md file + MCP server registration |
+| **Cursor** | Native `.mdc` rule file + MCP server registration |
+| **Copilot CLI** | Native `.agent.md` file + MCP server registration |
 | **Antigravity** | Full skill plugin (SKILL.md, references, examples) + MCP server |
 
 ## 📦 Prerequisites
@@ -59,6 +59,9 @@ The installer:
 | `~/.kiro/agents/drawio.json` | Kiro agent manifest |
 | `~/.kiro/agents/drawio.md` | Kiro agent skill instructions |
 | `~/.gemini/config/plugins/drawio/` | Antigravity plugin (SKILL.md, references, examples) |
+| `~/.claude/skills/drawio/SKILL.md` | Claude Code skill instructions |
+| `~/.cursor/rules/drawio.mdc` | Cursor rule instructions |
+| `~/.github/agents/drawio.agent.md` | Copilot agent instructions |
 | Various `mcp.json` / `config.json` | MCP server entry for each detected client |
 
 ## 🗑️ Uninstallation

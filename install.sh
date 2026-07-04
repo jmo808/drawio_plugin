@@ -20,7 +20,7 @@ KIRO_AGENTS_DIR="$KIRO_DIR/agents"
 if [ -d "$KIRO_DIR" ]; then
   echo "Installing Kiro agent files..."
   mkdir -p "$KIRO_AGENTS_DIR"
-  
+
   # Dynamically replace {{HOME}} placeholder in drawio.json
   node -e '
   const fs = require("fs");
@@ -40,7 +40,6 @@ if [ -d "$GEMINI_PLUGINS_DIR" ]; then
   mkdir -p "$GEMINI_PLUGINS_DIR/drawio/skills/drawio"
   cp "$SCRIPT_DIR/plugin.json" "$GEMINI_PLUGINS_DIR/drawio/"
   cp "$SCRIPT_DIR/drawio.md" "$GEMINI_PLUGINS_DIR/drawio/skills/drawio/SKILL.md"
-
   if [ -d "$SCRIPT_DIR/references" ] && [ ! -L "$SCRIPT_DIR/references" ]; then
     rm -rf "$GEMINI_PLUGINS_DIR/drawio/skills/drawio/references"
     cp -r "$SCRIPT_DIR/references" "$GEMINI_PLUGINS_DIR/drawio/skills/drawio/references"
@@ -51,7 +50,54 @@ if [ -d "$GEMINI_PLUGINS_DIR" ]; then
   fi
 fi
 
-# 3. Configure MCP Servers across clients using Node.js
+# Extract the body of drawio.md (strip lines 1-8 which contain the original YAML frontmatter)
+if [ -f "$SCRIPT_DIR/drawio.md" ]; then
+  DRAWIO_BODY=$(sed '1,8d' "$SCRIPT_DIR/drawio.md")
+fi
+
+# 3. Setup Claude Code Skill
+CLAUDE_DIR="$HOME/.claude"
+CLAUDE_SKILLS_DIR="$CLAUDE_DIR/skills/drawio"
+if [ -d "$CLAUDE_DIR" ]; then
+  echo "Installing Claude Code skill files..."
+  mkdir -p "$CLAUDE_SKILLS_DIR"
+  # Claude Code supports name and description YAML frontmatter natively
+  cp "$SCRIPT_DIR/drawio.md" "$CLAUDE_SKILLS_DIR/SKILL.md"
+fi
+
+# 4. Setup Cursor Rule
+CURSOR_DIR="$HOME/.cursor"
+CURSOR_RULES_DIR="$CURSOR_DIR/rules"
+if [ -d "$CURSOR_DIR" ]; then
+  echo "Installing Cursor rule files..."
+  mkdir -p "$CURSOR_RULES_DIR"
+  cat <<EOF > "$CURSOR_RULES_DIR/drawio.mdc"
+---
+description: Specialized agent for generating, updating, and exporting technical diagrams using the Draw.io MCP server.
+globs: *
+alwaysApply: false
+---
+$DRAWIO_BODY
+EOF
+fi
+
+# 5. Setup Copilot Agent
+COPILOT_DIR="$HOME/.github"
+COPILOT_AGENTS_DIR="$COPILOT_DIR/agents"
+if [ -d "$HOME/.copilot" ]; then
+  # Note: checking .copilot but installing to .github/agents as that is the standard
+  echo "Installing Copilot agent files..."
+  mkdir -p "$COPILOT_AGENTS_DIR"
+  cat <<EOF > "$COPILOT_AGENTS_DIR/drawio.agent.md"
+---
+name: drawio
+description: Specialized agent for generating, updating, and exporting technical diagrams using the Draw.io MCP server.
+---
+$DRAWIO_BODY
+EOF
+fi
+
+# 6. Configure MCP Servers across clients using Node.js
 echo "Updating MCP configurations..."
 node -e '
 const fs = require("fs");

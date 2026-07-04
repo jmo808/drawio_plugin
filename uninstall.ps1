@@ -26,7 +26,28 @@ if ((Test-Path $GeminiPluginDir) -and -not (Get-Item $GeminiPluginDir).Attribute
     Write-Host "- Removed Antigravity plugin: $GeminiPluginDir" -ForegroundColor Yellow
 }
 
-# 3. Remove 'drawio' key from MCP config files
+# 3. Remove Claude Code Skill
+$ClaudeSkillsDir = Join-Path $HomeDir ".claude\skills\drawio"
+if ((Test-Path $ClaudeSkillsDir) -and -not (Get-Item $ClaudeSkillsDir).Attributes.HasFlag([System.IO.FileAttributes]::ReparsePoint)) {
+    Remove-Item -Recurse -Force $ClaudeSkillsDir
+    Write-Host "- Removed Claude Code skill: $ClaudeSkillsDir" -ForegroundColor Yellow
+}
+
+# 4. Remove Cursor Rule
+$CursorRuleFile = Join-Path $HomeDir ".cursor\rules\drawio.mdc"
+if (Test-Path $CursorRuleFile) {
+    Remove-Item -Force $CursorRuleFile
+    Write-Host "- Removed Cursor rule: $CursorRuleFile" -ForegroundColor Yellow
+}
+
+# 5. Remove Copilot Agent
+$CopilotAgentFile = Join-Path $HomeDir ".github\agents\drawio.agent.md"
+if (Test-Path $CopilotAgentFile) {
+    Remove-Item -Force $CopilotAgentFile
+    Write-Host "- Removed Copilot agent: $CopilotAgentFile" -ForegroundColor Yellow
+}
+
+# 6. Remove 'drawio' key from MCP config files
 Write-Host "Cleaning MCP configurations..." -ForegroundColor Green
 
 $Paths = @(

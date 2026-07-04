@@ -11,7 +11,7 @@ if ! command -v node >/dev/null 2>&1; then
   echo "Skipping MCP config cleanup. Manually remove 'drawio' from your MCP config files."
   echo "Continuing with file removal..."
 else
-  # 3. Remove 'drawio' key from MCP config files
+  # 6. Remove 'drawio' key from MCP config files
   echo "Cleaning MCP configurations..."
   node -e '
 const fs = require("fs");
@@ -75,6 +75,27 @@ GEMINI_PLUGIN_DIR="$HOME_DIR/.gemini/config/plugins/drawio"
 if [ -d "$GEMINI_PLUGIN_DIR" ] && [ ! -L "$GEMINI_PLUGIN_DIR" ]; then
   rm -rf "$GEMINI_PLUGIN_DIR"
   echo "- Removed Antigravity plugin: $GEMINI_PLUGIN_DIR"
+fi
+
+# 3. Remove Claude Code Skill
+CLAUDE_SKILLS_DIR="$HOME_DIR/.claude/skills/drawio"
+if [ -d "$CLAUDE_SKILLS_DIR" ] && [ ! -L "$CLAUDE_SKILLS_DIR" ]; then
+  rm -rf "$CLAUDE_SKILLS_DIR"
+  echo "- Removed Claude Code skill: $CLAUDE_SKILLS_DIR"
+fi
+
+# 4. Remove Cursor Rule
+CURSOR_RULE_FILE="$HOME_DIR/.cursor/rules/drawio.mdc"
+if [ -f "$CURSOR_RULE_FILE" ]; then
+  rm "$CURSOR_RULE_FILE"
+  echo "- Removed Cursor rule: $CURSOR_RULE_FILE"
+fi
+
+# 5. Remove Copilot Agent
+COPILOT_AGENT_FILE="$HOME_DIR/.github/agents/drawio.agent.md"
+if [ -f "$COPILOT_AGENT_FILE" ]; then
+  rm "$COPILOT_AGENT_FILE"
+  echo "- Removed Copilot agent: $COPILOT_AGENT_FILE"
 fi
 
 echo "Uninstallation complete! Please restart your client sessions."
