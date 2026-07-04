@@ -32,15 +32,14 @@ ALWAYS-USE:
 
 ## [Validation (MANDATORY)]
 
-After generating a draw.io XML file, you **MUST** validate it using the bundled validation script to catch layout collisions, HTML formatting errors, and AWS topology violations.
+Because the `open_drawio_xml` tool accepts an XML string directly, agents frequently skip validation because they don't have a file to run the script against. You **MUST** use the following workflow to prevent this:
 
-Run: `node scripts/validate.js <path_to_diagram.xml>`
+1. Generate your draft XML and **save it to a local file** (e.g., `diagram-draft.xml`) using your file writing tools.
+2. Run the validator: `node scripts/validate.js diagram-draft.xml`
+3. If the script reports errors, analyze them, update `diagram-draft.xml`, and run the script again.
+4. Once validation passes with 0 errors, read the XML from the file and pass it to the `@drawio/open_drawio_xml` tool.
 
-If the script reports errors:
-1. Fix the coordinate overlaps (adjust `x`/`y` or container sizes).
-2. Fix HTML label errors (ensure `html=1;whiteSpace=wrap;` are both present if using `<b>`, `<br>`, etc.).
-3. Fix topological routing errors (ensure Web Tier is not stranded, ALBs don't bypass tiers, and stateless nodes don't route horizontally across AZs).
-4. Re-run the validation script until it passes.
+The validation script catches layout collisions, HTML formatting errors, and AWS topology violations (like stranded compute, ALB bypasses, and cross-AZ routing). Do NOT call the MCP tool until validation passes.
 
 ## [Decision: XML vs CSV]
 
