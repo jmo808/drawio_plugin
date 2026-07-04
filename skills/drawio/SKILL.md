@@ -124,7 +124,8 @@ If generating or editing an Oil & Gas Process Flow Diagram (PFD), you MUST follo
 3. **Export Pump (P-101A)**: Use centrifugal pump P&ID shape (`shape=mxgraph.pid.pumps.centrifugal_pump_1;`). Route the inlet to the left (`entryX=0;entryY=0.5`) and discharge out the top (`exitX=0.5;exitY=0`) to match real piping.
 4. **Vessels**: Use a rounded rectangle (`shape=rectangle;rounded=1;arcSize=20;`) instead of complex stencils/cylinders to ensure Draw.io respects custom `entryX/exitX` nozzle elevations.
 5. **LT-100 (Level Transmitter)**: Connect directly to the vessel shell (`exitX=1;exitY=0.83` if on the right side). NEVER connect it to the inlet piping or let the feed line run through it.
-6. **No Dead-Ends or Bypasses**: Do not draw internal lines cutting through vessels. Draw feed streams coming from standard dashed page boundary blocks (e.g., `Wellhead Fluid` block). Keep the left side of the separator completely empty of instruments to avoid routing collisions.
+6. **Disable Layout Engine**: NEVER pass `"routing": "libavoid"` to the MCP tool when rendering a PFD. Libavoid dynamically re-routes edges to save space, which destroys the strict physical nozzle requirements (e.g., gas from top, water from bottom) and creates illegal shared manifolds. You must rely purely on the hardcoded `exitX/exitY` and waypoints you generate.
+7. **No Dead-Ends or Bypasses**: Do not draw internal lines cutting through vessels. Draw feed streams coming from standard dashed page boundary blocks (e.g., `Wellhead Fluid` block). Keep the left side of the separator completely empty of instruments to avoid routing collisions.
 
 ## [Codebase-to-Diagram Workflows]
 When a user asks to "diagram this codebase" or "generate an architecture diagram from my code":
