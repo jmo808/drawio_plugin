@@ -29,7 +29,7 @@ if [ -d "$KIRO_DIR" ]; then
   fs.writeFileSync(process.argv[3], resolved, "utf8");
   ' "$SCRIPT_DIR/drawio.json" "$HOME_DIR" "$KIRO_AGENTS_DIR/drawio.json"
 
-  cp "$SCRIPT_DIR/drawio.md" "$KIRO_AGENTS_DIR/"
+  cp "$SCRIPT_DIR/skills/drawio/SKILL.md" "$KIRO_AGENTS_DIR/drawio.md"
 fi
 
 # 2. Setup Antigravity Agent Plugins
@@ -39,20 +39,20 @@ if [ -d "$GEMINI_PLUGINS_DIR" ]; then
   echo "Installing Antigravity plugin files..."
   mkdir -p "$GEMINI_PLUGINS_DIR/drawio/skills/drawio"
   cp "$SCRIPT_DIR/plugin.json" "$GEMINI_PLUGINS_DIR/drawio/"
-  cp "$SCRIPT_DIR/drawio.md" "$GEMINI_PLUGINS_DIR/drawio/skills/drawio/SKILL.md"
-  if [ -d "$SCRIPT_DIR/references" ] && [ ! -L "$SCRIPT_DIR/references" ]; then
+  cp "$SCRIPT_DIR/skills/drawio/SKILL.md" "$GEMINI_PLUGINS_DIR/drawio/skills/drawio/SKILL.md"
+  if [ -d "$SCRIPT_DIR/skills/drawio/references" ] && [ ! -L "$SCRIPT_DIR/skills/drawio/references" ]; then
     rm -rf "$GEMINI_PLUGINS_DIR/drawio/skills/drawio/references"
-    cp -r "$SCRIPT_DIR/references" "$GEMINI_PLUGINS_DIR/drawio/skills/drawio/references"
+    cp -r "$SCRIPT_DIR/skills/drawio/references" "$GEMINI_PLUGINS_DIR/drawio/skills/drawio/references"
   fi
-  if [ -d "$SCRIPT_DIR/examples" ] && [ ! -L "$SCRIPT_DIR/examples" ]; then
+  if [ -d "$SCRIPT_DIR/skills/drawio/examples" ] && [ ! -L "$SCRIPT_DIR/skills/drawio/examples" ]; then
     rm -rf "$GEMINI_PLUGINS_DIR/drawio/skills/drawio/examples"
-    cp -r "$SCRIPT_DIR/examples" "$GEMINI_PLUGINS_DIR/drawio/skills/drawio/examples"
+    cp -r "$SCRIPT_DIR/skills/drawio/examples" "$GEMINI_PLUGINS_DIR/drawio/skills/drawio/examples"
   fi
 fi
 
-# Extract the body of drawio.md (strip lines 1-8 which contain the original YAML frontmatter)
-if [ -f "$SCRIPT_DIR/drawio.md" ]; then
-  DRAWIO_BODY=$(sed '1,8d' "$SCRIPT_DIR/drawio.md")
+# Extract the body of SKILL.md (strip lines 1-8 which contain the original YAML frontmatter)
+if [ -f "$SCRIPT_DIR/skills/drawio/SKILL.md" ]; then
+  DRAWIO_BODY=$(sed '1,8d' "$SCRIPT_DIR/skills/drawio/SKILL.md")
 fi
 
 # 3. Setup Claude Code Skill
@@ -62,7 +62,7 @@ if [ -d "$CLAUDE_DIR" ]; then
   echo "Installing Claude Code skill files..."
   mkdir -p "$CLAUDE_SKILLS_DIR"
   # Claude Code supports name and description YAML frontmatter natively
-  cp "$SCRIPT_DIR/drawio.md" "$CLAUDE_SKILLS_DIR/SKILL.md"
+  cp "$SCRIPT_DIR/skills/drawio/SKILL.md" "$CLAUDE_SKILLS_DIR/SKILL.md"
 fi
 
 # 4. Setup Cursor Rule

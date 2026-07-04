@@ -32,7 +32,41 @@ This plugin connects the [draw.io MCP server](https://github.com/jgraph/drawio-m
 
 ## 🚀 Installation
 
-### macOS / Linux
+### 1. Native Agent Installations (Zero-Script)
+
+Because this repository is structured as a standard plugin, you can install it directly using your agent's native CLI or UI:
+
+**Antigravity**
+```bash
+agy plugin install https://github.com/jmo808/drawio_plugin.git
+```
+
+**GitHub Copilot CLI**
+```bash
+copilot plugin install https://github.com/jmo808/drawio_plugin.git
+```
+
+**Claude Code**
+```bash
+npx add-skill https://github.com/jmo808/drawio_plugin.git
+# Or use /plugin install drawio within the Claude Code interface
+```
+
+**Kiro IDE**
+- Open the **Powers** panel in the IDE
+- Select **Add Custom Power** → **Import power from GitHub**
+- Paste `https://github.com/jmo808/drawio_plugin.git`
+
+**Cursor**
+Simply drop the `.cursor/rules/drawio.mdc` file into your project, or use community sync tools to pull it from this repo.
+
+---
+
+### 2. Manual Universal Installer
+
+If you prefer to install for *all* detected clients locally on your machine at once, you can use the bundled bash/powershell scripts.
+
+#### macOS / Linux
 ```bash
 git clone https://github.com/jmo808/drawio_plugin.git
 cd drawio_plugin
@@ -40,7 +74,7 @@ chmod +x install.sh
 ./install.sh
 ```
 
-### Windows (PowerShell)
+#### Windows (PowerShell)
 ```powershell
 git clone https://github.com/jmo808/drawio_plugin.git
 cd drawio_plugin

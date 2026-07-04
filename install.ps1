@@ -22,7 +22,7 @@ if (Test-Path $KiroDir) {
     $ResolvedJson = $JsonTemplate.Replace("{{HOME}}", $FormattedHome)
     [System.IO.File]::WriteAllText((Join-Path $KiroAgentsDir "drawio.json"), $ResolvedJson, [System.Text.UTF8Encoding]::new($false))
 
-    Copy-Item -Force (Join-Path $ScriptDir "drawio.md") (Join-Path $KiroAgentsDir "drawio.md")
+    Copy-Item -Force (Join-Path $ScriptDir "skills\drawio\SKILL.md") (Join-Path $KiroAgentsDir "drawio.md")
 }
 
 # 2. Setup Antigravity Agent Plugins
@@ -35,20 +35,19 @@ if (Test-Path $GeminiPluginsDir) {
     New-Item -ItemType Directory -Force -Path $SkillDest | Out-Null
 
     Copy-Item -Force (Join-Path $ScriptDir "plugin.json") (Join-Path $PluginDest "plugin.json")
-    Copy-Item -Force (Join-Path $ScriptDir "drawio.md") (Join-Path $SkillDest "SKILL.md")
+    Copy-Item -Force (Join-Path $ScriptDir "skills\drawio\SKILL.md") (Join-Path $SkillDest "SKILL.md")
 
-    $RefsDir = Join-Path $ScriptDir "references"
+    $RefsDir = Join-Path $ScriptDir "skills\drawio\references"
     if (Test-Path $RefsDir) {
         Copy-Item -Recurse -Force $RefsDir (Join-Path $SkillDest "references")
     }
-    $ExamplesDir = Join-Path $ScriptDir "examples"
+    $ExamplesDir = Join-Path $ScriptDir "skills\drawio\examples"
     if (Test-Path $ExamplesDir) {
         Copy-Item -Recurse -Force $ExamplesDir (Join-Path $SkillDest "examples")
     }
 }
 
-# Extract the body of drawio.md
-$DrawioMdPath = Join-Path $ScriptDir "drawio.md"
+$DrawioMdPath = Join-Path $ScriptDir "skills\drawio\SKILL.md"
 $DrawioBody = ""
 if (Test-Path $DrawioMdPath) {
     # Skip first 8 lines
