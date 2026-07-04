@@ -167,6 +167,45 @@ The diagram opens in the draw.io web editor in your browser. Every shape is a **
 
 ---
 
+## 🏭 Example: Engineering Process Flow Diagram (PFD)
+
+For domains that require strict physical constraints (like Oil & Gas PFDs), algorithmic routing often destroys semantic meaning. The agent is trained to enforce domain physics without layout engines.
+
+### Prompt
+
+```
+Create a Two-Stage Gas Compression Train Process Flow Diagram (PFD):
+- Wet Gas enters V-200 (LP Scrubber)
+- LP Gas from top of V-200 goes to K-201 (Stage 1 Compressor)
+- Hot gas from K-201 goes to E-201 (Intercooler)
+- Cooled gas goes to V-201 (HP Scrubber)
+- HP Gas from top of V-201 goes to K-202 (Stage 2 Compressor)
+- Compressors discharge to Sales Gas
+- Both scrubbers drain Condensate from the absolute bottom
+```
+
+### What the AI does
+
+1. **Identifies Domain Constraints** — Consults `ogpfdexpert.md` to learn that gas must exit the absolute top of scrubbers, and liquids the absolute bottom.
+2. **Uses Standard P&ID Shapes** — Uses `shape=mxgraph.pid.compressors.centrifugal_compressor` and `shape=mxgraph.pid.heat_exchangers.shell_and_tube_heat_exchanger_1` with `perimeter=ellipsePerimeter` to ensure lines snap to boundaries.
+3. **Disables Layout Engines** — Explicitly omits `routing: libavoid` to prevent algorithmic interference.
+4. **Calculates Physical Routing** — Hardcodes `exitX/Y`, `entryX/Y`, and `<Array as="points">` to perfectly route lines orthogonally according to physical laws (e.g., Condensate drops straight down).
+
+### Generated Output
+
+![Process Flow Diagram Example](skills/drawio/examples/compression-train-pfd.png)
+
+### Key things to notice
+
+| Feature | How it's done |
+|---------|--------------|
+| **Physics-based Nozzles** | Top (`exitX=0.5, exitY=0`) for Gas, Bottom (`exitX=0.5, exitY=1`) for Liquids |
+| **P&ID Standards** | Native mxGraph PID shapes with explicit perimeter constraints to prevent shape piercing |
+| **Inline Edge Labels** | Phase names embedded directly on edges with `labelBackgroundColor=#ffffff` |
+| **Manual Routing** | Orthogonal segments computed by the AI via `Array` points, completely bypassing `libavoid` |
+
+---
+
 ## 📊 Example: Generating an Org Chart (CSV)
 
 While most diagrams are generated via native XML, structured tabular data like organizational charts is best built using draw.io's CSV import feature.
