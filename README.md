@@ -140,7 +140,7 @@ Create a 3-tier AWS architecture diagram showing:
 
 ### Generated Output
 
-![AWS Architecture Example Diagram](skills/drawio/examples/aws-architecture.png)
+![AWS Architecture Example Diagram](skills/drawio/examples/aws-architecture.png?v=2)
 
 ### Result
 
