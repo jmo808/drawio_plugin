@@ -126,6 +126,17 @@ If generating or editing a heavy industry Process Flow Diagram (PFD) (e.g., Oil 
 5. **LT-100 (Level Transmitter)**: Connect directly to the vessel shell (`exitX=1;exitY=0.83` if on the right side). NEVER connect it to the inlet piping or let the feed line run through it.
 6. **Disable Layout Engine**: NEVER pass `"routing": "libavoid"` to the MCP tool when rendering a PFD. Libavoid dynamically re-routes edges to save space, which destroys the strict physical nozzle requirements (e.g., gas from top, water from bottom) and creates illegal shared manifolds. You must rely purely on the hardcoded `exitX/exitY` and waypoints you generate.
 7. **No Dead-Ends or Bypasses**: Do not draw internal lines cutting through vessels. Draw feed streams coming from standard dashed page boundary blocks (e.g., `Wellhead Fluid` block). Keep the left side of the separator completely empty of instruments to avoid routing collisions.
+## [AWS Cloud Architecture Rules (CRITICAL)]
+If generating or editing AWS or cloud architecture diagrams, you MUST strictly enforce enterprise topography (Well-Architected Framework):
+1. **Subnet Segmentation**: Never deploy resources directly into a flat AZ. You MUST wrap resources in explicit `Public Subnet` and `Private Subnet` nested swimlane containers inside each AZ.
+   - **Public Subnet**: Internet Gateways, NAT Gateways, ALBs.
+   - **Private Subnet**: Compute (EC2, ECS, Lambda) and Data (RDS, ElastiCache).
+2. **Tier Decoupling**: The Web Tier MUST NOT communicate directly with the Data Tier. All requests must pass through the App Tier (business logic).
+3. **State Physics**:
+   - **Compute is Stateless**: AWS Lambda, EC2, and ECS are stateless compute nodes. NEVER draw a dashed "Replication" line between compute resources across AZs.
+   - **Data is Stateful**: RDS, ElastiCache, and databases require state. ALWAYS draw a dashed "Replication" line between the Primary database in AZ A and the Replica in AZ B.
+4. **Database Routing (Asymmetric Writes)**: An RDS Replica in AZ B is Read-Only. Compute resources in AZ B MUST route their write traffic across AZs to the Primary RDS in AZ A.
+5. **No Compute Chaining**: Route ALBs to parallel compute targets (e.g., EC2 *or* ECS *or* Lambda). Do NOT daisy-chain synchronous compute (e.g., EC2 -> Lambda -> ECS).
 
 ## [Codebase-to-Diagram Workflows]
 When a user asks to "diagram this codebase" or "generate an architecture diagram from my code":
@@ -191,4 +202,5 @@ For detailed syntax and patterns, consult:
 - `references/edge-routing-guide.md` — routing and layout pass decision guide
 - `references/pid-reference.md` — ISA conventions and native draw.io shapes for industrial P&ID / PFDs
 - `references/pfd-engineering-expert.md` — Process engineering (PFD) domain rules and validation instructions (Oil & Gas, Mining, etc.)
+- `references/aws-well-architected-reviewer.md` — Cloud architecture domain constraints and AWS anti-pattern prevention
 - `examples/` — reference diagram implementations (AWS architecture XML, org chart CSV, process flow diagram XML)

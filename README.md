@@ -134,11 +134,12 @@ Create a 3-tier AWS architecture diagram showing:
 ### What the AI does
 
 1. **Identifies the diagram type** — cloud architecture with nested containers
-2. **Uses XML for all diagrams** — as strictly instructed by the skill rules, ensuring reliable parsing
-3. **Applies the rigid grid system** — places nodes at calculated positions
-4. **Uses proper containment** — VPC is a swimlane, AZs are nested swimlanes inside VPC, instances have `parent="az1"` with relative coordinates
-5. **Calls `open_drawio_xml`** — with the generated XML and `routing: "libavoid"` for clean edge routing
-6. **Validates the diagram** — Runs the bundled `validate.js` script to compute absolute bounds and ensure no nodes are overlapping or out-of-bounds before presenting the final result.
+2. **Enforces Cloud Topography** — Consults `aws-well-architected-reviewer.md` to prevent anti-patterns (no stateless compute replication, strictly segmented subnets).
+3. **Uses XML for all diagrams** — as strictly instructed by the skill rules, ensuring reliable parsing
+4. **Applies the rigid grid system** — places nodes at calculated positions
+5. **Uses proper containment** — VPC is a swimlane, AZs and Subnets are nested swimlanes inside, instances have `parent="pub-sub-1"` with relative coordinates
+6. **Calls `open_drawio_xml`** — with the generated XML and `routing: "libavoid"` for clean edge routing
+7. **Validates the diagram** — Runs the bundled `validate.js` script to compute absolute bounds and ensure no nodes are overlapping or out-of-bounds before presenting the final result.
 
 ### Generated Output
 
@@ -148,8 +149,9 @@ Create a 3-tier AWS architecture diagram showing:
 
 The diagram opens in the draw.io web editor in your browser. Every shape is a **native, clickable, editable object** — you can drag nodes, restyle containers, add new connections, and export to SVG/PNG:
 
-- 🟦 **Blue containers** = VPC boundary with nested AZ swimlanes
+- 🟦 **Blue containers** = VPC boundary
 - 🟨 **Yellow containers** = Availability Zones
+- 🟪 **Purple/Green/Red containers** = Public, Compute, and Data Subnets
 - 🟣 **Purple icons** = Load Balancer & Data Stores (ALB, RDS, ElastiCache)
 - 🟠 **Orange icons** = Compute Services (EC2, ECS, Lambda)
 - ┄ **Dashed lines** = Replication between AZs
@@ -158,7 +160,8 @@ The diagram opens in the draw.io web editor in your browser. Every shape is a **
 
 | Feature | How it's done |
 |---------|--------------|
-| **Nested containers** | VPC → AZ → Instance using `parent` hierarchy |
+| **Nested containers** | VPC → AZ → Subnet → Instance using `parent` hierarchy |
+| **Domain Physics** | Agent understands RDS/Cache is stateful (needs replication), but Lambda/EC2 is stateless |
 | **Relative coordinates** | Children positioned relative to their container, not the canvas |
 | **Cross-container edges** | Edges between AZs use `parent="1"` so they route correctly |
 | **Semantic shapes** | `shape=mxgraph.aws4.resourceIcon` with `resIcon` for AWS services, matching the official icon set |
