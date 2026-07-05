@@ -123,15 +123,26 @@ Here's a real example of what using the plugin looks like. You type a natural-la
 ### Prompt
 
 ```
-Can you create a diagram for a high-availability serverless event-driven architecture?
-
-Here's the setup:
-
-Ingress: Route 53 routes to a WAF, which sends traffic through CloudFront CDN to a central API Gateway.
-Compute Tier: API Gateway splits traffic between two symmetrical Availability Zones (us-east-1a and us-east-1b). In the App Subnet of each AZ, there is a Lambda API Handler.
-Asynchronous Event-Driven Loop: Both Lambda API Handlers publish events to a regional EventBridge Event Bus. The Event Bus then triggers downstream Lambda Processor Workers in each AZ's App Subnet.
-Data Tier: In the Private Data Subnets, we have DynamoDB Global Tables. DynamoDB Table A (Primary) is in us-east-1a, and DynamoDB Table B (Replica) is in us-east-1b. The primary table replicates asynchronously to the replica.
-Database Access: Lambda functions in us-east-1a should read/write locally to Table A. Lambda functions in us-east-1b should read locally from Table B and write cross-AZ to Table A.
+Create a native draw.io diagram representing an AWS high-availability, decoupled three-tier web application utilizing both synchronous user traffic and asynchronous worker queues.
+Component Requirements:
+Regional Level (Outside VPC):
+A User Client that initiates requests.
+A Route 53 DNS endpoint.
+A WAF Shield for request filtering.
+A CloudFront CDN for edge caching.
+An API Gateway managing the REST API.
+A Task Queue (SQS) acting as the event buffer.
+Network Level (VPC):
+A Production VPC encapsulating the secure tiers.
+Nested Availability Zones: us-east-1a and us-east-1b.
+Within us-east-1a:
+Public Subnet hosting an External ALB.
+Private App Subnet hosting an ECS Web Task and a background ECS Worker Task.
+Private Data Subnet hosting a Redis Cache A (ElastiCache) and a Primary DB (RDS).
+Within us-east-1b:
+Public Subnet hosting an External ALB.
+Private App Subnet hosting an ECS Web Task and a background ECS Worker Task.
+Private Data Subnet hosting a Redis Cache B (ElastiCache) and a Replica DB (RDS).
 ```
 
 ### What the AI does
