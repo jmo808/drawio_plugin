@@ -162,6 +162,21 @@ const BUILDER_TOOLS = [
         },
     },
     {
+        name: 'connect_ha_compute_to_data',
+        description: 'Connect a compute node to database and cache tiers with high-availability replication rules.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                compute_id: { type: 'string', description: 'Source compute node ID' },
+                primary_db_id: { type: 'string', description: 'Primary database node ID' },
+                replica_db_id: { type: 'string', description: 'Replica database node ID' },
+                primary_cache_id: { type: 'string', description: 'Optional primary cache node ID' },
+                replica_cache_id: { type: 'string', description: 'Optional replica cache node ID' },
+            },
+            required: ['compute_id', 'primary_db_id', 'replica_db_id'],
+        },
+    },
+    {
         name: 'get_state',
         description: 'Get the current diagram state as a JSON summary — containers, nodes, edges. Use this to review the diagram before finalizing.',
         inputSchema: { type: 'object', properties: {} },
@@ -250,6 +265,15 @@ function handleBuilderTool(toolName, args, msgId) {
             break;
         case 'connect_tiers':
             result = builder.connectTiers(args.source_tier, args.target_tier, args.label, args.style);
+            break;
+        case 'connect_ha_compute_to_data':
+            result = builder.connectHaComputeToData(
+                args.compute_id,
+                args.primary_db_id,
+                args.replica_db_id,
+                args.primary_cache_id,
+                args.replica_cache_id
+            );
             break;
         case 'get_state':
             result = builder.getState();

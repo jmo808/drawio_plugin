@@ -418,6 +418,79 @@ class DiagramBuilder {
         return { success: true, message: `Connected ${successes} edges from tier "${sourceTier}" to tier "${targetTier}".`, details: results };
     }
 
+    // --- Connect HA Compute to Data ---
+    connectHaComputeToData(computeId, primaryDbId, replicaDbId, primaryCacheId = null, replicaCacheId = null) {
+        if (!this.initialized) return { success: false, error: 'Call init_diagram first.' };
+        if (!this.cells.has(computeId)) return { success: false, error: `Compute node "${computeId}" not found.` };
+        if (!this.cells.has(primaryDbId)) return { success: false, error: `Primary DB "${primaryDbId}" not found.` };
+        if (!this.cells.has(replicaDbId)) return { success: false, error: `Replica DB "${replicaDbId}" not found.` };
+
+        const results = [];
+        const hasEdge = (src, tgt) => {
+            for (const [, e] of this.edges) {
+                if (e.sourceId === src && e.targetId === tgt) return true;
+            }
+            return false;
+        };
+
+        // 1. Connect compute to Replica DB (Read Only)
+        if (!hasEdge(computeId, replicaDbId)) {
+            results.push(this.connect(computeId, replicaDbId, 'Read Only', 'solid'));
+        }
+
+        // 2. Connect compute to Primary DB (Read/Write)
+        if (!hasEdge(computeId, primaryDbId)) {
+            results.push(this.connect(computeId, primaryDbId, 'Read/Write', 'solid'));
+        }
+
+        // 3. Connect Primary DB to Replica DB (Async Replication)
+        if (!hasEdge(primaryDbId, replicaDbId)) {
+            results.push(this.connect(primaryDbId, replicaDbId, 'Async Replication', 'dashed'));
+        }
+
+        // 4. Handle Cache connections if provided
+        if (primaryCacheId && replicaCacheId) {
+            if (this.cells.has(primaryCacheId) && this.cells.has(replicaCacheId)) {
+                // Connect Primary Cache to Replica Cache (Async Replication)
+                if (!hasEdge(primaryCacheId, replicaCacheId)) {
+                    results.push(this.connect(primaryCacheId, replicaCacheId, 'Async Replication', 'dashed'));
+                }
+
+                // Helper to get AZ container ID for a node
+                const getAz = (cellId) => {
+                    let curr = this.cells.get(cellId);
+                    while (curr && curr.parentId && curr.parentId !== '1') {
+                        if (curr.type === 'az') return curr.id;
+                        curr = this.cells.get(curr.parentId);
+                    }
+                    return null;
+                };
+
+                const computeAz = getAz(computeId);
+                const primaryCacheAz = getAz(primaryCacheId);
+                const replicaCacheAz = getAz(replicaCacheId);
+
+                // Connect compute to local cache (Cache Access)
+                if (computeAz && computeAz === primaryCacheAz) {
+                    if (!hasEdge(computeId, primaryCacheId)) {
+                        results.push(this.connect(computeId, primaryCacheId, 'Cache Access', 'solid'));
+                    }
+                } else if (computeAz && computeAz === replicaCacheAz) {
+                    if (!hasEdge(computeId, replicaCacheId)) {
+                        results.push(this.connect(computeId, replicaCacheId, 'Cache Access', 'solid'));
+                    }
+                }
+            }
+        }
+
+        const successes = results.filter(r => r.success).length;
+        return {
+            success: true,
+            message: `HA Compute-to-Data macro completed: ${successes} new connections established.`,
+            details: results
+        };
+    }
+
     // --- Get State ---
     getState() {
         if (!this.initialized) return { success: false, error: 'Call init_diagram first.' };

@@ -83,13 +83,13 @@ async function main() {
     const requiredTools = [
       'open_drawio_csv', 'open_drawio_mermaid', 'open_drawio_xml', 'search_shapes',
       'init_diagram', 'add_container', 'add_node', 'connect', 'disconnect',
-      'connect_tiers', 'get_state', 'builder_validate', 'finalize',
+      'connect_tiers', 'connect_ha_compute_to_data', 'get_state', 'builder_validate', 'finalize',
     ];
     const hasAllTools = requiredTools.every(t => toolNames.includes(t));
 
     record(
       'Test 2: List Tools',
-      hasAllTools && tools.length === 13,
+      hasAllTools && tools.length === 14,
       `Got ${tools.length} tools: ${toolNames.join(', ')}`,
     );
 
@@ -235,6 +235,54 @@ async function main() {
       'Test 7: PFD Workflow',
       pfdOk,
       `PFD diagram finalized successfully: ${pfdOk ? 'OK' : 'Failed'}`
+    );
+
+    // ───── Test 8: HA Compute to Data Macro ───────────────────────────────
+    // Init diagram with type 'architecture'
+    r = parseBuilderResult(await client.callTool({ name: 'init_diagram', arguments: { title: 'HA Macro Test', type: 'architecture' } }));
+    if (!r.success) { record('Test 8: HA Macro Workflow', false, `init failed: ${r.error}`); throw new Error('stop'); }
+
+    // Add VPC, AZs, Subnets, compute, DBs, caches
+    await client.callTool({ name: 'add_container', arguments: { id: 'vpc', label: 'VPC', type: 'vpc' } });
+    await client.callTool({ name: 'add_container', arguments: { id: 'azA', label: 'AZ A', type: 'az', parent_id: 'vpc' } });
+    await client.callTool({ name: 'add_container', arguments: { id: 'azB', label: 'AZ B', type: 'az', parent_id: 'vpc' } });
+    await client.callTool({ name: 'add_container', arguments: { id: 'appA', label: 'App A', type: 'subnet', parent_id: 'azA', tier: 'app' } });
+    await client.callTool({ name: 'add_container', arguments: { id: 'appB', label: 'App B', type: 'subnet', parent_id: 'azB', tier: 'app' } });
+    await client.callTool({ name: 'add_container', arguments: { id: 'dataA', label: 'Data A', type: 'subnet', parent_id: 'azA', tier: 'data' } });
+    await client.callTool({ name: 'add_container', arguments: { id: 'dataB', label: 'Data B', type: 'subnet', parent_id: 'azB', tier: 'data' } });
+
+    await client.callTool({ name: 'add_node', arguments: { id: 'ecsB', label: 'ECS B', type: 'ecs', parent_id: 'appB' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'dbA', label: 'Primary DB', type: 'rds', parent_id: 'dataA', variant: 'primary' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'dbB', label: 'Replica DB', type: 'rds', parent_id: 'dataB', variant: 'replica' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'cacheA', label: 'Cache A', type: 'elasticache', parent_id: 'dataA', variant: 'primary' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'cacheB', label: 'Cache B', type: 'elasticache', parent_id: 'dataB', variant: 'replica' } });
+
+    // Run the macro
+    r = parseBuilderResult(await client.callTool({
+      name: 'connect_ha_compute_to_data',
+      arguments: {
+        compute_id: 'ecsB',
+        primary_db_id: 'dbA',
+        replica_db_id: 'dbB',
+        primary_cache_id: 'cacheA',
+        replica_cache_id: 'cacheB'
+      }
+    }));
+    
+    // Check that edges were correctly populated
+    r = parseBuilderResult(await client.callTool({ name: 'get_state', arguments: {} }));
+    const hasEcsBToDbA = r.edges.some(e => e.source === 'ecsB' && e.target === 'dbA');
+    const hasEcsBToDbB = r.edges.some(e => e.source === 'ecsB' && e.target === 'dbB');
+    const hasDbAToDbB = r.edges.some(e => e.source === 'dbA' && e.target === 'dbB');
+    const hasCacheAToCacheB = r.edges.some(e => e.source === 'cacheA' && e.target === 'cacheB');
+    const hasEcsBToCacheB = r.edges.some(e => e.source === 'ecsB' && e.target === 'cacheB');
+
+    const macroOk = r.success && hasEcsBToDbA && hasEcsBToDbB && hasDbAToDbB && hasCacheAToCacheB && hasEcsBToCacheB;
+
+    record(
+      'Test 8: HA Macro Workflow',
+      macroOk,
+      `State edges: ${r.edges.length}/5 connected correctly. ecsB->dbA=${hasEcsBToDbA}, ecsB->dbB=${hasEcsBToDbB}, dbA->dbB=${hasDbAToDbB}, cacheA->cacheB=${hasCacheAToCacheB}, ecsB->cacheB=${hasEcsBToCacheB}`
     );
 
   } catch (err) {
