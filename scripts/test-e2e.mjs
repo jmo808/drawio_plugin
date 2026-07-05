@@ -388,8 +388,10 @@ async function main() {
 
     // Connections with violations
     await client.callTool({ name: 'connect', arguments: { source_id: 'client', target_id: 'albA', label: 'Forward Traffic' } });
+    await client.callTool({ name: 'connect', arguments: { source_id: 'cf', target_id: 'albA', label: 'Forward Traffic' } });
     await client.callTool({ name: 'connect', arguments: { source_id: 'ecs1', target_id: 'ecs2', label: 'Sync' } });
     await client.callTool({ name: 'connect', arguments: { source_id: 'ecs1', target_id: 'apigw', label: 'Publish Event' } });
+    await client.callTool({ name: 'connect', arguments: { source_id: 'ecs2', target_id: 'apigw', label: 'REST API Call' } });
 
     // Finalize triggers corrections
     r = parseBuilderResult(await client.callTool({ name: 'finalize', arguments: {} }));
@@ -401,21 +403,26 @@ async function main() {
     const ecs1ToEcs2Edge = r.edges.find(e => e.source === 'ecs1' && e.target === 'ecs2');
     const clientToAlbEdge = r.edges.find(e => e.source === 'client' && e.target === 'albA');
     const cfToAlbEdge = r.edges.find(e => e.source === 'cf' && e.target === 'albA');
+    const cfToApigwEdge = r.edges.find(e => e.source === 'cf' && e.target === 'apigw');
+    const apigwToAlbEdge = r.edges.find(e => e.source === 'apigw' && e.target === 'albA');
     const ecs1ToApigwEdge = r.edges.find(e => e.source === 'ecs1' && e.target === 'apigw');
+    const ecs2ToApigwEdge = r.edges.find(e => e.source === 'ecs2' && e.target === 'apigw');
     const ecs1ToSqsEdge = r.edges.find(e => e.source === 'ecs1' && e.target === 'queue');
     const keepAlbNode = r.nodes.find(n => n.type === 'alb');
 
     const doubleAlbMerged = albsCount === 1 && keepAlbNode && keepAlbNode.parent === 'pub1';
     const horizontalComputeEdgeDeleted = !ecs1ToEcs2Edge;
-    const clientBypassFixed = !clientToAlbEdge && cfToAlbEdge && cfToAlbEdge.label === 'Forward';
+    const clientBypassFixed = !clientToAlbEdge && apigwToAlbEdge && apigwToAlbEdge.label === 'Forward';
+    const cdnToApigwAligned = !cfToAlbEdge && cfToApigwEdge && cfToApigwEdge.label === 'Forward';
     const eventFlowTargetingFixed = !ecs1ToApigwEdge && ecs1ToSqsEdge && ecs1ToSqsEdge.label === 'Publish Event Logs';
+    const reverseSyncEdgePurged = !ecs2ToApigwEdge;
 
-    const correctionsOk = r.success && doubleAlbMerged && horizontalComputeEdgeDeleted && clientBypassFixed && eventFlowTargetingFixed;
+    const correctionsOk = r.success && doubleAlbMerged && horizontalComputeEdgeDeleted && clientBypassFixed && cdnToApigwAligned && eventFlowTargetingFixed && reverseSyncEdgePurged;
 
     record(
       'Test 11: Multi-AZ Ingress and Compute Corrections',
       correctionsOk,
-      `Double ALB Merged/Nested: ${doubleAlbMerged}. Cross-AZ compute edge deleted: ${horizontalComputeEdgeDeleted}. Client Bypass Rerouted: ${clientBypassFixed}. Event Flow Rerouted to SQS: ${eventFlowTargetingFixed}.`
+      `Double ALB Merged/Nested: ${doubleAlbMerged}. Cross-AZ compute edge deleted: ${horizontalComputeEdgeDeleted}. Client Bypass Rerouted: ${clientBypassFixed}. CDN Aligned: ${cdnToApigwAligned}. Event Flow Rerouted to SQS: ${eventFlowTargetingFixed}. Reverse Sync Purged: ${reverseSyncEdgePurged}.`
     );
 
 

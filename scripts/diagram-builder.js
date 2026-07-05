@@ -1064,26 +1064,55 @@ class DiagramBuilder {
             this.edges.delete(edgeId);
         }
 
-        // 6. Ingress Routing Correction (Bypass & Orphaned CDN cleanup)
+        // 6. Ingress Routing Correction (Bypass, CDN & API Gateway path alignment)
         let clientNode = null;
         let cdnNode = null;
+        let apigwNode = null;
         let albNode = null;
         for (const [, cell] of this.cells) {
             if (cell.type === 'user') clientNode = cell;
             if (cell.type === 'cloudfront') cdnNode = cell;
+            if (cell.type === 'apigateway') apigwNode = cell;
             if (cell.type === 'alb' || cell.type === 'nlb') albNode = cell;
         }
 
         if (clientNode && cdnNode && albNode) {
             for (const [, edge] of this.edges) {
                 if (edge.sourceId === clientNode.id && edge.targetId === albNode.id) {
-                    edge.sourceId = cdnNode.id;
+                    if (apigwNode) {
+                        edge.sourceId = apigwNode.id;
+                    } else {
+                        edge.sourceId = cdnNode.id;
+                    }
                     edge.label = 'Forward';
+                }
+            }
+
+            if (apigwNode) {
+                let hasCdnToApigw = false;
+                let hasApigwToAlb = false;
+
+                for (const [, edge] of this.edges) {
+                    if (edge.sourceId === cdnNode.id && edge.targetId === albNode.id) {
+                        edge.targetId = apigwNode.id;
+                        edge.label = 'Forward';
+                        hasCdnToApigw = true;
+                    }
+                    if (edge.sourceId === cdnNode.id && edge.targetId === apigwNode.id) {
+                        hasCdnToApigw = true;
+                    }
+                    if (edge.sourceId === apigwNode.id && edge.targetId === albNode.id) {
+                        hasApigwToAlb = true;
+                    }
+                }
+
+                if (hasCdnToApigw && !hasApigwToAlb) {
+                    this.connect(apigwNode.id, albNode.id, 'Forward', 'solid');
                 }
             }
         }
 
-        // 7. Event Flow Targeting Correction (Reroute outbound events from API Gateway/compute directly to SQS/SNS/EventBridge)
+        // 7. Event Flow & API Gateway Target Correction
         let sqsNode = null;
         for (const [, cell] of this.cells) {
             if (cell.type === 'sqs' || cell.type === 'sns' || cell.type === 'eventbridge') {
@@ -1092,21 +1121,27 @@ class DiagramBuilder {
             }
         }
 
-        if (sqsNode) {
-            for (const [, edge] of this.edges) {
-                const src = this.cells.get(edge.sourceId);
-                const tgt = this.cells.get(edge.targetId);
-                if (src && tgt && isCompute(src) && tgt.type === 'apigateway') {
-                    const lbl = (edge.label || '').toLowerCase();
-                    if (lbl.includes('publish') || lbl.includes('event') || lbl.includes('log') || lbl.includes('queue')) {
+        const edgesToPurge = [];
+        for (const [edgeId, edge] of this.edges) {
+            const src = this.cells.get(edge.sourceId);
+            const tgt = this.cells.get(edge.targetId);
+            if (src && tgt && isCompute(src) && tgt.type === 'apigateway') {
+                const lbl = (edge.label || '').toLowerCase();
+                if (lbl.includes('publish') || lbl.includes('event') || lbl.includes('log') || lbl.includes('queue')) {
+                    if (sqsNode) {
                         edge.targetId = sqsNode.id;
                         edge.label = 'Publish Event Logs';
                         if (!edge.style.includes('dashed=1')) {
                             edge.style += 'dashed=1;';
                         }
                     }
+                } else {
+                    edgesToPurge.push(edgeId);
                 }
             }
+        }
+        for (const edgeId of edgesToPurge) {
+            this.edges.delete(edgeId);
         }
     }
 }
