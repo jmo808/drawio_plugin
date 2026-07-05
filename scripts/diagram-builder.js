@@ -1028,24 +1028,13 @@ class DiagramBuilder {
         }
         if (albs.length > 1) {
             const keepAlb = albs[0];
-            let vpcContainerId = '1';
-            for (const [, cell] of this.cells) {
-                if (cell.type === 'vpc') {
-                    vpcContainerId = cell.id;
-                    break;
-                }
-            }
-            keepAlb.parentId = vpcContainerId;
             keepAlb.label = keepAlb.label.replace(/ A$/, '').replace(/ B$/, '').replace(/ [12]$/, '');
 
-            const azs = Array.from(this.cells.values()).filter(c => c.type === 'az' && c.parentId === vpcContainerId);
-            if (azs.length >= 2) {
-                azs.sort((a, b) => a.x - b.x);
-                const firstAz = azs[0];
-                const lastAz = azs[azs.length - 1];
-                const midX = (firstAz.x + lastAz.x + lastAz.width) / 2;
-                keepAlb.x = midX - keepAlb.width / 2;
-                keepAlb.y = 40; // place above the AZs inside the VPC
+            // Keep it nested in its original public subnet parent, but center it inside it
+            const parentCell = this.cells.get(keepAlb.parentId);
+            if (parentCell) {
+                keepAlb.x = (parentCell.width - keepAlb.width) / 2;
+                keepAlb.y = (parentCell.height - keepAlb.height) / 2;
             }
 
             for (let i = 1; i < albs.length; i++) {
@@ -1090,6 +1079,32 @@ class DiagramBuilder {
                 if (edge.sourceId === clientNode.id && edge.targetId === albNode.id) {
                     edge.sourceId = cdnNode.id;
                     edge.label = 'Forward';
+                }
+            }
+        }
+
+        // 7. Event Flow Targeting Correction (Reroute outbound events from API Gateway/compute directly to SQS/SNS/EventBridge)
+        let sqsNode = null;
+        for (const [, cell] of this.cells) {
+            if (cell.type === 'sqs' || cell.type === 'sns' || cell.type === 'eventbridge') {
+                sqsNode = cell;
+                break;
+            }
+        }
+
+        if (sqsNode) {
+            for (const [, edge] of this.edges) {
+                const src = this.cells.get(edge.sourceId);
+                const tgt = this.cells.get(edge.targetId);
+                if (src && tgt && isCompute(src) && tgt.type === 'apigateway') {
+                    const lbl = (edge.label || '').toLowerCase();
+                    if (lbl.includes('publish') || lbl.includes('event') || lbl.includes('log') || lbl.includes('queue')) {
+                        edge.targetId = sqsNode.id;
+                        edge.label = 'Publish Event Logs';
+                        if (!edge.style.includes('dashed=1')) {
+                            edge.style += 'dashed=1;';
+                        }
+                    }
                 }
             }
         }

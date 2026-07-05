@@ -370,6 +370,9 @@ async function main() {
 
     await client.callTool({ name: 'add_node', arguments: { id: 'client', label: 'User Client', type: 'user', parent_id: '1' } });
     await client.callTool({ name: 'add_node', arguments: { id: 'cf', label: 'CloudFront CDN', type: 'cloudfront', parent_id: '1' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'apigw', label: 'API Gateway', type: 'apigateway', parent_id: '1' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'queue', label: 'Task Queue', type: 'sqs', parent_id: '1' } });
+    
     await client.callTool({ name: 'add_container', arguments: { id: 'vpc', label: 'Production VPC', type: 'vpc' } });
     await client.callTool({ name: 'add_container', arguments: { id: 'az1', label: 'us-east-1a', type: 'az', parent_id: 'vpc' } });
     await client.callTool({ name: 'add_container', arguments: { id: 'az2', label: 'us-east-1b', type: 'az', parent_id: 'vpc' } });
@@ -386,9 +389,7 @@ async function main() {
     // Connections with violations
     await client.callTool({ name: 'connect', arguments: { source_id: 'client', target_id: 'albA', label: 'Forward Traffic' } });
     await client.callTool({ name: 'connect', arguments: { source_id: 'ecs1', target_id: 'ecs2', label: 'Sync' } });
-
-    r = parseBuilderResult(await client.callTool({ name: 'get_state', arguments: {} }));
-    const initialEdgesCount = r.edges.length;
+    await client.callTool({ name: 'connect', arguments: { source_id: 'ecs1', target_id: 'apigw', label: 'Publish Event' } });
 
     // Finalize triggers corrections
     r = parseBuilderResult(await client.callTool({ name: 'finalize', arguments: {} }));
@@ -397,22 +398,24 @@ async function main() {
     r = parseBuilderResult(await client.callTool({ name: 'get_state', arguments: {} }));
 
     const albsCount = r.nodes.filter(n => n.type === 'alb').length;
-    const finalEdgesCount = r.edges.length;
     const ecs1ToEcs2Edge = r.edges.find(e => e.source === 'ecs1' && e.target === 'ecs2');
     const clientToAlbEdge = r.edges.find(e => e.source === 'client' && e.target === 'albA');
     const cfToAlbEdge = r.edges.find(e => e.source === 'cf' && e.target === 'albA');
+    const ecs1ToApigwEdge = r.edges.find(e => e.source === 'ecs1' && e.target === 'apigw');
+    const ecs1ToSqsEdge = r.edges.find(e => e.source === 'ecs1' && e.target === 'queue');
     const keepAlbNode = r.nodes.find(n => n.type === 'alb');
 
-    const doubleAlbMerged = albsCount === 1 && keepAlbNode && keepAlbNode.parent === 'vpc';
+    const doubleAlbMerged = albsCount === 1 && keepAlbNode && keepAlbNode.parent === 'pub1';
     const horizontalComputeEdgeDeleted = !ecs1ToEcs2Edge;
     const clientBypassFixed = !clientToAlbEdge && cfToAlbEdge && cfToAlbEdge.label === 'Forward';
+    const eventFlowTargetingFixed = !ecs1ToApigwEdge && ecs1ToSqsEdge && ecs1ToSqsEdge.label === 'Publish Event Logs';
 
-    const correctionsOk = r.success && doubleAlbMerged && horizontalComputeEdgeDeleted && clientBypassFixed;
+    const correctionsOk = r.success && doubleAlbMerged && horizontalComputeEdgeDeleted && clientBypassFixed && eventFlowTargetingFixed;
 
     record(
       'Test 11: Multi-AZ Ingress and Compute Corrections',
       correctionsOk,
-      `Double ALB Merged: ${doubleAlbMerged}. Cross-AZ compute edge deleted: ${horizontalComputeEdgeDeleted}. Client Bypass Rerouted: ${clientBypassFixed}.`
+      `Double ALB Merged/Nested: ${doubleAlbMerged}. Cross-AZ compute edge deleted: ${horizontalComputeEdgeDeleted}. Client Bypass Rerouted: ${clientBypassFixed}. Event Flow Rerouted to SQS: ${eventFlowTargetingFixed}.`
     );
 
 
