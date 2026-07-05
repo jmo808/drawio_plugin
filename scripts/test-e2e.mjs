@@ -468,6 +468,7 @@ async function main() {
       <mxCell id="e4" edge="1" source="cf" target="ecs" parent="1"/>
       <mxCell id="e5" edge="1" source="alb" target="apigw" parent="1"/>
       <mxCell id="e6" edge="1" source="alb" target="ecs" style="dashed=1" parent="1"/>
+      <mxCell id="e7" edge="1" source="apigw" target="ecs" parent="1"/>
     </root></mxGraphModel>`;
     
     fs.writeFileSync(tempInvalidFile, invalidXmlContent, 'utf8');
@@ -480,12 +481,13 @@ async function main() {
     const hasCdnComputeErr = r.errors.some(e => e.includes('Direct connections from CloudFront to private compute nodes are forbidden'));
     const hasReverseProxyErr = r.errors.some(e => e.includes('Outbound routing from ALB to API Gateway or CDN is forbidden'));
     const hasDashedAlbComputeErr = r.errors.some(e => e.includes('Edge from Load Balancer to private compute nodes must be solid request traffic'));
+    const hasApigwComputeBypassErr = r.errors.some(e => e.includes('API Gateway is forbidden from routing directly to private compute nodes when an ALB is present'));
 
-    const validationMatrixOk = !r.success && hasBypassErr && hasApigwErr && hasDnsErr && hasCdnComputeErr && hasReverseProxyErr && hasDashedAlbComputeErr;
+    const validationMatrixOk = !r.success && hasBypassErr && hasApigwErr && hasDnsErr && hasCdnComputeErr && hasReverseProxyErr && hasDashedAlbComputeErr && hasApigwComputeBypassErr;
     record(
       'Test 13: Edge Type Validation Matrix (aws.js)',
       validationMatrixOk,
-      `Bypass Err: ${hasBypassErr}. APIGW Err: ${hasApigwErr}. DNS Err: ${hasDnsErr}. CDN->Compute Err: ${hasCdnComputeErr}. ReverseProxy Err: ${hasReverseProxyErr}. DashedAlb Err: ${hasDashedAlbComputeErr}.`
+      `Bypass Err: ${hasBypassErr}. APIGW Err: ${hasApigwErr}. DNS Err: ${hasDnsErr}. CDN->Compute Err: ${hasCdnComputeErr}. ReverseProxy Err: ${hasReverseProxyErr}. DashedAlb Err: ${hasDashedAlbComputeErr}. ApigwBypass Err: ${hasApigwComputeBypassErr}.`
     );
 
     // ───── Test 14: compile_json_spec Tool ───────────────────────────────────

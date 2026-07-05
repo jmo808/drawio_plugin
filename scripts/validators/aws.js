@@ -115,6 +115,20 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
                 reportError('TOPOLOGY_ERROR', id, `Edge from Load Balancer to private compute nodes must be solid request traffic.`);
             }
         }
+
+        // Rule 10: API Gateway to Compute Bypass (when ALB exists)
+        if (source.type === 'apigateway' && statelessComputeTypes.includes(target.type)) {
+            let albExists = false;
+            for (const nid in awsNodes) {
+                if (awsNodes[nid].type === 'application_load_balancer') {
+                    albExists = true;
+                    break;
+                }
+            }
+            if (albExists) {
+                reportError('TOPOLOGY_ERROR', id, `API Gateway is forbidden from routing directly to private compute nodes when an ALB is present.`);
+            }
+        }
         
         // Rule 3: Stateless Horizontal Routing
         if (statelessComputeTypes.includes(source.type) && statelessComputeTypes.includes(target.type)) {

@@ -33,6 +33,7 @@ const NODE_STYLES = {
     nlb: 'shape=mxgraph.aws4.network_load_balancer;fillColor=#8C4FFF;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;pointerEvents=1;html=1;',
     s3: 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.s3;fillColor=#3F8624;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
     cloudfront: 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.cloudfront;fillColor=#8C4FFF;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
+    route53: 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.route_53;fillColor=#8C4FFF;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
     apigateway: 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.api_gateway;fillColor=#8C4FFF;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
     api_gateway: 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.api_gateway;fillColor=#8C4FFF;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
     waf: 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.waf;fillColor=#C925D1;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
@@ -1040,7 +1041,7 @@ class DiagramBuilder {
             }
         }
 
-        // Align External ALB visually centering it in the VPC, but keeping parent as pub1
+        // Align External ALB visually centering it in the VPC, but keeping parent as pub1 to satisfy DOM constraints
         let extAlb = null;
         for (const [, cell] of this.cells) {
             if (cell.type === 'alb' || cell.type === 'nlb') {
@@ -1050,12 +1051,23 @@ class DiagramBuilder {
         }
         if (extAlb) {
             extAlb.label = extAlb.label.replace(/ A$/, '').replace(/ B$/, '').replace(/ [12]$/, '');
-            if (extAlb.parentId.includes('pub') || extAlb.parentId.includes('public') || extAlb.parentId === 'pub1') {
-                extAlb.x = 520;
-                const parentCell = this.cells.get(extAlb.parentId);
-                if (parentCell) {
-                    extAlb.y = (parentCell.height - extAlb.height) / 2;
+            
+            // Find a public subnet to parent the ALB
+            let pubSubnet = null;
+            for (const [, cell] of this.cells) {
+                if (cell.isContainer && (cell.type === 'subnet' || cell.id.toLowerCase().includes('subnet'))) {
+                    const idLower = cell.id.toLowerCase();
+                    const labelLower = (cell.label || '').toLowerCase();
+                    if (idLower.includes('pub') || idLower.includes('public') || labelLower.includes('pub') || labelLower.includes('public')) {
+                        pubSubnet = cell;
+                        break;
+                    }
                 }
+            }
+            if (pubSubnet) {
+                extAlb.parentId = pubSubnet.id;
+                extAlb.x = 520; // Centered horizontal position in VPC relative to pubSubnet
+                extAlb.y = (pubSubnet.height - extAlb.height) / 2;
             }
         }
 
@@ -1170,6 +1182,22 @@ class DiagramBuilder {
         }
         for (const edgeId of cdnToComputeEdges) {
             this.edges.delete(edgeId);
+        }
+
+        // Purge any direct APIGW-to-Compute bypasses if an ALB is present
+        if (apigwNode && albNode) {
+            const apigwToComputeEdges = [];
+            for (const [edgeId, edge] of this.edges) {
+                if (edge.sourceId === apigwNode.id) {
+                    const tgt = this.cells.get(edge.targetId);
+                    if (tgt && isCompute(tgt)) {
+                        apigwToComputeEdges.push(edgeId);
+                    }
+                }
+            }
+            for (const edgeId of apigwToComputeEdges) {
+                this.edges.delete(edgeId);
+            }
         }
 
         // Ensure ALB/NLB to Compute connections are solid request traffic, and guarantee connections to Web Tasks
