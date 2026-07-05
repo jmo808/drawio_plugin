@@ -16,6 +16,8 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
+import fs from 'node:fs';
+import os from 'node:os';
 
 // ── Paths ────────────────────────────────────────────────────────────────────
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -83,13 +85,13 @@ async function main() {
     const requiredTools = [
       'open_drawio_csv', 'open_drawio_mermaid', 'open_drawio_xml', 'search_shapes',
       'init_diagram', 'add_container', 'add_node', 'connect', 'disconnect',
-      'connect_tiers', 'connect_ha_compute_to_data', 'provision_ha_data_tier', 'get_state', 'builder_validate', 'finalize',
+      'connect_tiers', 'connect_ha_compute_to_data', 'provision_ha_data_tier', 'get_state', 'builder_validate', 'validate_file', 'finalize',
     ];
     const hasAllTools = requiredTools.every(t => toolNames.includes(t));
 
     record(
       'Test 2: List Tools',
-      hasAllTools && tools.length === 15,
+      hasAllTools && tools.length === 16,
       `Got ${tools.length} tools: ${toolNames.join(', ')}`,
     );
 
@@ -424,6 +426,22 @@ async function main() {
       correctionsOk,
       `Double ALB Merged/Nested: ${doubleAlbMerged}. Cross-AZ compute edge deleted: ${horizontalComputeEdgeDeleted}. Client Bypass Rerouted: ${clientBypassFixed}. CDN Aligned: ${cdnToApigwAligned}. Event Flow Rerouted to SQS: ${eventFlowTargetingFixed}. Reverse Sync Purged: ${reverseSyncEdgePurged}.`
     );
+
+    // ───── Test 12: validate_file Tool ──────────────────────────────────────
+    const tempFile = path.join(os.tmpdir(), `test-e2e-validate-${Date.now()}.xml`);
+    const validXmlContent = `<mxGraphModel><root><mxCell id="0"/><mxCell id="1" parent="0"/><mxCell id="n" value="Node" style="shape=rectangle" vertex="1" parent="1"><mxGeometry x="10" y="10" width="80" height="40" as="geometry"/></mxCell></root></mxGraphModel>`;
+    fs.writeFileSync(tempFile, validXmlContent, 'utf8');
+
+    r = parseBuilderResult(await client.callTool({ name: 'validate_file', arguments: { file_path: tempFile } }));
+    fs.unlinkSync(tempFile);
+
+    const validateFileOk = r.success && r.errors.length === 0;
+    record(
+      'Test 12: validate_file Tool',
+      validateFileOk,
+      `Validation succeeded: ${r.success}, Errors count: ${r.errors?.length}`
+    );
+
 
 
   } catch (err) {

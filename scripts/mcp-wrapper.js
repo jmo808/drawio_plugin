@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const { DiagramBuilder } = require('./diagram-builder');
+const { validateXml } = require('./validate');
 
 // ---------------------------------------------------------------------------
 // Resolve dependencies and run startup self-test
@@ -200,6 +201,17 @@ const BUILDER_TOOLS = [
         inputSchema: { type: 'object', properties: {} },
     },
     {
+        name: 'validate_file',
+        description: 'Validate a draw.io XML file in the workspace. Returns validation errors. Use this to validate files without launching terminal processes.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                file_path: { type: 'string', description: 'Absolute path to the XML/drawio file to validate.' }
+            },
+            required: ['file_path']
+        },
+    },
+    {
         name: 'finalize',
         description: 'Validate the diagram and open it in draw.io. If validation fails, errors are returned instead.',
         inputSchema: { type: 'object', properties: {} },
@@ -300,6 +312,18 @@ function handleBuilderTool(toolName, args, msgId) {
             break;
         case 'builder_validate':
             result = builder.validate();
+            break;
+        case 'validate_file':
+            try {
+                if (!args.file_path || !fs.existsSync(args.file_path)) {
+                    result = { success: false, error: `File not found: ${args.file_path}` };
+                } else {
+                    const xml = fs.readFileSync(args.file_path, 'utf8');
+                    result = validateXml(xml);
+                }
+            } catch (e) {
+                result = { success: false, error: `Validation crash: ${e.message}` };
+            }
             break;
         case 'finalize':
             result = builder.finalize();
