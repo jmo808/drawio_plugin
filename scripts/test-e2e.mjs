@@ -83,13 +83,13 @@ async function main() {
     const requiredTools = [
       'open_drawio_csv', 'open_drawio_mermaid', 'open_drawio_xml', 'search_shapes',
       'init_diagram', 'add_container', 'add_node', 'connect', 'disconnect',
-      'connect_tiers', 'connect_ha_compute_to_data', 'get_state', 'builder_validate', 'finalize',
+      'connect_tiers', 'connect_ha_compute_to_data', 'provision_ha_data_tier', 'get_state', 'builder_validate', 'finalize',
     ];
     const hasAllTools = requiredTools.every(t => toolNames.includes(t));
 
     record(
       'Test 2: List Tools',
-      hasAllTools && tools.length === 14,
+      hasAllTools && tools.length === 15,
       `Got ${tools.length} tools: ${toolNames.join(', ')}`,
     );
 
@@ -283,6 +283,64 @@ async function main() {
       'Test 8: HA Macro Workflow',
       macroOk,
       `State edges: ${r.edges.length}/5 connected correctly. ecsB->dbA=${hasEcsBToDbA}, ecsB->dbB=${hasEcsBToDbB}, dbA->dbB=${hasDbAToDbB}, cacheA->cacheB=${hasCacheAToCacheB}, ecsB->cacheB=${hasEcsBToCacheB}`
+    );
+
+    // ───── Test 9: provision_ha_data_tier Macro ───────────────────────────
+    r = parseBuilderResult(await client.callTool({ name: 'init_diagram', arguments: { title: 'Provision HA Macro Test', type: 'architecture' } }));
+    if (!r.success) { record('Test 9: provision_ha_data_tier Workflow', false, `init failed: ${r.error}`); throw new Error('stop'); }
+
+    // Add VPC, AZs, Subnets, compute, DBs, caches
+    await client.callTool({ name: 'add_container', arguments: { id: 'vpc', label: 'VPC', type: 'vpc' } });
+    await client.callTool({ name: 'add_container', arguments: { id: 'azA', label: 'AZ A', type: 'az', parent_id: 'vpc' } });
+    await client.callTool({ name: 'add_container', arguments: { id: 'azB', label: 'AZ B', type: 'az', parent_id: 'vpc' } });
+    await client.callTool({ name: 'add_container', arguments: { id: 'appA', label: 'App A', type: 'subnet', parent_id: 'azA', tier: 'app' } });
+    await client.callTool({ name: 'add_container', arguments: { id: 'appB', label: 'App B', type: 'subnet', parent_id: 'azB', tier: 'app' } });
+    await client.callTool({ name: 'add_container', arguments: { id: 'dataA', label: 'Data A', type: 'subnet', parent_id: 'azA', tier: 'data' } });
+    await client.callTool({ name: 'add_container', arguments: { id: 'dataB', label: 'Data B', type: 'subnet', parent_id: 'azB', tier: 'data' } });
+
+    await client.callTool({ name: 'add_node', arguments: { id: 'ecsA', label: 'ECS A', type: 'ecs', parent_id: 'appA' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'ecsB', label: 'ECS B', type: 'ecs', parent_id: 'appB' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'dbA', label: 'Primary DB', type: 'rds', parent_id: 'dataA', variant: 'primary' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'dbB', label: 'Replica DB', type: 'rds', parent_id: 'dataB', variant: 'replica' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'cacheA', label: 'Cache A', type: 'elasticache', parent_id: 'dataA', variant: 'primary' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'cacheB', label: 'Cache B', type: 'elasticache', parent_id: 'dataB', variant: 'replica' } });
+
+    // Run the macro for RDS
+    await client.callTool({
+      name: 'provision_ha_data_tier',
+      arguments: {
+        primary_az_compute_id: 'ecsA',
+        secondary_az_compute_id: 'ecsB',
+        data_resource_type: 'rds'
+      }
+    });
+
+    // Run the macro for ElastiCache
+    await client.callTool({
+      name: 'provision_ha_data_tier',
+      arguments: {
+        primary_az_compute_id: 'ecsA',
+        secondary_az_compute_id: 'ecsB',
+        data_resource_type: 'elasticache'
+      }
+    });
+    
+    // Check that edges were correctly populated
+    r = parseBuilderResult(await client.callTool({ name: 'get_state', arguments: {} }));
+    const hasEcsAToDbA_9 = r.edges.some(e => e.source === 'ecsA' && e.target === 'dbA');
+    const hasEcsBToDbB_9 = r.edges.some(e => e.source === 'ecsB' && e.target === 'dbB');
+    const hasEcsBToDbA_cross_9 = r.edges.some(e => e.source === 'ecsB' && e.target === 'dbA');
+    const hasDbAToDbB_rep_9 = r.edges.some(e => e.source === 'dbA' && e.target === 'dbB');
+    const hasEcsAToCacheA_9 = r.edges.some(e => e.source === 'ecsA' && e.target === 'cacheA');
+    const hasEcsBToCacheB_9 = r.edges.some(e => e.source === 'ecsB' && e.target === 'cacheB');
+    const hasCacheAToCacheB_rep_9 = r.edges.some(e => e.source === 'cacheA' && e.target === 'cacheB');
+
+    const provisionOk_9 = r.success && hasEcsAToDbA_9 && hasEcsBToDbB_9 && hasEcsBToDbA_cross_9 && hasDbAToDbB_rep_9 && hasEcsAToCacheA_9 && hasEcsBToCacheB_9 && hasCacheAToCacheB_rep_9;
+
+    record(
+      'Test 9: provision_ha_data_tier Workflow',
+      provisionOk_9,
+      `State edges: ${r.edges.length} connected. ecsA->dbA=${hasEcsAToDbA_9}, ecsB->dbB=${hasEcsBToDbB_9}, ecsB->dbA=${hasEcsBToDbA_cross_9}, dbA->dbB=${hasDbAToDbB_rep_9}, ecsA->cacheA=${hasEcsAToCacheA_9}, ecsB->cacheB=${hasEcsBToCacheB_9}, cacheA->cacheB=${hasCacheAToCacheB_rep_9}`
     );
 
   } catch (err) {

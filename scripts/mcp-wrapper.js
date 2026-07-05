@@ -177,6 +177,19 @@ const BUILDER_TOOLS = [
         },
     },
     {
+        name: 'provision_ha_data_tier',
+        description: 'Connect compute nodes in primary and secondary AZs to a stateful data tier (RDS or ElastiCache) with full replication, local read/write, and cross-AZ write paths.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                primary_az_compute_id: { type: 'string', description: 'Compute node ID in the primary AZ' },
+                secondary_az_compute_id: { type: 'string', description: 'Compute node ID in the secondary AZ' },
+                data_resource_type: { type: 'string', enum: ['rds', 'elasticache'], description: 'Stateful data tier type' },
+            },
+            required: ['primary_az_compute_id', 'secondary_az_compute_id', 'data_resource_type'],
+        },
+    },
+    {
         name: 'get_state',
         description: 'Get the current diagram state as a JSON summary — containers, nodes, edges. Use this to review the diagram before finalizing.',
         inputSchema: { type: 'object', properties: {} },
@@ -273,6 +286,13 @@ function handleBuilderTool(toolName, args, msgId) {
                 args.replica_db_id,
                 args.primary_cache_id,
                 args.replica_cache_id
+            );
+            break;
+        case 'provision_ha_data_tier':
+            result = builder.provisionHaDataTier(
+                args.primary_az_compute_id,
+                args.secondary_az_compute_id,
+                args.data_resource_type
             );
             break;
         case 'get_state':

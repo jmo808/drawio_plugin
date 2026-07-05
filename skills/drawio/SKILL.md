@@ -55,6 +55,7 @@ For architecture diagrams, use the builder tools instead of raw XML. These tools
 | `disconnect` | `source_id`, `target_id` | Remove an edge between two nodes |
 | `connect_tiers` | `source_tier`, `target_tier`, `label?`, `style?` | Bulk-connect all nodes matching source tier to all nodes matching target tier |
 | `connect_ha_compute_to_data` | `compute_id`, `primary_db_id`, `replica_db_id`, `primary_cache_id?`, `replica_cache_id?` | Connect a compute node to DB/cache tiers with High Availability replication rules |
+| `provision_ha_data_tier` | `primary_az_compute_id`, `secondary_az_compute_id`, `data_resource_type` (rds/elasticache) | Connect compute nodes in primary and secondary AZs to RDS or ElastiCache with HA replication rules |
 | `get_state` | (none) | Returns JSON summary of current diagram (containers, nodes, edges) |
 | `validate` | (none) | Run validation. Returns errors if any. |
 | `finalize` | (none) | Validate and open the diagram in draw.io |

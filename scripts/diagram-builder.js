@@ -491,6 +491,77 @@ class DiagramBuilder {
         };
     }
 
+    // --- Provision HA Data Tier ---
+    provisionHaDataTier(primaryAzComputeId, secondaryAzComputeId, dataResourceType) {
+        if (!this.initialized) return { success: false, error: 'Call init_diagram first.' };
+        if (!this.cells.has(primaryAzComputeId)) return { success: false, error: `Primary compute node "${primaryAzComputeId}" not found.` };
+        if (!this.cells.has(secondaryAzComputeId)) return { success: false, error: `Secondary compute node "${secondaryAzComputeId}" not found.` };
+
+        // Find data nodes
+        let primaryData = null;
+        let replicaData = null;
+        
+        for (const [, cell] of this.cells) {
+            if (cell.type === dataResourceType) {
+                if (cell.variant && cell.variant.toLowerCase() === 'primary') {
+                    primaryData = cell;
+                } else if (cell.variant && cell.variant.toLowerCase() === 'replica') {
+                    replicaData = cell;
+                }
+            }
+        }
+
+        if (!primaryData) return { success: false, error: `Primary ${dataResourceType} node not found (missing variant: "primary").` };
+        if (!replicaData) return { success: false, error: `Replica ${dataResourceType} node not found (missing variant: "replica").` };
+
+        const results = [];
+        const hasEdge = (src, tgt) => {
+            for (const [, e] of this.edges) {
+                if (e.sourceId === src && e.targetId === tgt) return true;
+            }
+            return false;
+        };
+
+        if (dataResourceType === 'rds') {
+            // 1. Primary compute -> Primary DB (Read/Write)
+            if (!hasEdge(primaryAzComputeId, primaryData.id)) {
+                results.push(this.connect(primaryAzComputeId, primaryData.id, 'Read/Write', 'solid'));
+            }
+            // 2. Secondary compute -> Replica DB (Read Only)
+            if (!hasEdge(secondaryAzComputeId, replicaData.id)) {
+                results.push(this.connect(secondaryAzComputeId, replicaData.id, 'Read Only', 'solid'));
+            }
+            // 3. Secondary compute -> Primary DB (Read/Write) [Cross-AZ Write]
+            if (!hasEdge(secondaryAzComputeId, primaryData.id)) {
+                results.push(this.connect(secondaryAzComputeId, primaryData.id, 'Read/Write', 'solid'));
+            }
+            // 4. Primary DB -> Replica DB (Async Replication)
+            if (!hasEdge(primaryData.id, replicaData.id)) {
+                results.push(this.connect(primaryData.id, replicaData.id, 'Async Replication', 'dashed'));
+            }
+        } else if (dataResourceType === 'elasticache') {
+            // 1. Primary compute -> Primary Cache (Cache Access)
+            if (!hasEdge(primaryAzComputeId, primaryData.id)) {
+                results.push(this.connect(primaryAzComputeId, primaryData.id, 'Cache Access', 'solid'));
+            }
+            // 2. Secondary compute -> Replica Cache (Cache Access)
+            if (!hasEdge(secondaryAzComputeId, replicaData.id)) {
+                results.push(this.connect(secondaryAzComputeId, replicaData.id, 'Cache Access', 'solid'));
+            }
+            // 3. Primary Cache -> Replica Cache (Async Replication)
+            if (!hasEdge(primaryData.id, replicaData.id)) {
+                results.push(this.connect(primaryData.id, replicaData.id, 'Async Replication', 'dashed'));
+            }
+        }
+
+        const successes = results.filter(r => r.success).length;
+        return {
+            success: true,
+            message: `HA ${dataResourceType} data tier provisioned: ${successes} new connections established.`,
+            details: results
+        };
+    }
+
     // --- Get State ---
     getState() {
         if (!this.initialized) return { success: false, error: 'Call init_diagram first.' };
