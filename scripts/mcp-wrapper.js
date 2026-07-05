@@ -5,6 +5,7 @@ const path = require('path');
 const os = require('os');
 const { DiagramBuilder } = require('./diagram-builder');
 const { validateXml } = require('./validate');
+const { buildDiagram } = require('./build-diagram');
 
 // ---------------------------------------------------------------------------
 // Resolve dependencies and run startup self-test
@@ -212,6 +213,18 @@ const BUILDER_TOOLS = [
         },
     },
     {
+        name: 'compile_json_spec',
+        description: 'Compile a declarative JSON diagram spec into a draw.io XML file. Runs full layout engine, topological corrections, and validation. Saves to the output path without spawning shell subprocesses.',
+        inputSchema: {
+            type: 'object',
+            properties: {
+                spec_path: { type: 'string', description: 'Absolute path to the JSON spec file.' },
+                output_path: { type: 'string', description: 'Absolute path where the compiled .drawio XML file should be saved.' }
+            },
+            required: ['spec_path', 'output_path']
+        },
+    },
+    {
         name: 'finalize',
         description: 'Validate the diagram and open it in draw.io. If validation fails, errors are returned instead.',
         inputSchema: { type: 'object', properties: {} },
@@ -323,6 +336,13 @@ function handleBuilderTool(toolName, args, msgId) {
                 }
             } catch (e) {
                 result = { success: false, error: `Validation crash: ${e.message}` };
+            }
+            break;
+        case 'compile_json_spec':
+            try {
+                result = buildDiagram(args.spec_path, args.output_path);
+            } catch (e) {
+                result = { success: false, error: `Compilation crash: ${e.message}` };
             }
             break;
         case 'finalize':

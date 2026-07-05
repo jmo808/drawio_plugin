@@ -85,13 +85,13 @@ async function main() {
     const requiredTools = [
       'open_drawio_csv', 'open_drawio_mermaid', 'open_drawio_xml', 'search_shapes',
       'init_diagram', 'add_container', 'add_node', 'connect', 'disconnect',
-      'connect_tiers', 'connect_ha_compute_to_data', 'provision_ha_data_tier', 'get_state', 'builder_validate', 'validate_file', 'finalize',
+      'connect_tiers', 'connect_ha_compute_to_data', 'provision_ha_data_tier', 'get_state', 'builder_validate', 'validate_file', 'compile_json_spec', 'finalize',
     ];
     const hasAllTools = requiredTools.every(t => toolNames.includes(t));
 
     record(
       'Test 2: List Tools',
-      hasAllTools && tools.length === 16,
+      hasAllTools && tools.length === 17,
       `Got ${tools.length} tools: ${toolNames.join(', ')}`,
     );
 
@@ -477,6 +477,39 @@ async function main() {
       'Test 13: Edge Type Validation Matrix (aws.js)',
       validationMatrixOk,
       `Bypass Err: ${hasBypassErr}. APIGW Err: ${hasApigwErr}. DNS Err: ${hasDnsErr}.`
+    );
+
+    // ───── Test 14: compile_json_spec Tool ───────────────────────────────────
+    const tempSpecFile = path.join(os.tmpdir(), `test-e2e-spec-${Date.now()}.json`);
+    const tempOutputFile = path.join(os.tmpdir(), `test-e2e-compiled-${Date.now()}.xml`);
+    const validSpecContent = {
+        title: "Test Spec Diagram",
+        theme: "light",
+        type: "architecture",
+        nodes: [
+            { id: "n1", label: "Node 1", type: "rectangle", parentId: "1" },
+            { id: "n2", label: "Node 2", type: "rectangle", parentId: "1" }
+        ],
+        edges: [
+            { sourceId: "n1", targetId: "n2", label: "Connect" }
+        ]
+    };
+    fs.writeFileSync(tempSpecFile, JSON.stringify(validSpecContent, null, 2), 'utf8');
+
+    r = parseBuilderResult(await client.callTool({
+        name: 'compile_json_spec',
+        arguments: { spec_path: tempSpecFile, output_path: tempOutputFile }
+    }));
+
+    const outputFileExists = fs.existsSync(tempOutputFile);
+    if (fs.existsSync(tempSpecFile)) fs.unlinkSync(tempSpecFile);
+    if (outputFileExists) fs.unlinkSync(tempOutputFile);
+
+    const compileJsonSpecOk = r.success && outputFileExists;
+    record(
+        'Test 14: compile_json_spec Tool',
+        compileJsonSpecOk,
+        `Success: ${r.success}. Output file created: ${outputFileExists}`
     );
 
 
