@@ -419,7 +419,7 @@ async function main() {
     const r53ToWafEdge = r.edges.find(e => e.source === 'r53' && e.target === 'waf');
     const keepAlbNode = r.nodes.find(n => n.type === 'alb');
 
-    const doubleAlbMerged = albsCount === 1 && keepAlbNode && keepAlbNode.parent === 'vpc';
+    const doubleAlbMerged = albsCount === 1 && keepAlbNode && keepAlbNode.parent === 'pub1';
     const horizontalComputeEdgeDeleted = !ecs1ToEcs2Edge;
     const clientBypassFixed = !clientToAlbEdge && apigwToAlbEdge && apigwToAlbEdge.label === 'Forward';
     const cdnToApigwAligned = !cfToAlbEdge && !cfToEcs1Edge && cfToApigwEdge && cfToApigwEdge.label === 'Forward';
@@ -432,7 +432,7 @@ async function main() {
     record(
       'Test 11: Multi-AZ Ingress and Compute Corrections',
       correctionsOk,
-      `Double ALB Merged/Nested (VPC): ${doubleAlbMerged}. Cross-AZ compute edge deleted: ${horizontalComputeEdgeDeleted}. Client Bypass Rerouted: ${clientBypassFixed}. CDN Aligned: ${cdnToApigwAligned}. Event Flow Rerouted to SQS: ${eventFlowTargetingFixed}. Reverse Sync Purged: ${reverseSyncEdgePurged}. DNS Hallucination Fixed: ${dnsHallucinationFixed}.`
+      `Double ALB Merged/Nested (pub1): ${doubleAlbMerged}. Cross-AZ compute edge deleted: ${horizontalComputeEdgeDeleted}. Client Bypass Rerouted: ${clientBypassFixed}. CDN Aligned: ${cdnToApigwAligned}. Event Flow Rerouted to SQS: ${eventFlowTargetingFixed}. Reverse Sync Purged: ${reverseSyncEdgePurged}. DNS Hallucination Fixed: ${dnsHallucinationFixed}.`
     );
 
     // ───── Test 12: validate_file Tool ──────────────────────────────────────
@@ -466,6 +466,8 @@ async function main() {
       <mxCell id="e2" edge="1" source="ecs" target="apigw" parent="1"/>
       <mxCell id="e3" edge="1" source="r53" target="ecs" parent="1"/>
       <mxCell id="e4" edge="1" source="cf" target="ecs" parent="1"/>
+      <mxCell id="e5" edge="1" source="alb" target="apigw" parent="1"/>
+      <mxCell id="e6" edge="1" source="alb" target="ecs" style="dashed=1" parent="1"/>
     </root></mxGraphModel>`;
     
     fs.writeFileSync(tempInvalidFile, invalidXmlContent, 'utf8');
@@ -476,12 +478,14 @@ async function main() {
     const hasApigwErr = r.errors.some(e => e.includes('Outbound API Gateway event targeting is forbidden'));
     const hasDnsErr = r.errors.some(e => e.includes('Direct routing from Route 53 to private compute nodes is forbidden'));
     const hasCdnComputeErr = r.errors.some(e => e.includes('Direct connections from CloudFront to private compute nodes are forbidden'));
+    const hasReverseProxyErr = r.errors.some(e => e.includes('Outbound routing from ALB to API Gateway or CDN is forbidden'));
+    const hasDashedAlbComputeErr = r.errors.some(e => e.includes('Edge from Load Balancer to private compute nodes must be solid request traffic'));
 
-    const validationMatrixOk = !r.success && hasBypassErr && hasApigwErr && hasDnsErr && hasCdnComputeErr;
+    const validationMatrixOk = !r.success && hasBypassErr && hasApigwErr && hasDnsErr && hasCdnComputeErr && hasReverseProxyErr && hasDashedAlbComputeErr;
     record(
       'Test 13: Edge Type Validation Matrix (aws.js)',
       validationMatrixOk,
-      `Bypass Err: ${hasBypassErr}. APIGW Err: ${hasApigwErr}. DNS Err: ${hasDnsErr}. CDN->Compute Err: ${hasCdnComputeErr}.`
+      `Bypass Err: ${hasBypassErr}. APIGW Err: ${hasApigwErr}. DNS Err: ${hasDnsErr}. CDN->Compute Err: ${hasCdnComputeErr}. ReverseProxy Err: ${hasReverseProxyErr}. DashedAlb Err: ${hasDashedAlbComputeErr}.`
     );
 
     // ───── Test 14: compile_json_spec Tool ───────────────────────────────────

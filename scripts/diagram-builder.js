@@ -1030,27 +1030,6 @@ class DiagramBuilder {
             const keepAlb = albs[0];
             keepAlb.label = keepAlb.label.replace(/ A$/, '').replace(/ B$/, '').replace(/ [12]$/, '');
 
-            // Reparent to the VPC to span the AZs
-            let vpcCell = null;
-            for (const [, cell] of this.cells) {
-                if (cell.type === 'vpc') {
-                    vpcCell = cell;
-                    break;
-                }
-            }
-
-            if (vpcCell) {
-                keepAlb.parentId = vpcCell.id;
-                keepAlb.x = (vpcCell.width - keepAlb.width) / 2;
-                keepAlb.y = 204 + (183 - keepAlb.height) / 2; // aligned with public subnets
-            } else {
-                const parentCell = this.cells.get(keepAlb.parentId);
-                if (parentCell) {
-                    keepAlb.x = (parentCell.width - keepAlb.width) / 2;
-                    keepAlb.y = (parentCell.height - keepAlb.height) / 2;
-                }
-            }
-
             for (let i = 1; i < albs.length; i++) {
                 const discardAlb = albs[i];
                 for (const [, edge] of this.edges) {
@@ -1058,6 +1037,25 @@ class DiagramBuilder {
                     if (edge.targetId === discardAlb.id) edge.targetId = keepAlb.id;
                 }
                 this.cells.delete(discardAlb.id);
+            }
+        }
+
+        // Align External ALB visually centering it in the VPC, but keeping parent as pub1
+        let extAlb = null;
+        for (const [, cell] of this.cells) {
+            if (cell.type === 'alb' || cell.type === 'nlb') {
+                extAlb = cell;
+                break;
+            }
+        }
+        if (extAlb) {
+            extAlb.label = extAlb.label.replace(/ A$/, '').replace(/ B$/, '').replace(/ [12]$/, '');
+            if (extAlb.parentId.includes('pub') || extAlb.parentId.includes('public') || extAlb.parentId === 'pub1') {
+                extAlb.x = 520;
+                const parentCell = this.cells.get(extAlb.parentId);
+                if (parentCell) {
+                    extAlb.y = (parentCell.height - extAlb.height) / 2;
+                }
             }
         }
 
@@ -1080,63 +1078,119 @@ class DiagramBuilder {
 
         // 6. Ingress Routing Correction (Bypass, CDN & API Gateway path alignment)
         let clientNode = null;
+        let r53Node = null;
+        let wafNode = null;
         let cdnNode = null;
         let apigwNode = null;
         let albNode = null;
         for (const [, cell] of this.cells) {
             if (cell.type === 'user') clientNode = cell;
+            if (cell.type === 'route53') r53Node = cell;
+            if (cell.type === 'waf') wafNode = cell;
             if (cell.type === 'cloudfront') cdnNode = cell;
             if (cell.type === 'apigateway' || cell.type === 'endpoint') apigwNode = cell;
             if (cell.type === 'alb' || cell.type === 'nlb') albNode = cell;
         }
 
-        if (clientNode && cdnNode && albNode) {
+        // Flip any reverse proxy edges (e.g. ALB -> APIGW or ALB -> CloudFront)
+        if (albNode) {
             for (const [, edge] of this.edges) {
-                if (edge.sourceId === clientNode.id && edge.targetId === albNode.id) {
-                    if (apigwNode) {
-                        edge.sourceId = apigwNode.id;
-                    } else {
-                        edge.sourceId = cdnNode.id;
-                    }
+                const src = this.cells.get(edge.sourceId);
+                const tgt = this.cells.get(edge.targetId);
+                if (src && tgt && (src.type === 'alb' || src.type === 'nlb') && 
+                    (tgt.type === 'apigateway' || tgt.type === 'endpoint' || tgt.type === 'cloudfront')) {
+                    edge.sourceId = tgt.id;
+                    edge.targetId = src.id;
                     edge.label = 'Forward';
                 }
             }
+        }
 
-            // Reroute CloudFront -> Compute bypass directly to API Gateway / ALB
+        // Establish the linear sequence of ingress nodes
+        const seq = [];
+        if (clientNode) seq.push(clientNode);
+        if (r53Node) seq.push(r53Node);
+        if (wafNode) seq.push(wafNode);
+        if (cdnNode) seq.push(cdnNode);
+        if (apigwNode) seq.push(apigwNode);
+        if (albNode) seq.push(albNode);
+
+        // Ensure consecutive nodes in the ingress chain are connected and correctly directed
+        for (let i = 0; i < seq.length - 1; i++) {
+            const src = seq[i];
+            const tgt = seq[i+1];
+            let found = false;
             for (const [, edge] of this.edges) {
+                if (edge.sourceId === src.id && edge.targetId === tgt.id) {
+                    found = true;
+                    if (src.type === 'user') edge.label = 'HTTPS Request';
+                    else if (src.type === 'route53') edge.label = 'Resolve & Route';
+                    else if (src.type === 'waf') edge.label = 'Inspect & Filter';
+                    else edge.label = 'Forward';
+                    edge.style = 'solid';
+                    break;
+                }
+            }
+            if (!found) {
+                let label = 'Forward';
+                if (src.type === 'user') label = 'HTTPS Request';
+                else if (src.type === 'route53') label = 'Resolve & Route';
+                else if (src.type === 'waf') label = 'Inspect & Filter';
+                this.connect(src.id, tgt.id, label, 'solid');
+            }
+        }
+
+        // Purge non-consecutive edges within the ingress chain (bypasses/shortcuts/loops)
+        const seqIds = new Set(seq.map(n => n.id));
+        const edgesToPurgeSeq = [];
+        for (const [edgeId, edge] of this.edges) {
+            if (seqIds.has(edge.sourceId) && seqIds.has(edge.targetId)) {
+                const srcIdx = seq.findIndex(n => n.id === edge.sourceId);
+                const tgtIdx = seq.findIndex(n => n.id === edge.targetId);
+                if (tgtIdx !== srcIdx + 1) {
+                    edgesToPurgeSeq.push(edgeId);
+                }
+            }
+        }
+        for (const edgeId of edgesToPurgeSeq) {
+            this.edges.delete(edgeId);
+        }
+
+        // Purge any direct CDN-to-Compute bypasses that might remain
+        const cdnToComputeEdges = [];
+        if (cdnNode) {
+            for (const [edgeId, edge] of this.edges) {
                 if (edge.sourceId === cdnNode.id) {
                     const tgt = this.cells.get(edge.targetId);
                     if (tgt && isCompute(tgt)) {
-                        if (apigwNode) {
-                            edge.targetId = apigwNode.id;
-                        } else {
-                            edge.targetId = albNode.id;
-                        }
+                        cdnToComputeEdges.push(edgeId);
+                    }
+                }
+            }
+        }
+        for (const edgeId of cdnToComputeEdges) {
+            this.edges.delete(edgeId);
+        }
+
+        // Ensure ALB/NLB to Compute connections are solid request traffic, and guarantee connections to Web Tasks
+        if (albNode) {
+            // 1. Force existing ALB -> Compute edges to be solid Forward request traffic
+            for (const [, edge] of this.edges) {
+                const src = this.cells.get(edge.sourceId);
+                const tgt = this.cells.get(edge.targetId);
+                if (src && tgt && (src.type === 'alb' || src.type === 'nlb') && isCompute(tgt)) {
+                    edge.style = 'solid';
+                    if (!edge.label || edge.label.toLowerCase().includes('event') || edge.label.toLowerCase().includes('log')) {
                         edge.label = 'Forward';
                     }
                 }
             }
-
-            if (apigwNode) {
-                let hasCdnToApigw = false;
-                let hasApigwToAlb = false;
-
-                for (const [, edge] of this.edges) {
-                    if (edge.sourceId === cdnNode.id && edge.targetId === albNode.id) {
-                        edge.targetId = apigwNode.id;
-                        edge.label = 'Forward';
-                        hasCdnToApigw = true;
+            // 2. Guarantee that albNode connects to all Web tasks
+            for (const [, cell] of this.cells) {
+                if (isCompute(cell) && (cell.id.toLowerCase().includes('web') || cell.label.toLowerCase().includes('web'))) {
+                    if (!hasEdge(albNode.id, cell.id)) {
+                        this.connect(albNode.id, cell.id, 'Forward', 'solid');
                     }
-                    if (edge.sourceId === cdnNode.id && edge.targetId === apigwNode.id) {
-                        hasCdnToApigw = true;
-                    }
-                    if (edge.sourceId === apigwNode.id && edge.targetId === albNode.id) {
-                        hasApigwToAlb = true;
-                    }
-                }
-
-                if (hasCdnToApigw && !hasApigwToAlb) {
-                    this.connect(apigwNode.id, albNode.id, 'Forward', 'solid');
                 }
             }
         }
@@ -1174,11 +1228,9 @@ class DiagramBuilder {
         }
 
         // 8. DNS Direct Routing / Route 53 Hallucination Correction
-        let r53Node = null;
         let nextIngressNode = null;
         
         for (const [, cell] of this.cells) {
-            if (cell.type === 'route53') r53Node = cell;
             if (!nextIngressNode && cell.type === 'waf') nextIngressNode = cell;
         }
         

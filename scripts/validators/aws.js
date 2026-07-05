@@ -102,6 +102,19 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
         if (source.type === 'cloudfront' && statelessComputeTypes.includes(target.type)) {
             reportError('TOPOLOGY_ERROR', id, `Direct connections from CloudFront to private compute nodes are forbidden.`);
         }
+
+        // Rule 8: Reverse Proxy Routing (ALB -> APIGW/CDN)
+        if (source.type === 'application_load_balancer' && (target.type === 'apigateway' || target.type === 'cloudfront')) {
+            reportError('TOPOLOGY_ERROR', id, `Outbound routing from ALB to API Gateway or CDN is forbidden.`);
+        }
+
+        // Rule 9: Synchronous Ingress Constraint (ALB -> Compute must be solid request traffic)
+        if (source.type === 'application_load_balancer' && statelessComputeTypes.includes(target.type)) {
+            const isDashed = cell.style && (cell.style.includes('dashed=1') || cell.style.includes('strokePattern=dashed'));
+            if (isDashed) {
+                reportError('TOPOLOGY_ERROR', id, `Edge from Load Balancer to private compute nodes must be solid request traffic.`);
+            }
+        }
         
         // Rule 3: Stateless Horizontal Routing
         if (statelessComputeTypes.includes(source.type) && statelessComputeTypes.includes(target.type)) {
