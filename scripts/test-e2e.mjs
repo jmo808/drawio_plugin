@@ -619,14 +619,18 @@ async function main() {
     r = parseBuilderResult(await client.callTool({ name: 'connect', arguments: { source_id: 'eb', target_id: 'consumer' } }));
     if (!r.success) { record('Test 17: EventBridge Node Style', false, `connect failed: ${r.error}`); throw new Error('stop'); }
 
+    // get_state verifies edge exists and is dashed
     r = parseBuilderResult(await client.callTool({ name: 'get_state', arguments: {} }));
     const ebEdge = r.edges.find(e => e.source === 'eb' && e.target === 'consumer');
     const ebEdgeIsDashed = ebEdge && ebEdge.style === 'dashed';
 
+    // Finalize ensures the XML parses and validates successfully
+    const ebFinal = await client.callTool({ name: 'finalize', arguments: {} });
+
     record(
       'Test 17: EventBridge Node Style',
-      r.success && !!ebEdge && ebEdgeIsDashed,
-      `Edge exists: ${!!ebEdge}. Style is dashed: ${ebEdgeIsDashed}. Label: ${ebEdge?.label || '(none)'}`
+      r.success && !!ebEdge && ebEdgeIsDashed && !!ebFinal,
+      `Edge exists: ${!!ebEdge}. Style is dashed: ${ebEdgeIsDashed}.`
     );
 
     // ───── Test 18: Primary/Replica Heuristic Safety ───────────────────────
