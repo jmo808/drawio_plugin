@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-const { spawn, execSync } = require('child_process');
+const { spawn } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -113,7 +113,7 @@ const BUILDER_TOOLS = [
             properties: {
                 id: { type: 'string', description: 'Unique ID for this node' },
                 label: { type: 'string', description: 'Display label' },
-                type: { type: 'string', enum: ['ec2', 'ecs', 'lambda', 'rds', 'elasticache', 'dynamodb', 's3', 'alb', 'nlb', 'cloudfront', 'apigateway', 'api_gateway', 'waf', 'nat_gateway', 'endpoint', 'sqs', 'sns', 'user', 'internet', 'rectangle', 'diamond', 'cylinder', 'circle', 'pump', 'compressor', 'valve', 'vessel', 'cyclone', 'heat_exchanger'], description: 'Node type — determines shape and style' },
+                type: { type: 'string', enum: ['ec2', 'ecs', 'lambda', 'rds', 'elasticache', 'dynamodb', 's3', 'alb', 'nlb', 'cloudfront', 'route53', 'apigateway', 'api_gateway', 'waf', 'nat_gateway', 'endpoint', 'sqs', 'sns', 'eventbridge', 'user', 'internet', 'rectangle', 'diamond', 'cylinder', 'circle', 'pump', 'compressor', 'valve', 'vessel', 'cyclone', 'heat_exchanger'], description: 'Node type — determines shape and style' },
                 parent_id: { type: 'string', description: 'Parent container ID' },
                 variant: { type: 'string', description: 'Optional variant label (e.g., "primary", "replica")' },
             },
@@ -433,35 +433,27 @@ process.stdin.on('data', chunk => {
                     continue;
                 }
 
-                const tmpFile = path.join(os.tmpdir(), `drawio-validate-${Date.now()}.xml`);
-                fs.writeFileSync(tmpFile, xmlContent, 'utf8');
-
                 try {
-                    execSync(`node "${validateScript}" "${tmpFile}"`, {
-                        stdio: 'pipe',
-                        cwd: devRoot,
-                        env: Object.assign({}, process.env, { NODE_PATH: nodeModulesDir }),
-                    });
-                    console.error('[WRAPPER] Validation PASSED — forwarding to server');
-                    child.stdin.write(lineBuf);
+                    const result = validateXml(xmlContent);
+                    if (result.success) {
+                        console.error('[WRAPPER] Validation PASSED — forwarding to server');
+                        child.stdin.write(lineBuf);
+                    } else {
+                        console.error(`[WRAPPER] Validation FAILED — returning ${result.errors.length} errors to agent`);
+                        const response = {
+                            jsonrpc: '2.0',
+                            id: msg.id,
+                            result: {
+                                content: [{ type: 'text', text: 'Validation failed!\n' + result.errors.join('\n') }],
+                                isError: true,
+                            },
+                        };
+                        process.stdout.write(JSON.stringify(response) + '\n');
+                    }
                 } catch (error) {
-                    const stdout = error.stdout ? error.stdout.toString() : '';
-                    const stderr = error.stderr ? error.stderr.toString() : error.message;
-                    const errorLines = (stdout + '\n' + stderr).trim().split('\n').filter(Boolean);
-                    console.error(`[WRAPPER] Validation FAILED — returning ${errorLines.length} errors to agent`);
-
-                    const response = {
-                        jsonrpc: '2.0',
-                        id: msg.id,
-                        result: {
-                            content: [{ type: 'text', text: 'Validation failed!\n' + stdout + '\n' + stderr, isError: true }],
-                            isError: true,
-                        },
-                    };
-                    process.stdout.write(JSON.stringify(response) + '\n');
+                    console.error(`[WRAPPER] Validation CRASHED — ${error.message}`);
+                    child.stdin.write(lineBuf);
                 }
-
-                try { fs.unlinkSync(tmpFile); } catch (e) {}
                 continue;
             }
 

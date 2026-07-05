@@ -6,7 +6,6 @@
  */
 const fs = require('fs');
 const path = require('path');
-const { execSync } = require('child_process');
 
 // ---------------------------------------------------------------------------
 // Style Template Registry
@@ -42,6 +41,7 @@ const NODE_STYLES = {
     dynamodb: 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.dynamodb;fillColor=#C925D1;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
     sqs: 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.sqs;fillColor=#E7157B;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
     sns: 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.sns;fillColor=#E7157B;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
+    eventbridge: 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.eventbridge;fillColor=#E7157B;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
     user: 'shape=mxgraph.aws4.user;fillColor=#5A6C86;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
     internet: 'shape=mxgraph.aws4.internet_alt2;fillColor=#232F3E;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
     // Generic shapes
@@ -633,6 +633,7 @@ class DiagramBuilder {
                 source: edge.sourceId,
                 target: edge.targetId,
                 label: edge.label || '',
+                style: (edge.style || '').includes('dashed=1') ? 'dashed' : 'solid',
             });
         }
 
@@ -651,26 +652,16 @@ class DiagramBuilder {
         if (!this.initialized) return { success: false, error: 'Call init_diagram first.' };
 
         const xml = this.toXml();
-        const tmpFile = path.join(require('os').tmpdir(), `drawio-builder-${Date.now()}.xml`);
-        fs.writeFileSync(tmpFile, xml, 'utf8');
-
         try {
-            const validateScript = path.join(__dirname, 'validate.js');
-            const devRoot = path.join(__dirname, '..');
-            const result = execSync(`node "${validateScript}" "${tmpFile}"`, {
-                stdio: 'pipe',
-                cwd: devRoot,
-                env: Object.assign({}, process.env, {
-                    NODE_PATH: path.join(devRoot, 'node_modules'),
-                }),
-            });
-            return { success: true, message: 'Validation passed. No issues found.', output: result.toString() };
+            const { validateXml } = require('./validate');
+            const result = validateXml(xml, this.type);
+            if (result.success) {
+                return { success: true, message: 'Validation passed. No issues found.' };
+            } else {
+                return { success: false, error: 'Validation failed.', details: result.errors.join('\n') };
+            }
         } catch (error) {
-            const stdout = error.stdout ? error.stdout.toString() : '';
-            const stderr = error.stderr ? error.stderr.toString() : '';
-            return { success: false, error: 'Validation failed.', details: (stdout + '\n' + stderr).trim() };
-        } finally {
-            try { fs.unlinkSync(tmpFile); } catch (e) {}
+            return { success: false, error: `Validation crash: ${error.message}` };
         }
     }
 
@@ -900,30 +891,43 @@ class DiagramBuilder {
             .replace(/&/g, '&amp;')
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;');
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&apos;');
     }
 
     _isPrimary(cell) {
         if (!cell) return false;
+        const DATA_TYPES = ['rds', 'elasticache', 'dynamodb'];
         const v = (cell.variant || '').toLowerCase();
         const id = (cell.id || '').toLowerCase();
         const lbl = (cell.label || '').toLowerCase();
         
         if (v.includes('primary')) return true;
-        if (id.includes('primary') || id.endsWith('a') || id.endsWith('1')) return true;
-        if (lbl.includes('primary') || lbl.endsWith(' a') || lbl.endsWith(' 1')) return true;
+        if (id.includes('primary')) return true;
+        if (lbl.includes('primary')) return true;
+        // Only apply suffix heuristics to data-tier nodes
+        if (DATA_TYPES.includes(cell.type)) {
+            if (id.endsWith('a') || id.endsWith('1')) return true;
+            if (lbl.endsWith(' a') || lbl.endsWith(' 1')) return true;
+        }
         return false;
     }
 
     _isReplica(cell) {
         if (!cell) return false;
+        const DATA_TYPES = ['rds', 'elasticache', 'dynamodb'];
         const v = (cell.variant || '').toLowerCase();
         const id = (cell.id || '').toLowerCase();
         const lbl = (cell.label || '').toLowerCase();
         
         if (v.includes('replica') || v.includes('secondary')) return true;
-        if (id.includes('replica') || id.includes('secondary') || id.endsWith('b') || id.endsWith('2')) return true;
-        if (lbl.includes('replica') || lbl.includes('secondary') || lbl.endsWith(' b') || lbl.endsWith(' 2')) return true;
+        if (id.includes('replica') || id.includes('secondary')) return true;
+        if (lbl.includes('replica') || lbl.includes('secondary')) return true;
+        // Only apply suffix heuristics to data-tier nodes
+        if (DATA_TYPES.includes(cell.type)) {
+            if (id.endsWith('b') || id.endsWith('2')) return true;
+            if (lbl.endsWith(' b') || lbl.endsWith(' 2')) return true;
+        }
         return false;
     }
 
@@ -940,9 +944,10 @@ class DiagramBuilder {
             return null;
         };
 
-        const hasEdge = (srcId, tgtId) => {
+        const hasEdge = (srcId, tgtId, bidirectional = false) => {
             for (const [, e] of this.edges) {
-                if ((e.sourceId === srcId && e.targetId === tgtId) || (e.sourceId === tgtId && e.targetId === srcId)) return true;
+                if (e.sourceId === srcId && e.targetId === tgtId) return true;
+                if (bidirectional && e.sourceId === tgtId && e.targetId === srcId) return true;
             }
             return false;
         };
@@ -1021,18 +1026,42 @@ class DiagramBuilder {
         }
 
         // 4. Merge duplicate ALBs (Double ALB Spaghetti Correction)
-        const albs = [];
+        // Only merge ALBs of the same class (external with external, internal with internal)
+        const isInternalAlb = (cell) => {
+            const lbl = (cell.label || '').toLowerCase();
+            const id = (cell.id || '').toLowerCase();
+            return lbl.includes('internal') || id.includes('internal');
+        };
+        const externalAlbs = [];
+        const internalAlbs = [];
         for (const [, cell] of this.cells) {
             if (cell.type === 'alb' || cell.type === 'nlb') {
-                albs.push(cell);
+                if (isInternalAlb(cell)) {
+                    internalAlbs.push(cell);
+                } else {
+                    externalAlbs.push(cell);
+                }
             }
         }
-        if (albs.length > 1) {
-            const keepAlb = albs[0];
+        // Merge duplicate External ALBs
+        if (externalAlbs.length > 1) {
+            const keepAlb = externalAlbs[0];
             keepAlb.label = keepAlb.label.replace(/ A$/, '').replace(/ B$/, '').replace(/ [12]$/, '');
-
-            for (let i = 1; i < albs.length; i++) {
-                const discardAlb = albs[i];
+            for (let i = 1; i < externalAlbs.length; i++) {
+                const discardAlb = externalAlbs[i];
+                for (const [, edge] of this.edges) {
+                    if (edge.sourceId === discardAlb.id) edge.sourceId = keepAlb.id;
+                    if (edge.targetId === discardAlb.id) edge.targetId = keepAlb.id;
+                }
+                this.cells.delete(discardAlb.id);
+            }
+        }
+        // Merge duplicate Internal ALBs
+        if (internalAlbs.length > 1) {
+            const keepAlb = internalAlbs[0];
+            keepAlb.label = keepAlb.label.replace(/ A$/, '').replace(/ B$/, '').replace(/ [12]$/, '');
+            for (let i = 1; i < internalAlbs.length; i++) {
+                const discardAlb = internalAlbs[i];
                 for (const [, edge] of this.edges) {
                     if (edge.sourceId === discardAlb.id) edge.sourceId = keepAlb.id;
                     if (edge.targetId === discardAlb.id) edge.targetId = keepAlb.id;

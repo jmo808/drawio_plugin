@@ -2,7 +2,7 @@ const fs = require('fs');
 const { DOMParser } = require('@xmldom/xmldom');
 const path = require('path');
 
-function validateXml(xmlStr) {
+function validateXml(xmlStr, diagramType = null) {
     const doc = new DOMParser().parseFromString(xmlStr, 'text/xml');
     const mxCells = doc.getElementsByTagName('mxCell');
     const cells = {};
@@ -201,13 +201,28 @@ function validateXml(xmlStr) {
     }
 
     // Run domain validator plugins
+    // Validators are filtered by diagram type using a naming convention:
+    //   aws.js → runs for 'architecture' diagrams (or when type is unknown)
+    //   pfd.js → runs for 'pfd' diagrams (or when type is unknown)
+    const VALIDATOR_TYPE_MAP = {
+        'aws.js': ['architecture', null],
+        'pfd.js': ['pfd', null],
+    };
     const validatorsDir = path.join(__dirname, 'validators');
     if (fs.existsSync(validatorsDir)) {
         const files = fs.readdirSync(validatorsDir);
         for (const file of files) {
             if (file.endsWith('.js')) {
-                const validator = require(path.join(validatorsDir, file));
-                validator({ cells, mxCells, doc, reportError, nodeIds });
+                const allowedTypes = VALIDATOR_TYPE_MAP[file];
+                if (allowedTypes && diagramType && !allowedTypes.includes(diagramType)) {
+                    continue; // Skip validator that doesn't match diagram type
+                }
+                try {
+                    const validator = require(path.join(validatorsDir, file));
+                    validator({ cells, mxCells, doc, reportError, nodeIds });
+                } catch (e) {
+                    reportError('VALIDATOR_ERROR', file, `Validator plugin crashed: ${e.message}`);
+                }
             }
         }
     }

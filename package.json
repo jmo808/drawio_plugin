@@ -1,10 +1,10 @@
 {
   "name": "drawio_plugin",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "> Generate native, fully-editable draw.io diagrams from natural language — across all major AI coding assistants.",
-  "main": "index.js",
+  "main": "scripts/mcp-wrapper.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node scripts/test-e2e.mjs"
   },
   "repository": {
     "type": "git",
@@ -12,7 +12,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC",
+  "license": "Apache-2.0",
   "type": "commonjs",
   "bugs": {
     "url": "https://github.com/jmo808/drawio_plugin/issues"

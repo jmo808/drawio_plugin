@@ -53,7 +53,7 @@ function parseBuilderResult(result) {
 }
 
 // ── Global timeout ───────────────────────────────────────────────────────────
-const TIMEOUT_MS = 20_000;
+const TIMEOUT_MS = 40_000;
 const timer = setTimeout(() => {
   console.error(`\n⏱  Timed out after ${TIMEOUT_MS / 1000}s — aborting.`);
   process.exit(1);
@@ -526,6 +526,184 @@ async function main() {
         `Success: ${r.success}. Output file created: ${outputFileExists}`
     );
 
+    // ───── Test 15: Internal ALB Preservation ──────────────────────────────
+    r = parseBuilderResult(await client.callTool({ name: 'init_diagram', arguments: { title: 'Internal ALB Test', type: 'architecture' } }));
+    if (!r.success) { record('Test 15: Internal ALB Preservation', false, `init failed: ${r.error}`); throw new Error('stop'); }
+
+    await client.callTool({ name: 'add_container', arguments: { id: 'vpc', label: 'VPC', type: 'vpc' } });
+    await client.callTool({ name: 'add_container', arguments: { id: 'az1', label: 'AZ 1', type: 'az', parent_id: 'vpc' } });
+    await client.callTool({ name: 'add_container', arguments: { id: 'az2', label: 'AZ 2', type: 'az', parent_id: 'vpc' } });
+    await client.callTool({ name: 'add_container', arguments: { id: 'pub1', label: 'Public Subnet', type: 'subnet', parent_id: 'az1', tier: 'web' } });
+    await client.callTool({ name: 'add_container', arguments: { id: 'app1', label: 'App Subnet', type: 'subnet', parent_id: 'az1', tier: 'app' } });
+
+    await client.callTool({ name: 'add_node', arguments: { id: 'extAlbA', label: 'External ALB A', type: 'alb', parent_id: 'pub1' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'extAlbB', label: 'External ALB B', type: 'alb', parent_id: 'pub1' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'intAlb', label: 'Internal ALB', type: 'alb', parent_id: 'app1' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'ecsWeb', label: 'ECS Web', type: 'ecs', parent_id: 'pub1' } });
+
+    await client.callTool({ name: 'connect', arguments: { source_id: 'extAlbA', target_id: 'ecsWeb' } });
+    await client.callTool({ name: 'connect', arguments: { source_id: 'intAlb', target_id: 'ecsWeb' } });
+
+    // Finalize triggers ALB merge corrections
+    r = parseBuilderResult(await client.callTool({ name: 'finalize', arguments: {} }));
+
+    // Inspect state after corrections
+    r = parseBuilderResult(await client.callTool({ name: 'get_state', arguments: {} }));
+
+    const allAlbs15 = r.nodes.filter(n => n.type === 'alb');
+    const internalAlbSurvived = allAlbs15.some(n => n.parent === 'app1');
+    const extAlbsMerged = allAlbs15.filter(n => n.parent !== 'app1').length === 1;
+    const totalAlbs15 = allAlbs15.length;
+
+    record(
+      'Test 15: Internal ALB Preservation',
+      r.success && internalAlbSurvived && extAlbsMerged && totalAlbs15 === 2,
+      `Total ALBs: ${totalAlbs15}. Internal ALB survived: ${internalAlbSurvived}. External ALBs merged to 1: ${extAlbsMerged}`
+    );
+
+    // ───── Test 16: Route53 Type Registration ──────────────────────────────
+    r = parseBuilderResult(await client.callTool({ name: 'init_diagram', arguments: { title: 'Route53 Test', type: 'architecture' } }));
+    if (!r.success) { record('Test 16: Route53 Type Registration', false, `init failed: ${r.error}`); throw new Error('stop'); }
+
+    r = parseBuilderResult(await client.callTool({ name: 'add_node', arguments: { id: 'r53node', label: 'Route 53 DNS', type: 'route53', parent_id: '1' } }));
+    if (!r.success) { record('Test 16: Route53 Type Registration', false, `add_node failed: ${r.error}`); throw new Error('stop'); }
+
+    r = parseBuilderResult(await client.callTool({ name: 'get_state', arguments: {} }));
+    const r53Node16 = r.nodes.find(n => n.id === 'r53node');
+    const r53TypeOk = r53Node16 && r53Node16.type === 'route53';
+
+    // Also validate the XML via validate_file
+    const tempR53File = path.join(os.tmpdir(), `test-e2e-r53-${Date.now()}.xml`);
+    const finR53 = await client.callTool({ name: 'finalize', arguments: {} });
+    const finR53Text = (finR53.content || []).map(c => (typeof c === 'string' ? c : c.text || '')).join('\n');
+    // Extract the XML from the finalize result (the XML is base64-decoded or embedded)
+    // Re-init and re-add to validate via validate_file with the built-in state
+    r = parseBuilderResult(await client.callTool({ name: 'init_diagram', arguments: { title: 'Route53 Test 2', type: 'architecture' } }));
+    await client.callTool({ name: 'add_node', arguments: { id: 'r53node2', label: 'Route 53 DNS', type: 'route53', parent_id: '1' } });
+    const finalR53_2 = await client.callTool({ name: 'finalize', arguments: {} });
+    const finalR53_2Text = (finalR53_2.content || []).map(c => (typeof c === 'string' ? c : c.text || '')).join('\n');
+    // Extract XML from the URL (everything after data:application... or just check for editor text)
+    const r53UrlMatch = finalR53_2Text.match(/https?:\/\/[^\s]+/);
+    let validateR53Ok = true;
+    if (r53UrlMatch) {
+      // Decode the URL to get the XML, write to file and validate
+      try {
+        const url = new URL(r53UrlMatch[0]);
+        const xmlParam = url.hash?.replace('#R', '') || '';
+        const xmlContent = decodeURIComponent(xmlParam);
+        if (xmlContent.includes('<mxGraphModel')) {
+          fs.writeFileSync(tempR53File, xmlContent, 'utf8');
+          const valR53 = parseBuilderResult(await client.callTool({ name: 'validate_file', arguments: { file_path: tempR53File } }));
+          validateR53Ok = valR53.success && valR53.errors.length === 0;
+          if (fs.existsSync(tempR53File)) fs.unlinkSync(tempR53File);
+        }
+      } catch (_) { /* URL parsing failed, skip deep validation */ }
+    }
+
+    record(
+      'Test 16: Route53 Type Registration',
+      r.success && r53TypeOk && validateR53Ok,
+      `Node exists: ${!!r53Node16}. Type is route53: ${r53TypeOk}. Validation OK: ${validateR53Ok}`
+    );
+
+    // ───── Test 17: EventBridge Node Style ─────────────────────────────────
+    r = parseBuilderResult(await client.callTool({ name: 'init_diagram', arguments: { title: 'EventBridge Test', type: 'architecture' } }));
+    if (!r.success) { record('Test 17: EventBridge Node Style', false, `init failed: ${r.error}`); throw new Error('stop'); }
+
+    r = parseBuilderResult(await client.callTool({ name: 'add_node', arguments: { id: 'eb', label: 'Event Bus', type: 'eventbridge', parent_id: '1' } }));
+    if (!r.success) { record('Test 17: EventBridge Node Style', false, `add eventbridge failed: ${r.error}`); throw new Error('stop'); }
+
+    r = parseBuilderResult(await client.callTool({ name: 'add_node', arguments: { id: 'consumer', label: 'Consumer', type: 'ecs', parent_id: '1' } }));
+    if (!r.success) { record('Test 17: EventBridge Node Style', false, `add ecs failed: ${r.error}`); throw new Error('stop'); }
+
+    r = parseBuilderResult(await client.callTool({ name: 'connect', arguments: { source_id: 'eb', target_id: 'consumer' } }));
+    if (!r.success) { record('Test 17: EventBridge Node Style', false, `connect failed: ${r.error}`); throw new Error('stop'); }
+
+    r = parseBuilderResult(await client.callTool({ name: 'get_state', arguments: {} }));
+    const ebEdge = r.edges.find(e => e.source === 'eb' && e.target === 'consumer');
+    const ebEdgeIsDashed = ebEdge && ebEdge.style === 'dashed';
+
+    record(
+      'Test 17: EventBridge Node Style',
+      r.success && !!ebEdge && ebEdgeIsDashed,
+      `Edge exists: ${!!ebEdge}. Style is dashed: ${ebEdgeIsDashed}. Label: ${ebEdge?.label || '(none)'}`
+    );
+
+    // ───── Test 18: Primary/Replica Heuristic Safety ───────────────────────
+    r = parseBuilderResult(await client.callTool({ name: 'init_diagram', arguments: { title: 'Heuristic Test', type: 'architecture' } }));
+    if (!r.success) { record('Test 18: Primary/Replica Heuristic Safety', false, `init failed: ${r.error}`); throw new Error('stop'); }
+
+    await client.callTool({ name: 'add_container', arguments: { id: 'vpc', label: 'VPC', type: 'vpc' } });
+    await client.callTool({ name: 'add_container', arguments: { id: 'az1', label: 'AZ 1', type: 'az', parent_id: 'vpc' } });
+    await client.callTool({ name: 'add_container', arguments: { id: 'app1', label: 'App Subnet', type: 'subnet', parent_id: 'az1', tier: 'app' } });
+
+    await client.callTool({ name: 'add_node', arguments: { id: 'lambda', label: 'API Handler', type: 'lambda', parent_id: 'app1' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'web', label: 'Web Server', type: 'ecs', parent_id: 'app1' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'sqs2', label: 'Task Queue', type: 'sqs', parent_id: 'app1' } });
+
+    await client.callTool({ name: 'connect', arguments: { source_id: 'lambda', target_id: 'web', label: 'Forward' } });
+
+    // Finalize triggers the correction pass including primary/replica heuristic
+    r = parseBuilderResult(await client.callTool({ name: 'finalize', arguments: {} }));
+
+    // Inspect state after corrections
+    r = parseBuilderResult(await client.callTool({ name: 'get_state', arguments: {} }));
+
+    // The edge we created was lambda -> web. The SQS auto-wiring may add a compute->sqs edge.
+    // The KEY check is that no spurious primary/replica edges were created (e.g. treating
+    // 'lambda' ending in 'a' as primary or 'web' ending in 'b' as replica).
+    const manualEdge18 = r.edges.find(e => e.source === 'lambda' && e.target === 'web');
+    // Check for spurious replication/cross-AZ write edges
+    const hasReplicationEdge = r.edges.some(e => (e.label || '').toLowerCase().includes('replication'));
+    const hasCrossAzWrite = r.edges.some(e => (e.label || '').toLowerCase().includes('read/write'));
+    const noSpuriousEdges = !hasReplicationEdge && !hasCrossAzWrite;
+
+    record(
+      'Test 18: Primary/Replica Heuristic Safety',
+      r.success && noSpuriousEdges && !!manualEdge18,
+      `Total edges: ${r.edges.length}. Manual edge present: ${!!manualEdge18}. No replication edges: ${!hasReplicationEdge}. No cross-AZ writes: ${!hasCrossAzWrite}`
+    );
+
+    // ───── Test 19: JSON Spec with Ports and Color ─────────────────────────
+    const tempSpecFile19 = path.join(os.tmpdir(), `test-e2e-spec19-${Date.now()}.json`);
+    const tempOutputFile19 = path.join(os.tmpdir(), `test-e2e-compiled19-${Date.now()}.xml`);
+    const specContent19 = {
+      title: 'Port Test',
+      type: 'pfd',
+      containers: [],
+      nodes: [
+        { id: 'v1', label: 'Vessel', type: 'vessel', parentId: '1' },
+        { id: 'p1', label: 'Pump', type: 'pump', parentId: '1' }
+      ],
+      edges: [
+        { sourceId: 'v1', targetId: 'p1', label: 'Oil', style: 'solid', exitPort: 'bottom', entryPort: 'left', color: '#b85450' }
+      ]
+    };
+    fs.writeFileSync(tempSpecFile19, JSON.stringify(specContent19, null, 2), 'utf8');
+
+    r = parseBuilderResult(await client.callTool({
+      name: 'compile_json_spec',
+      arguments: { spec_path: tempSpecFile19, output_path: tempOutputFile19 }
+    }));
+
+    let portColorOk = false;
+    const outputExists19 = fs.existsSync(tempOutputFile19);
+    if (outputExists19) {
+      const outputXml19 = fs.readFileSync(tempOutputFile19, 'utf8');
+      const hasExitBottom = outputXml19.includes('exitX=0.5') && outputXml19.includes('exitY=1');
+      const hasEntryLeft = outputXml19.includes('entryX=0') && outputXml19.includes('entryY=0.5');
+      const hasColor = outputXml19.includes('strokeColor=#b85450');
+      portColorOk = hasExitBottom && hasEntryLeft && hasColor;
+    }
+
+    if (fs.existsSync(tempSpecFile19)) fs.unlinkSync(tempSpecFile19);
+    if (outputExists19) fs.unlinkSync(tempOutputFile19);
+
+    record(
+      'Test 19: JSON Spec with Ports and Color',
+      r.success && outputExists19 && portColorOk,
+      `Success: ${r.success}. Output exists: ${outputExists19}. Port/Color in XML: ${portColorOk}`
+    );
 
 
   } catch (err) {

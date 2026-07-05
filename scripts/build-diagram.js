@@ -65,7 +65,7 @@ function buildDiagram(inputJsonPath, outputXmlPath) {
     // 4. Add connections
     if (config.edges && Array.isArray(config.edges)) {
         for (const e of config.edges) {
-            const res = b.connect(e.sourceId || e.source_id, e.targetId || e.target_id, e.label, e.style, e.exitPort || e.exit_port, e.entryPort || e.entry_port);
+            const res = b.connect(e.sourceId || e.source_id, e.targetId || e.target_id, e.label, e.style, e.color, e.exitPort || e.exit_port, e.entryPort || e.entry_port);
             if (!res.success) {
                 return { success: false, error: `Failed to connect "${e.sourceId || e.source_id}" -> "${e.targetId || e.target_id}": ${res.error}` };
             }
