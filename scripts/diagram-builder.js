@@ -259,6 +259,18 @@ class DiagramBuilder {
             return { success: false, error: `Target "${targetId}" not found.` };
         }
 
+        const sourceNode = this.cells.get(sourceId);
+        const targetNode = this.cells.get(targetId);
+
+        // 1. Automatic Async Polling/Messaging Styles
+        if (sourceNode && targetNode) {
+            const isBroker = (n) => ['sqs', 'sns', 'eventbridge'].includes(n.type);
+            const isCompute = (n) => ['ecs', 'ec2', 'lambda'].includes(n.type);
+            if ((isBroker(sourceNode) && isCompute(targetNode)) || (isCompute(sourceNode) && isBroker(targetNode))) {
+                style = 'dashed';
+            }
+        }
+
         // Check for duplicate
         for (const [eId, edge] of this.edges) {
             if (edge.sourceId === sourceId && edge.targetId === targetId) {
@@ -293,6 +305,76 @@ class DiagramBuilder {
         };
 
         this.edges.set(edgeId, edge);
+        
+        // --- Atomic Transactions Post-Processing ---
+        if (sourceNode && targetNode) {
+            const isCompute = (n) => ['ecs', 'ec2', 'lambda'].includes(n.type);
+            
+            // 2. Cross-AZ Writes for Replica Reads
+            if (isCompute(sourceNode) && targetNode.type === 'rds' && targetNode.variant && targetNode.variant.toLowerCase() === 'replica') {
+                let primaryRds = null;
+                for (const [, cell] of this.cells) {
+                    if (cell.type === 'rds' && cell.variant && cell.variant.toLowerCase() === 'primary') {
+                        primaryRds = cell;
+                        break;
+                    }
+                }
+                if (primaryRds) {
+                    let hasWriteEdge = false;
+                    for (const [, e] of this.edges) {
+                        if (e.sourceId === sourceId && e.targetId === primaryRds.id) {
+                            hasWriteEdge = true;
+                            break;
+                        }
+                    }
+                    if (!hasWriteEdge) {
+                        this.connect(sourceId, primaryRds.id, 'Read/Write', 'solid', color, exitPort, entryPort);
+                    }
+                }
+            }
+
+            // 3. Cache Replication paired with Database Replication
+            if (sourceNode.type === 'rds' && targetNode.type === 'rds' && style === 'dashed') {
+                if (sourceNode.variant && sourceNode.variant.toLowerCase() === 'primary' && 
+                    targetNode.variant && targetNode.variant.toLowerCase() === 'replica') {
+                    
+                    const getAz = (cell) => {
+                        let curr = cell;
+                        while(curr && curr.parentId && curr.parentId !== '1') {
+                            if (curr.type === 'az') return curr;
+                            curr = this.cells.get(curr.parentId);
+                        }
+                        return null;
+                    };
+                    
+                    const primaryAz = getAz(sourceNode);
+                    const replicaAz = getAz(targetNode);
+                    
+                    if (primaryAz && replicaAz) {
+                        let cacheA = null;
+                        let cacheB = null;
+                        for (const [, cell] of this.cells) {
+                            if (cell.type === 'elasticache' && getAz(cell) === primaryAz) cacheA = cell;
+                            if (cell.type === 'elasticache' && getAz(cell) === replicaAz) cacheB = cell;
+                        }
+                        
+                        if (cacheA && cacheB) {
+                            let hasCacheRep = false;
+                            for (const [, e] of this.edges) {
+                                if (e.sourceId === cacheA.id && e.targetId === cacheB.id) {
+                                    hasCacheRep = true;
+                                    break;
+                                }
+                            }
+                            if (!hasCacheRep) {
+                                this.connect(cacheA.id, cacheB.id, 'Async Replication', 'dashed', color, exitPort, entryPort);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         return { success: true, id: edgeId, message: `Edge: ${sourceId} → ${targetId}${label ? ` (${label})` : ''}` };
     }
 
