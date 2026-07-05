@@ -904,17 +904,25 @@ class DiagramBuilder {
 
     _isPrimary(cell) {
         if (!cell) return false;
-        if (cell.variant && cell.variant.toLowerCase().includes('primary')) return true;
-        if (cell.id && cell.id.toLowerCase().includes('primary')) return true;
-        if (cell.label && cell.label.toLowerCase().includes('primary')) return true;
+        const v = (cell.variant || '').toLowerCase();
+        const id = (cell.id || '').toLowerCase();
+        const lbl = (cell.label || '').toLowerCase();
+        
+        if (v.includes('primary')) return true;
+        if (id.includes('primary') || id.endsWith('a') || id.endsWith('1')) return true;
+        if (lbl.includes('primary') || lbl.endsWith(' a') || lbl.endsWith(' 1')) return true;
         return false;
     }
 
     _isReplica(cell) {
         if (!cell) return false;
-        if (cell.variant && (cell.variant.toLowerCase().includes('replica') || cell.variant.toLowerCase().includes('secondary'))) return true;
-        if (cell.id && (cell.id.toLowerCase().includes('replica') || cell.id.toLowerCase().includes('secondary'))) return true;
-        if (cell.label && (cell.label.toLowerCase().includes('replica') || cell.label.toLowerCase().includes('secondary'))) return true;
+        const v = (cell.variant || '').toLowerCase();
+        const id = (cell.id || '').toLowerCase();
+        const lbl = (cell.label || '').toLowerCase();
+        
+        if (v.includes('replica') || v.includes('secondary')) return true;
+        if (id.includes('replica') || id.includes('secondary') || id.endsWith('b') || id.endsWith('2')) return true;
+        if (lbl.includes('replica') || lbl.includes('secondary') || lbl.endsWith(' b') || lbl.endsWith(' 2')) return true;
         return false;
     }
 
