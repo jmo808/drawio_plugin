@@ -364,6 +364,58 @@ async function main() {
       `Region created: ${r.success}. CDN x=${cfNode?.x} y=${cfNode?.y}, GW x=${gwNode?.x} y=${gwNode?.y}`
     );
 
+    // ───── Test 11: Multi-AZ Ingress and Compute Corrections ───────────────
+    r = parseBuilderResult(await client.callTool({ name: 'init_diagram', arguments: { title: 'Corrections Test', type: 'architecture' } }));
+    if (!r.success) { record('Test 11: Multi-AZ Corrections', false, `init failed: ${r.error}`); throw new Error('stop'); }
+
+    await client.callTool({ name: 'add_node', arguments: { id: 'client', label: 'User Client', type: 'user', parent_id: '1' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'cf', label: 'CloudFront CDN', type: 'cloudfront', parent_id: '1' } });
+    await client.callTool({ name: 'add_container', arguments: { id: 'vpc', label: 'Production VPC', type: 'vpc' } });
+    await client.callTool({ name: 'add_container', arguments: { id: 'az1', label: 'us-east-1a', type: 'az', parent_id: 'vpc' } });
+    await client.callTool({ name: 'add_container', arguments: { id: 'az2', label: 'us-east-1b', type: 'az', parent_id: 'vpc' } });
+    await client.callTool({ name: 'add_container', arguments: { id: 'pub1', label: 'Public Subnet', type: 'subnet', parent_id: 'az1', tier: 'web' } });
+    await client.callTool({ name: 'add_container', arguments: { id: 'pub2', label: 'Public Subnet', type: 'subnet', parent_id: 'az2', tier: 'web' } });
+    await client.callTool({ name: 'add_container', arguments: { id: 'app1', label: 'App Subnet', type: 'subnet', parent_id: 'az1', tier: 'app' } });
+    await client.callTool({ name: 'add_container', arguments: { id: 'app2', label: 'App Subnet', type: 'subnet', parent_id: 'az2', tier: 'app' } });
+
+    await client.callTool({ name: 'add_node', arguments: { id: 'albA', label: 'External ALB A', type: 'alb', parent_id: 'pub1' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'albB', label: 'External ALB B', type: 'alb', parent_id: 'pub2' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'ecs1', label: 'ECS Worker A', type: 'ecs', parent_id: 'app1' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'ecs2', label: 'ECS Worker B', type: 'ecs', parent_id: 'app2' } });
+
+    // Connections with violations
+    await client.callTool({ name: 'connect', arguments: { source_id: 'client', target_id: 'albA', label: 'Forward Traffic' } });
+    await client.callTool({ name: 'connect', arguments: { source_id: 'ecs1', target_id: 'ecs2', label: 'Sync' } });
+
+    r = parseBuilderResult(await client.callTool({ name: 'get_state', arguments: {} }));
+    const initialEdgesCount = r.edges.length;
+
+    // Finalize triggers corrections
+    r = parseBuilderResult(await client.callTool({ name: 'finalize', arguments: {} }));
+    
+    // Fetch state again to inspect corrections
+    r = parseBuilderResult(await client.callTool({ name: 'get_state', arguments: {} }));
+
+    const albsCount = r.nodes.filter(n => n.type === 'alb').length;
+    const finalEdgesCount = r.edges.length;
+    const ecs1ToEcs2Edge = r.edges.find(e => e.source === 'ecs1' && e.target === 'ecs2');
+    const clientToAlbEdge = r.edges.find(e => e.source === 'client' && e.target === 'albA');
+    const cfToAlbEdge = r.edges.find(e => e.source === 'cf' && e.target === 'albA');
+    const keepAlbNode = r.nodes.find(n => n.type === 'alb');
+
+    const doubleAlbMerged = albsCount === 1 && keepAlbNode && keepAlbNode.parent === 'vpc';
+    const horizontalComputeEdgeDeleted = !ecs1ToEcs2Edge;
+    const clientBypassFixed = !clientToAlbEdge && cfToAlbEdge && cfToAlbEdge.label === 'Forward';
+
+    const correctionsOk = r.success && doubleAlbMerged && horizontalComputeEdgeDeleted && clientBypassFixed;
+
+    record(
+      'Test 11: Multi-AZ Ingress and Compute Corrections',
+      correctionsOk,
+      `Double ALB Merged: ${doubleAlbMerged}. Cross-AZ compute edge deleted: ${horizontalComputeEdgeDeleted}. Client Bypass Rerouted: ${clientBypassFixed}.`
+    );
+
+
   } catch (err) {
     if (err.message !== 'stop') {
       const testNum = results.length + 1;

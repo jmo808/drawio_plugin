@@ -1018,6 +1018,81 @@ class DiagramBuilder {
                 }
             }
         }
+
+        // 4. Merge duplicate ALBs (Double ALB Spaghetti Correction)
+        const albs = [];
+        for (const [, cell] of this.cells) {
+            if (cell.type === 'alb' || cell.type === 'nlb') {
+                albs.push(cell);
+            }
+        }
+        if (albs.length > 1) {
+            const keepAlb = albs[0];
+            let vpcContainerId = '1';
+            for (const [, cell] of this.cells) {
+                if (cell.type === 'vpc') {
+                    vpcContainerId = cell.id;
+                    break;
+                }
+            }
+            keepAlb.parentId = vpcContainerId;
+            keepAlb.label = keepAlb.label.replace(/ A$/, '').replace(/ B$/, '').replace(/ [12]$/, '');
+
+            const azs = Array.from(this.cells.values()).filter(c => c.type === 'az' && c.parentId === vpcContainerId);
+            if (azs.length >= 2) {
+                azs.sort((a, b) => a.x - b.x);
+                const firstAz = azs[0];
+                const lastAz = azs[azs.length - 1];
+                const midX = (firstAz.x + lastAz.x + lastAz.width) / 2;
+                keepAlb.x = midX - keepAlb.width / 2;
+                keepAlb.y = 40; // place above the AZs inside the VPC
+            }
+
+            for (let i = 1; i < albs.length; i++) {
+                const discardAlb = albs[i];
+                for (const [, edge] of this.edges) {
+                    if (edge.sourceId === discardAlb.id) edge.sourceId = keepAlb.id;
+                    if (edge.targetId === discardAlb.id) edge.targetId = keepAlb.id;
+                }
+                this.cells.delete(discardAlb.id);
+            }
+        }
+
+        // 5. Delete horizontal compute-to-compute edges across AZs
+        const edgesToDelete = [];
+        for (const [edgeId, edge] of this.edges) {
+            const src = this.cells.get(edge.sourceId);
+            const tgt = this.cells.get(edge.targetId);
+            if (src && tgt && isCompute(src) && isCompute(tgt)) {
+                const srcAz = getAz(src);
+                const tgtAz = getAz(tgt);
+                if (srcAz && tgtAz && srcAz.id !== tgtAz.id) {
+                    edgesToDelete.push(edgeId);
+                }
+            }
+        }
+        for (const edgeId of edgesToDelete) {
+            this.edges.delete(edgeId);
+        }
+
+        // 6. Ingress Routing Correction (Bypass & Orphaned CDN cleanup)
+        let clientNode = null;
+        let cdnNode = null;
+        let albNode = null;
+        for (const [, cell] of this.cells) {
+            if (cell.type === 'user') clientNode = cell;
+            if (cell.type === 'cloudfront') cdnNode = cell;
+            if (cell.type === 'alb' || cell.type === 'nlb') albNode = cell;
+        }
+
+        if (clientNode && cdnNode && albNode) {
+            for (const [, edge] of this.edges) {
+                if (edge.sourceId === clientNode.id && edge.targetId === albNode.id) {
+                    edge.sourceId = cdnNode.id;
+                    edge.label = 'Forward';
+                }
+            }
+        }
     }
 }
 
