@@ -298,7 +298,7 @@ Sarah Kim,VP Product,Emily Chen,,#d5e8d4,#82b366
 
 ### Generated Output
 
-![Org Chart Example Diagram](skills/drawio/examples/org-chart.png)
+![Org Chart Example Diagram](examples/org-chart.png)
 
 ### Result
 
@@ -316,7 +316,7 @@ By combining `# layout: orgchart` with `"invert": true` and a clean edge style, 
 | `layout-patterns.md` | Swimlane, nested container, and cross-functional table templates |
 | `edge-routing-guide.md` | Routing decisions: default vs libavoid, edge style compatibility |
 
-### Example Diagrams (`skills/drawio/examples/`)
+### Example Diagrams (`examples/`)
 
 | File | Type |
 |------|------|
