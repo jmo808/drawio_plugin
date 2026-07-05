@@ -12,6 +12,7 @@ const { execSync } = require('child_process');
 // Style Template Registry
 // ---------------------------------------------------------------------------
 const CONTAINER_STYLES = {
+    region: 'swimlane;startSize=24;fillColor=#f5f5f5;strokeColor=#cccccc;html=1;fontSize=12;fontStyle=1;',
     vpc: 'swimlane;startSize=24;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;fontSize=12;fontStyle=1;',
     az: 'swimlane;startSize=24;fillColor=#fff2cc;strokeColor=#d6b656;html=1;fontSize=11;fontStyle=1;',
     subnet: 'swimlane;startSize=24;fillColor=#e1d5e7;strokeColor=#9673a6;html=1;fontSize=11;fontStyle=1;dashed=1;',
@@ -185,37 +186,44 @@ class DiagramBuilder {
             } else {
                 y = CONTAINER_PADDING.top + albIndex * NODE_SPACING.y;
             }
-        } else if (parentId === '1' || !parent) {
-            // Root-level nodes (Users, Internet, etc.) — place above the VPC
+        } else if (parentId === '1' || !parent || ['region', 'group'].includes(parent.type)) {
+            // Root-level or Region/Group level nodes (Users, CDN, API Gateway) — place in horizontal row at top
             // Adjust label with variant
             let fullLabel = label;
             if (variant) {
                 fullLabel = `${label}&#xa;${variant.charAt(0).toUpperCase() + variant.slice(1)}`;
             }
 
+            const startY = (parentId === '1' || !parent) ? 10 : CONTAINER_PADDING.top;
+
             const cell = {
                 id, label: fullLabel, type, style, parentId, isContainer: false, isEdge: false,
-                x: 0, y: 10, width: nodeSize.width, height: nodeSize.height, variant,
+                x: 0, y: startY, width: nodeSize.width, height: nodeSize.height, variant,
             };
             this.cells.set(id, cell);
 
-            // Dynamically center all root-level nodes
-            const rootNodes = this._childrenOf('1').filter(c => !c.isContainer);
-            const rootContainers = this._childrenOf('1').filter(c => c.isContainer);
+            // Dynamically center all non-container sibling nodes
+            const siblingNodes = this._childrenOf(parentId).filter(c => !c.isContainer);
+            const siblingContainers = this._childrenOf(parentId).filter(c => c.isContainer);
             
-            const vpc = rootContainers.find(c => c.type === 'vpc');
-            const centerX = vpc ? (vpc.x + vpc.width / 2) : 400;
+            let centerX = 400;
+            if (parentId === '1' || !parent) {
+                const vpc = siblingContainers.find(c => c.type === 'vpc');
+                centerX = vpc ? (vpc.x + vpc.width / 2) : 600;
+            } else {
+                centerX = parent.width / 2;
+            }
 
-            const totalWidth = rootNodes.length * NODE_SPACING.x;
+            const totalWidth = siblingNodes.length * NODE_SPACING.x;
             const startX = centerX - totalWidth / 2;
 
-            rootNodes.forEach((n, idx) => {
+            siblingNodes.forEach((n, idx) => {
                 const nSize = NODE_SIZES[n.type] || NODE_SIZE;
                 n.x = startX + idx * NODE_SPACING.x + (NODE_SPACING.x - nSize.width) / 2;
-                n.y = 10;
+                n.y = startY;
             });
 
-            return { success: true, id, message: `Node "${label}" (${type}) placed at root.` };
+            return { success: true, id, message: `Node "${label}" (${type}) placed horizontally in ${parentId}.` };
         } else {
             // Standard grid placement within parent
             const existingNodes = this._childrenOf(parentId).filter(c => !c.isContainer);
@@ -576,6 +584,10 @@ class DiagramBuilder {
                     label: cell.label,
                     type: cell.type,
                     parent: cell.parentId,
+                    x: cell.x,
+                    y: cell.y,
+                    width: cell.width,
+                    height: cell.height,
                     children: this._childrenOf(cell.id).map(c => c.id),
                 });
             } else {
@@ -584,6 +596,10 @@ class DiagramBuilder {
                     label: cell.label,
                     type: cell.type,
                     parent: cell.parentId,
+                    x: cell.x,
+                    y: cell.y,
+                    width: cell.width,
+                    height: cell.height,
                     variant: cell.variant || null,
                 });
             }
@@ -716,6 +732,10 @@ class DiagramBuilder {
 
     _layoutContainer(type, parentId, siblings, tier) {
         const parent = this.cells.get(parentId);
+
+        if (type === 'region') {
+            return { x: 20, y: 40, width: 1280, height: 1350 };
+        }
 
         if (type === 'vpc') {
             return { x: 40, y: 180, width: 1200, height: 1120 };

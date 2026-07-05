@@ -49,7 +49,7 @@ For architecture diagrams, use the builder tools instead of raw XML. These tools
 | Tool | Arguments | Description |
 |------|-----------|-------------|
 | `init_diagram` | `title` (string) | Initialize a new empty diagram |
-| `add_container` | `id`, `label`, `type` (vpc/az/subnet), `parent_id?`, `tier?` (public/web/app/data) | Add a container. Auto-sized, auto-positioned within parent. |
+| `add_container` | `id`, `label`, `type` (region/vpc/az/subnet), `parent_id?`, `tier?` (public/web/app/data) | Add a container. Auto-sized, auto-positioned within parent. |
 | `add_node` | `id`, `label`, `type` (ec2/ecs/lambda/rds/elasticache/alb/etc), `parent_id`, `variant?` (primary/replica) | Add a resource node. Auto-placed on grid within parent. |
 | `connect` | `source_id`, `target_id`, `label?`, `style?` (solid/dashed), `color?` | Connect two nodes with an edge |
 | `disconnect` | `source_id`, `target_id` | Remove an edge between two nodes |
@@ -64,6 +64,7 @@ For architecture diagrams, use the builder tools instead of raw XML. These tools
 Compute: `ec2`, `ecs`, `lambda` | Data: `rds`, `elasticache`, `dynamodb`, `s3` | Network: `alb`, `nlb`, `cloudfront`, `apigateway`, `nat_gateway`, `endpoint` | Security: `waf` | Messaging: `sqs`, `sns` | Other: `user`, `internet`, `rectangle`, `diamond`, `cylinder`, `circle`
 
 ### Container Types and Tiers
+- `region` — Region boundary (light grey swimlane, wraps VPC and regional services)
 - `vpc` — VPC boundary (blue)
 - `az` — Availability Zone (yellow)
 - `subnet` with `tier: "public"` — Public Subnet (purple, short)

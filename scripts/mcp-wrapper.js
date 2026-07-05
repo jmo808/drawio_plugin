@@ -96,7 +96,7 @@ const BUILDER_TOOLS = [
             properties: {
                 id: { type: 'string', description: 'Unique ID for this container' },
                 label: { type: 'string', description: 'Display label' },
-                type: { type: 'string', enum: ['vpc', 'az', 'subnet', 'group', 'lane'], description: 'Container type' },
+                type: { type: 'string', enum: ['region', 'vpc', 'az', 'subnet', 'group', 'lane'], description: 'Container type' },
                 parent_id: { type: 'string', description: 'Parent container ID (default: root)', default: '1' },
                 tier: { type: 'string', enum: ['public', 'web', 'app', 'data'], description: 'Subnet tier (for subnet type)' },
             },

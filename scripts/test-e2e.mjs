@@ -343,6 +343,27 @@ async function main() {
       `State edges: ${r.edges.length} connected. ecsA->dbA=${hasEcsAToDbA_9}, ecsB->dbB=${hasEcsBToDbB_9}, ecsB->dbA=${hasEcsBToDbA_cross_9}, dbA->dbB=${hasDbAToDbB_rep_9}, ecsA->cacheA=${hasEcsAToCacheA_9}, ecsB->cacheB=${hasEcsBToCacheB_9}, cacheA->cacheB=${hasCacheAToCacheB_rep_9}`
     );
 
+    // ───── Test 10: Region & Horizontal Layout ─────────────────────────────
+    r = parseBuilderResult(await client.callTool({ name: 'init_diagram', arguments: { title: 'Region Test', type: 'architecture' } }));
+    if (!r.success) { record('Test 10: Region & Horizontal Layout', false, `init failed: ${r.error}`); throw new Error('stop'); }
+
+    await client.callTool({ name: 'add_container', arguments: { id: 'reg', label: 'AWS Region', type: 'region' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'cf', label: 'CDN', type: 'cloudfront', parent_id: 'reg' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'gw', label: 'API GW', type: 'apigateway', parent_id: 'reg' } });
+
+    r = parseBuilderResult(await client.callTool({ name: 'get_state', arguments: {} }));
+    const cfNode = r.nodes.find(n => n.id === 'cf');
+    const gwNode = r.nodes.find(n => n.id === 'gw');
+    
+    // They must be horizontal: cfNode.y === gwNode.y and cfNode.x !== gwNode.x
+    const layoutOk = r.success && cfNode && gwNode && cfNode.y === gwNode.y && cfNode.x !== gwNode.x;
+    
+    record(
+      'Test 10: Region & Horizontal Layout',
+      layoutOk,
+      `Region created: ${r.success}. CDN x=${cfNode?.x} y=${cfNode?.y}, GW x=${gwNode?.x} y=${gwNode?.y}`
+    );
+
   } catch (err) {
     if (err.message !== 'stop') {
       const testNum = results.length + 1;
