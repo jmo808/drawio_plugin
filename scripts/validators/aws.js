@@ -129,6 +129,11 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
                 reportError('TOPOLOGY_ERROR', id, `API Gateway is forbidden from routing directly to private compute nodes when an ALB is present.`);
             }
         }
+
+        // Rule 11: WAF Bypass (WAF -> ALB/Compute bypass)
+        if (source.type === 'waf' && (target.type === 'application_load_balancer' || statelessComputeTypes.includes(target.type))) {
+            reportError('TOPOLOGY_ERROR', id, `WAF & Shield must route to CloudFront CDN or API Gateway, not directly to ALB or compute nodes.`);
+        }
         
         // Rule 3: Stateless Horizontal Routing
         if (statelessComputeTypes.includes(source.type) && statelessComputeTypes.includes(target.type)) {

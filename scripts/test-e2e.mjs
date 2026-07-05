@@ -461,6 +461,7 @@ async function main() {
       <mxCell id="ecs" value="ECS Web Task" style="shape=mxgraph.aws3.ecs" vertex="1" parent="1"><mxGeometry x="10" y="10" width="80" height="40" as="geometry"/></mxCell>
       <mxCell id="apigw" value="API Gateway" style="shape=mxgraph.aws3.apigateway" vertex="1" parent="1"><mxGeometry x="10" y="10" width="80" height="40" as="geometry"/></mxCell>
       <mxCell id="r53" value="Route 53" style="shape=mxgraph.aws3.route53" vertex="1" parent="1"><mxGeometry x="10" y="10" width="80" height="40" as="geometry"/></mxCell>
+      <mxCell id="waf" value="WAF Shield" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.waf" vertex="1" parent="1"><mxGeometry x="10" y="10" width="80" height="40" as="geometry"/></mxCell>
       
       <mxCell id="e1" edge="1" source="client" target="alb" parent="1"/>
       <mxCell id="e2" edge="1" source="ecs" target="apigw" parent="1"/>
@@ -469,6 +470,7 @@ async function main() {
       <mxCell id="e5" edge="1" source="alb" target="apigw" parent="1"/>
       <mxCell id="e6" edge="1" source="alb" target="ecs" style="dashed=1" parent="1"/>
       <mxCell id="e7" edge="1" source="apigw" target="ecs" parent="1"/>
+      <mxCell id="e8" edge="1" source="waf" target="alb" parent="1"/>
     </root></mxGraphModel>`;
     
     fs.writeFileSync(tempInvalidFile, invalidXmlContent, 'utf8');
@@ -482,12 +484,13 @@ async function main() {
     const hasReverseProxyErr = r.errors.some(e => e.includes('Outbound routing from ALB to API Gateway or CDN is forbidden'));
     const hasDashedAlbComputeErr = r.errors.some(e => e.includes('Edge from Load Balancer to private compute nodes must be solid request traffic'));
     const hasApigwComputeBypassErr = r.errors.some(e => e.includes('API Gateway is forbidden from routing directly to private compute nodes when an ALB is present'));
+    const hasWafBypassErr = r.errors.some(e => e.includes('WAF & Shield must route to CloudFront CDN or API Gateway, not directly to ALB or compute'));
 
-    const validationMatrixOk = !r.success && hasBypassErr && hasApigwErr && hasDnsErr && hasCdnComputeErr && hasReverseProxyErr && hasDashedAlbComputeErr && hasApigwComputeBypassErr;
+    const validationMatrixOk = !r.success && hasBypassErr && hasApigwErr && hasDnsErr && hasCdnComputeErr && hasReverseProxyErr && hasDashedAlbComputeErr && hasApigwComputeBypassErr && hasWafBypassErr;
     record(
       'Test 13: Edge Type Validation Matrix (aws.js)',
       validationMatrixOk,
-      `Bypass Err: ${hasBypassErr}. APIGW Err: ${hasApigwErr}. DNS Err: ${hasDnsErr}. CDN->Compute Err: ${hasCdnComputeErr}. ReverseProxy Err: ${hasReverseProxyErr}. DashedAlb Err: ${hasDashedAlbComputeErr}. ApigwBypass Err: ${hasApigwComputeBypassErr}.`
+      `Bypass Err: ${hasBypassErr}. APIGW Err: ${hasApigwErr}. DNS Err: ${hasDnsErr}. CDN->Compute Err: ${hasCdnComputeErr}. ReverseProxy Err: ${hasReverseProxyErr}. DashedAlb Err: ${hasDashedAlbComputeErr}. ApigwBypass Err: ${hasApigwComputeBypassErr}. WafBypass Err: ${hasWafBypassErr}.`
     );
 
     // ───── Test 14: compile_json_spec Tool ───────────────────────────────────

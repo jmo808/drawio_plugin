@@ -1200,6 +1200,44 @@ class DiagramBuilder {
             }
         }
 
+        // Purge any WAF bypass edges (WAF directly to ALB or Compute)
+        if (wafNode) {
+            const wafBypassEdges = [];
+            for (const [edgeId, edge] of this.edges) {
+                if (edge.sourceId === wafNode.id) {
+                    const tgt = this.cells.get(edge.targetId);
+                    if (tgt && (tgt.type === 'alb' || tgt.type === 'nlb' || isCompute(tgt))) {
+                        wafBypassEdges.push(edgeId);
+                    }
+                }
+            }
+            for (const edgeId of wafBypassEdges) {
+                this.edges.delete(edgeId);
+            }
+        }
+
+        // Purge any ingress-node-to-ALB/Compute bypasses that skip the chain
+        // (e.g., Route53 -> ALB, CDN -> ALB when APIGW exists between them)
+        if (albNode) {
+            const bypassSources = [clientNode, r53Node, wafNode, cdnNode].filter(Boolean);
+            for (const srcNode of bypassSources) {
+                const srcIdx = seq.findIndex(n => n.id === srcNode.id);
+                const albIdx = seq.findIndex(n => n.id === albNode.id);
+                if (srcIdx >= 0 && albIdx >= 0 && albIdx !== srcIdx + 1) {
+                    // This ingress node should not connect directly to ALB
+                    const bypassEdges = [];
+                    for (const [edgeId, edge] of this.edges) {
+                        if (edge.sourceId === srcNode.id && edge.targetId === albNode.id) {
+                            bypassEdges.push(edgeId);
+                        }
+                    }
+                    for (const edgeId of bypassEdges) {
+                        this.edges.delete(edgeId);
+                    }
+                }
+            }
+        }
+
         // Ensure ALB/NLB to Compute connections are solid request traffic, and guarantee connections to Web Tasks
         if (albNode) {
             // 1. Force existing ALB -> Compute edges to be solid Forward request traffic
@@ -1253,6 +1291,22 @@ class DiagramBuilder {
         }
         for (const edgeId of edgesToPurge) {
             this.edges.delete(edgeId);
+        }
+
+        // 7b. Symmetric SQS Wiring — ensure ALL Web Tasks publish and ALL Worker Tasks poll
+        if (sqsNode) {
+            for (const [, cell] of this.cells) {
+                if (!isCompute(cell)) continue;
+                const isWeb = cell.id.toLowerCase().includes('web') || cell.label.toLowerCase().includes('web');
+                const isWorker = cell.id.toLowerCase().includes('worker') || cell.label.toLowerCase().includes('worker');
+
+                if (isWeb && !hasEdge(cell.id, sqsNode.id)) {
+                    this.connect(cell.id, sqsNode.id, 'Publish Event Logs', 'dashed');
+                }
+                if (isWorker && !hasEdge(sqsNode.id, cell.id)) {
+                    this.connect(sqsNode.id, cell.id, 'Poll Tasks', 'dashed');
+                }
+            }
         }
 
         // 8. DNS Direct Routing / Route 53 Hallucination Correction
