@@ -503,9 +503,9 @@ class DiagramBuilder {
         
         for (const [, cell] of this.cells) {
             if (cell.type === dataResourceType) {
-                if (cell.variant && cell.variant.toLowerCase() === 'primary') {
+                if (this._isPrimary(cell)) {
                     primaryData = cell;
-                } else if (cell.variant && cell.variant.toLowerCase() === 'replica') {
+                } else if (this._isReplica(cell)) {
                     replicaData = cell;
                 }
             }
@@ -718,7 +718,7 @@ class DiagramBuilder {
         const parent = this.cells.get(parentId);
 
         if (type === 'vpc') {
-            return { x: 40, y: 180, width: 1200, height: 1060 };
+            return { x: 40, y: 180, width: 1200, height: 1120 };
         }
 
         if (type === 'az') {
@@ -790,7 +790,11 @@ class DiagramBuilder {
             if (right > maxRight) maxRight = right;
         }
 
-        const neededHeight = maxBottom + CONTAINER_PADDING.bottom;
+        let bottomPadding = CONTAINER_PADDING.bottom;
+        if (parent.type === 'vpc') {
+            bottomPadding = 100; // extra padding at bottom of VPC for horizontal cross-AZ routing
+        }
+        const neededHeight = maxBottom + bottomPadding;
         const neededWidth = maxRight + CONTAINER_PADDING.right;
 
         let heightChanged = false;
