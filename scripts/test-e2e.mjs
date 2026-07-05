@@ -417,9 +417,9 @@ async function main() {
     const ecs1ToSqsEdge = r.edges.find(e => e.source === 'ecs1' && e.target === 'queue');
     const r53ToEcs1Edge = r.edges.find(e => e.source === 'r53' && e.target === 'ecs1');
     const r53ToWafEdge = r.edges.find(e => e.source === 'r53' && e.target === 'waf');
-    const keepAlbNode = r.nodes.find(n => n.type === 'alb');
-
-    const doubleAlbMerged = albsCount === 1 && keepAlbNode && keepAlbNode.parent === 'pub1';
+    const albANode = r.nodes.find(n => n.id === 'albA');
+    const albBNode = r.nodes.find(n => n.id === 'albB');
+    const doubleAlbMerged = albsCount === 2 && albANode && albANode.parent === 'pub1' && albBNode && albBNode.parent === 'pub2';
     const horizontalComputeEdgeDeleted = !ecs1ToEcs2Edge;
     const clientBypassFixed = !clientToAlbEdge && apigwToAlbEdge && apigwToAlbEdge.label === 'Forward';
     const cdnToApigwAligned = !cfToAlbEdge && !cfToEcs1Edge && cfToApigwEdge && cfToApigwEdge.label === 'Forward';
@@ -432,7 +432,7 @@ async function main() {
     record(
       'Test 11: Multi-AZ Ingress and Compute Corrections',
       correctionsOk,
-      `Double ALB Merged/Nested (pub1): ${doubleAlbMerged}. Cross-AZ compute edge deleted: ${horizontalComputeEdgeDeleted}. Client Bypass Rerouted: ${clientBypassFixed}. CDN Aligned: ${cdnToApigwAligned}. Event Flow Rerouted to SQS: ${eventFlowTargetingFixed}. Reverse Sync Purged: ${reverseSyncEdgePurged}. DNS Hallucination Fixed: ${dnsHallucinationFixed}.`
+      `Double ALB Preserved/Nested (pub1/pub2): ${doubleAlbMerged}. Cross-AZ compute edge deleted: ${horizontalComputeEdgeDeleted}. Client Bypass Rerouted: ${clientBypassFixed}. CDN Aligned: ${cdnToApigwAligned}. Event Flow Rerouted to SQS: ${eventFlowTargetingFixed}. Reverse Sync Purged: ${reverseSyncEdgePurged}. DNS Hallucination Fixed: ${dnsHallucinationFixed}.`
     );
 
     // ───── Test 12: validate_file Tool ──────────────────────────────────────

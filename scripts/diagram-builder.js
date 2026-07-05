@@ -905,6 +905,23 @@ class DiagramBuilder {
         if (v.includes('primary')) return true;
         if (id.includes('primary')) return true;
         if (lbl.includes('primary')) return true;
+        
+        // AZ-based heuristics
+        const getAz = (c) => {
+            let curr = c;
+            while (curr && curr.parentId && curr.parentId !== '1') {
+                if (curr.type === 'az') return curr;
+                curr = this.cells.get(curr.parentId);
+            }
+            return null;
+        };
+        const az = getAz(cell);
+        if (az) {
+            const azId = az.id.toLowerCase();
+            const azLbl = (az.label || '').toLowerCase();
+            if (azId.endsWith('a') || azId.endsWith('1') || azLbl.endsWith('a') || azLbl.endsWith('1')) return true;
+        }
+
         // Only apply suffix heuristics to data-tier nodes
         if (DATA_TYPES.includes(cell.type)) {
             if (id.endsWith('a') || id.endsWith('1')) return true;
@@ -923,6 +940,23 @@ class DiagramBuilder {
         if (v.includes('replica') || v.includes('secondary')) return true;
         if (id.includes('replica') || id.includes('secondary')) return true;
         if (lbl.includes('replica') || lbl.includes('secondary')) return true;
+
+        // AZ-based heuristics
+        const getAz = (c) => {
+            let curr = c;
+            while (curr && curr.parentId && curr.parentId !== '1') {
+                if (curr.type === 'az') return curr;
+                curr = this.cells.get(curr.parentId);
+            }
+            return null;
+        };
+        const az = getAz(cell);
+        if (az) {
+            const azId = az.id.toLowerCase();
+            const azLbl = (az.label || '').toLowerCase();
+            if (azId.endsWith('b') || azId.endsWith('2') || azLbl.endsWith('b') || azLbl.endsWith('2')) return true;
+        }
+
         // Only apply suffix heuristics to data-tier nodes
         if (DATA_TYPES.includes(cell.type)) {
             if (id.endsWith('b') || id.endsWith('2')) return true;
@@ -958,9 +992,9 @@ class DiagramBuilder {
             const tgt = this.cells.get(edge.targetId);
             if (src && tgt) {
                 if ((isBroker(src) && isCompute(tgt)) || (isCompute(src) && isBroker(tgt))) {
-                    if (!edge.style.includes('dashed=1')) {
-                        edge.style += 'dashed=1;';
-                    }
+                    // Replace entire style to guarantee orthogonal routing + dashed
+                    edge.style = EDGE_STYLES.dashed;
+                    if (edge.label) edge.style += 'labelBackgroundColor=#ffffff;';
                 }
             }
         }
@@ -1025,8 +1059,8 @@ class DiagramBuilder {
             }
         }
 
-        // 4. Merge duplicate ALBs (Double ALB Spaghetti Correction)
-        // Only merge ALBs of the same class (external with external, internal with internal)
+        // 4. ALB Deduplication: merge only ALBs that are in the SAME AZ.
+        //    Per-AZ ALBs (one per AZ) are architecturally valid — do NOT merge them.
         const isInternalAlb = (cell) => {
             const lbl = (cell.label || '').toLowerCase();
             const id = (cell.id || '').toLowerCase();
@@ -1036,19 +1070,44 @@ class DiagramBuilder {
         const internalAlbs = [];
         for (const [, cell] of this.cells) {
             if (cell.type === 'alb' || cell.type === 'nlb') {
-                if (isInternalAlb(cell)) {
-                    internalAlbs.push(cell);
-                } else {
-                    externalAlbs.push(cell);
+                if (isInternalAlb(cell)) internalAlbs.push(cell);
+                else externalAlbs.push(cell);
+            }
+        }
+
+        // Group external ALBs by AZ.  Only merge within the same AZ.
+        const albsByAz = new Map(); // azId -> [albCell, ...]
+        const albsNoAz = [];        // ALBs with no AZ ancestor
+        for (const alb of externalAlbs) {
+            const az = getAz(alb);
+            if (az) {
+                if (!albsByAz.has(az.id)) albsByAz.set(az.id, []);
+                albsByAz.get(az.id).push(alb);
+            } else {
+                albsNoAz.push(alb);
+            }
+        }
+        // Merge same-AZ duplicates
+        for (const [, albsInAz] of albsByAz) {
+            if (albsInAz.length > 1) {
+                const keepAlb = albsInAz[0];
+                keepAlb.label = keepAlb.label.replace(/ A$/, '').replace(/ B$/, '').replace(/ [12]$/, '');
+                for (let i = 1; i < albsInAz.length; i++) {
+                    const discardAlb = albsInAz[i];
+                    for (const [, edge] of this.edges) {
+                        if (edge.sourceId === discardAlb.id) edge.sourceId = keepAlb.id;
+                        if (edge.targetId === discardAlb.id) edge.targetId = keepAlb.id;
+                    }
+                    this.cells.delete(discardAlb.id);
                 }
             }
         }
-        // Merge duplicate External ALBs
-        if (externalAlbs.length > 1) {
-            const keepAlb = externalAlbs[0];
+        // Merge no-AZ duplicates
+        if (albsNoAz.length > 1) {
+            const keepAlb = albsNoAz[0];
             keepAlb.label = keepAlb.label.replace(/ A$/, '').replace(/ B$/, '').replace(/ [12]$/, '');
-            for (let i = 1; i < externalAlbs.length; i++) {
-                const discardAlb = externalAlbs[i];
+            for (let i = 1; i < albsNoAz.length; i++) {
+                const discardAlb = albsNoAz[i];
                 for (const [, edge] of this.edges) {
                     if (edge.sourceId === discardAlb.id) edge.sourceId = keepAlb.id;
                     if (edge.targetId === discardAlb.id) edge.targetId = keepAlb.id;
@@ -1056,7 +1115,7 @@ class DiagramBuilder {
                 this.cells.delete(discardAlb.id);
             }
         }
-        // Merge duplicate Internal ALBs
+        // Merge duplicate Internal ALBs (always merge — internal ALBs are singular)
         if (internalAlbs.length > 1) {
             const keepAlb = internalAlbs[0];
             keepAlb.label = keepAlb.label.replace(/ A$/, '').replace(/ B$/, '').replace(/ [12]$/, '');
@@ -1070,65 +1129,74 @@ class DiagramBuilder {
             }
         }
 
-        // Align External ALB — force containment inside a public subnet (DOM hierarchy)
-        let extAlb = null;
+        // 4.5 Containment: seat EVERY external ALB in its AZ's public subnet.
+        //     Rebuild the live external ALB list after merges.
+        const liveExtAlbs = [];
         for (const [, cell] of this.cells) {
-            if ((cell.type === 'alb' || cell.type === 'nlb') && !isInternalAlb(cell)) {
-                extAlb = cell;
-                break;
-            }
+            if ((cell.type === 'alb' || cell.type === 'nlb') && !isInternalAlb(cell)) liveExtAlbs.push(cell);
         }
-        if (extAlb) {
-            extAlb.label = extAlb.label.replace(/ A$/, '').replace(/ B$/, '').replace(/ [12]$/, '');
-            
-            // Find a public/web subnet in AZ-A to parent the ALB
+        for (const extAlb of liveExtAlbs) {
+            const albAz = getAz(extAlb);
+
+            // Find the best public subnet within the same AZ as this ALB
             let pubSubnet = null;
-            for (const [, cell] of this.cells) {
-                if (cell.isContainer && (cell.type === 'subnet' || cell.id.toLowerCase().includes('subnet'))) {
+
+            // 1st choice: public/web subnet whose AZ ancestor matches extAlb's AZ
+            if (albAz) {
+                for (const [, cell] of this.cells) {
+                    if (!cell.isContainer) continue;
+                    if (cell.type !== 'subnet' && !cell.id.toLowerCase().includes('subnet')) continue;
+                    if (getAz(cell) !== albAz) continue;
                     const idLower = cell.id.toLowerCase();
                     const labelLower = (cell.label || '').toLowerCase();
-                    if (idLower.includes('pub') || idLower.includes('public') || labelLower.includes('pub') || labelLower.includes('public') ||
-                        ((idLower.includes('web') || labelLower.includes('web')) && (idLower.includes('1') || idLower.includes('a')))) {
+                    if (idLower.includes('pub') || idLower.includes('public') ||
+                        labelLower.includes('pub') || labelLower.includes('public') ||
+                        idLower.includes('web') || labelLower.includes('web')) {
                         pubSubnet = cell;
                         break;
                     }
                 }
-            }
-            // Fallback: any web-tier or public-labeled subnet
-            if (!pubSubnet) {
-                for (const [, cell] of this.cells) {
-                    if (cell.isContainer && (cell.type === 'subnet' || cell.id.toLowerCase().includes('subnet'))) {
-                        const idLower = cell.id.toLowerCase();
-                        const labelLower = (cell.label || '').toLowerCase();
-                        if (idLower.includes('web') || labelLower.includes('web') ||
-                            idLower.includes('pub') || labelLower.includes('pub')) {
+                // 2nd choice: any subnet in the same AZ
+                if (!pubSubnet) {
+                    for (const [, cell] of this.cells) {
+                        if (cell.isContainer && getAz(cell) === albAz &&
+                            (cell.type === 'subnet' || cell.id.toLowerCase().includes('subnet'))) {
                             pubSubnet = cell;
                             break;
                         }
                     }
                 }
             }
-            // Last resort: the first subnet in the first AZ
+
+            // 3rd choice: any public subnet anywhere
             if (!pubSubnet) {
                 for (const [, cell] of this.cells) {
-                    if (cell.isContainer && cell.type === 'subnet') {
+                    if (!cell.isContainer) continue;
+                    if (cell.type !== 'subnet' && !cell.id.toLowerCase().includes('subnet')) continue;
+                    const idLower = cell.id.toLowerCase();
+                    const labelLower = (cell.label || '').toLowerCase();
+                    if (idLower.includes('pub') || idLower.includes('public') ||
+                        labelLower.includes('pub') || labelLower.includes('public')) {
                         pubSubnet = cell;
                         break;
                     }
                 }
             }
+            // Last resort: first subnet in any AZ
+            if (!pubSubnet) {
+                for (const [, cell] of this.cells) {
+                    if (cell.isContainer && cell.type === 'subnet') { pubSubnet = cell; break; }
+                }
+            }
+
             if (pubSubnet) {
                 extAlb.parentId = pubSubnet.id;
-                // Position ALB within the subnet bounds (relative coordinates)
                 const nodeW = extAlb.width || 78;
                 const nodeH = extAlb.height || 78;
                 extAlb.x = Math.max(20, Math.floor((pubSubnet.width - nodeW) / 2));
                 extAlb.y = Math.max(30, Math.floor((pubSubnet.height - nodeH) / 2));
-                // Auto-expand the subnet to fit the ALB if needed
                 const minHeight = extAlb.y + nodeH + 40;
-                if (pubSubnet.height < minHeight) {
-                    pubSubnet.height = minHeight;
-                }
+                if (pubSubnet.height < minHeight) pubSubnet.height = minHeight;
                 this._autoExpand(pubSubnet.id);
             }
         }
@@ -1156,22 +1224,28 @@ class DiagramBuilder {
         let wafNode = null;
         let cdnNode = null;
         let apigwNode = null;
-        let albNode = null;
+        let albNode = null; // first live external ALB (for backward compat)
         for (const [, cell] of this.cells) {
             if (cell.type === 'user') clientNode = cell;
             if (cell.type === 'route53') r53Node = cell;
             if (cell.type === 'waf') wafNode = cell;
             if (cell.type === 'cloudfront') cdnNode = cell;
             if (cell.type === 'apigateway' || cell.type === 'endpoint') apigwNode = cell;
-            if (cell.type === 'alb' || cell.type === 'nlb') albNode = cell;
+            if ((cell.type === 'alb' || cell.type === 'nlb') && !isInternalAlb(cell) && !albNode) albNode = cell;
+        }
+
+        // Collect ALL live external ALBs (post-merge)
+        const allExtAlbs = [];
+        for (const [, cell] of this.cells) {
+            if ((cell.type === 'alb' || cell.type === 'nlb') && !isInternalAlb(cell)) allExtAlbs.push(cell);
         }
 
         // Flip any reverse proxy edges (e.g. ALB -> APIGW or ALB -> CloudFront)
-        if (albNode) {
+        for (const alb of allExtAlbs) {
             for (const [, edge] of this.edges) {
                 const src = this.cells.get(edge.sourceId);
                 const tgt = this.cells.get(edge.targetId);
-                if (src && tgt && (src.type === 'alb' || src.type === 'nlb') && 
+                if (src && tgt && src.id === alb.id &&
                     (tgt.type === 'apigateway' || tgt.type === 'endpoint' || tgt.type === 'cloudfront')) {
                     edge.sourceId = tgt.id;
                     edge.targetId = src.id;
@@ -1180,16 +1254,18 @@ class DiagramBuilder {
             }
         }
 
-        // Establish the linear sequence of ingress nodes
+        // Establish the linear ingress spine: client → r53 → waf → cdn → apigw
+        // ALBs are handled as a fan-out from apigw (or from cdn if no apigw).
         const seq = [];
         if (clientNode) seq.push(clientNode);
         if (r53Node) seq.push(r53Node);
         if (wafNode) seq.push(wafNode);
         if (cdnNode) seq.push(cdnNode);
         if (apigwNode) seq.push(apigwNode);
-        if (albNode) seq.push(albNode);
+        // Only add a SINGLE alb to seq when there is no apigw (legacy single-ALB path)
+        if (!apigwNode && albNode) seq.push(albNode);
 
-        // Ensure consecutive nodes in the ingress chain are connected and correctly directed
+        // Ensure consecutive nodes in the ingress spine are connected
         for (let i = 0; i < seq.length - 1; i++) {
             const src = seq[i];
             const tgt = seq[i+1];
@@ -1201,7 +1277,7 @@ class DiagramBuilder {
                     else if (src.type === 'route53') edge.label = 'Resolve & Route';
                     else if (src.type === 'waf') edge.label = 'Inspect & Filter';
                     else edge.label = 'Forward';
-                    edge.style = 'solid';
+                    edge.style = EDGE_STYLES.solid + 'labelBackgroundColor=#ffffff;';
                     break;
                 }
             }
@@ -1214,14 +1290,47 @@ class DiagramBuilder {
             }
         }
 
-        // Purge non-consecutive edges within the ingress chain (bypasses/shortcuts/loops)
+        // When APIGW exists: ensure APIGW fans out to EVERY external ALB
+        if (apigwNode && allExtAlbs.length > 0) {
+            for (const alb of allExtAlbs) {
+                if (!hasEdge(apigwNode.id, alb.id)) {
+                    this.connect(apigwNode.id, alb.id, 'Forward', 'solid');
+                }
+            }
+        }
+
+        // Hard stop: User Client must ONLY connect to Route 53 (or next valid ingress)
+        if (clientNode) {
+            const validClientTarget = r53Node || wafNode || cdnNode || apigwNode || albNode;
+            if (validClientTarget) {
+                const clientBypasses = [];
+                for (const [edgeId, edge] of this.edges) {
+                    if (edge.sourceId === clientNode.id && edge.targetId !== validClientTarget.id) {
+                        clientBypasses.push(edgeId);
+                    }
+                }
+                for (const edgeId of clientBypasses) this.edges.delete(edgeId);
+            }
+        }
+
+        // Purge non-consecutive edges within the ingress SPINE (bypasses/shortcuts/loops)
+        // The spine includes all nodes BEFORE apigw. apigw→alb fan-out edges are allowed.
         const seqIds = new Set(seq.map(n => n.id));
+        const allExtAlbIds = new Set(allExtAlbs.map(a => a.id));
         const edgesToPurgeSeq = [];
         for (const [edgeId, edge] of this.edges) {
             if (seqIds.has(edge.sourceId) && seqIds.has(edge.targetId)) {
                 const srcIdx = seq.findIndex(n => n.id === edge.sourceId);
                 const tgtIdx = seq.findIndex(n => n.id === edge.targetId);
                 if (tgtIdx !== srcIdx + 1) {
+                    edgesToPurgeSeq.push(edgeId);
+                }
+            }
+            // Also purge: any non-apigw ingress node connecting directly to an ALB
+            // (e.g. cdn → alb_a when apigw sits between them)
+            if (apigwNode && seqIds.has(edge.sourceId) && allExtAlbIds.has(edge.targetId)) {
+                const src = this.cells.get(edge.sourceId);
+                if (src && src.id !== apigwNode.id) {
                     edgesToPurgeSeq.push(edgeId);
                 }
             }
@@ -1301,25 +1410,31 @@ class DiagramBuilder {
             }
         }
 
-        // Ensure ALB/NLB to Compute connections are solid request traffic, and guarantee connections to Web Tasks
-        if (albNode) {
-            // 1. Force existing ALB -> Compute edges to be solid Forward request traffic
+        // Ensure ALB/NLB to Compute connections are solid request traffic.
+        // For per-AZ ALBs: each ALB connects only to web tasks in its OWN AZ.
+        for (const alb of allExtAlbs) {
+            const albAz = getAz(alb);
+
+            // 1. Fix existing ALB -> Compute edge styles
             for (const [, edge] of this.edges) {
                 const src = this.cells.get(edge.sourceId);
                 const tgt = this.cells.get(edge.targetId);
-                if (src && tgt && (src.type === 'alb' || src.type === 'nlb') && isCompute(tgt)) {
-                    edge.style = 'solid';
+                if (src && tgt && src.id === alb.id && isCompute(tgt)) {
+                    edge.style = EDGE_STYLES.solid + 'labelBackgroundColor=#ffffff;';
                     if (!edge.label || edge.label.toLowerCase().includes('event') || edge.label.toLowerCase().includes('log')) {
                         edge.label = 'Forward';
                     }
                 }
             }
-            // 2. Guarantee that albNode connects to all Web tasks
+
+            // 2. Guarantee ALB → each Web task in same AZ (or globally if no AZ info)
             for (const [, cell] of this.cells) {
-                if (isCompute(cell) && (cell.id.toLowerCase().includes('web') || cell.label.toLowerCase().includes('web'))) {
-                    if (!hasEdge(albNode.id, cell.id)) {
-                        this.connect(albNode.id, cell.id, 'Forward', 'solid');
-                    }
+                if (!isCompute(cell)) continue;
+                if (!cell.id.toLowerCase().includes('web') && !cell.label.toLowerCase().includes('web')) continue;
+                const taskAz = getAz(cell);
+                const sameAz = !albAz || !taskAz || albAz.id === taskAz.id;
+                if (sameAz && !hasEdge(alb.id, cell.id)) {
+                    this.connect(alb.id, cell.id, 'Forward', 'solid');
                 }
             }
         }
@@ -1356,9 +1471,8 @@ class DiagramBuilder {
                     if (sqsNode) {
                         edge.targetId = sqsNode.id;
                         edge.label = 'Publish Event Logs';
-                        if (!edge.style.includes('dashed=1')) {
-                            edge.style += 'dashed=1;';
-                        }
+                        // Replace entire style to guarantee orthogonal routing + dashed
+                        edge.style = EDGE_STYLES.dashed + 'labelBackgroundColor=#ffffff;';
                     }
                 } else {
                     edgesToPurge.push(edgeId);
@@ -1377,10 +1491,24 @@ class DiagramBuilder {
                 const isWorker = cell.id.toLowerCase().includes('worker') || cell.label.toLowerCase().includes('worker');
 
                 if (isWeb && !hasEdge(cell.id, sqsNode.id)) {
-                    this.connect(cell.id, sqsNode.id, 'Publish Event Logs', 'dashed');
+                    this.connect(cell.id, sqsNode.id, 'Publish Event Logs', 'dashed', null, 'top', 'bottom');
                 }
                 if (isWorker && !hasEdge(sqsNode.id, cell.id)) {
-                    this.connect(sqsNode.id, cell.id, 'Poll Tasks', 'dashed');
+                    this.connect(sqsNode.id, cell.id, 'Poll Tasks', 'dashed', null, 'bottom', 'top');
+                }
+            }
+
+            // 7c. SQS port constraints to avoid crossing top-level rows
+            for (const [, edge] of this.edges) {
+                if (edge.targetId === sqsNode.id) {
+                    if (!edge.style.includes('entryX=')) {
+                        edge.style += 'entryX=0.5;entryY=1;entryPerimeter=0;';
+                    }
+                }
+                if (edge.sourceId === sqsNode.id) {
+                    if (!edge.style.includes('exitX=')) {
+                        edge.style += 'exitX=0.5;exitY=1;exitPerimeter=0;';
+                    }
                 }
             }
         }
