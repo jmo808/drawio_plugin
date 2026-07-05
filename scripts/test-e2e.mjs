@@ -393,6 +393,7 @@ async function main() {
     // Connections with violations
     await client.callTool({ name: 'connect', arguments: { source_id: 'client', target_id: 'albA', label: 'Forward Traffic' } });
     await client.callTool({ name: 'connect', arguments: { source_id: 'cf', target_id: 'albA', label: 'Forward Traffic' } });
+    await client.callTool({ name: 'connect', arguments: { source_id: 'cf', target_id: 'ecs1', label: 'Bypass Routing' } });
     await client.callTool({ name: 'connect', arguments: { source_id: 'ecs1', target_id: 'ecs2', label: 'Sync' } });
     await client.callTool({ name: 'connect', arguments: { source_id: 'ecs1', target_id: 'apigw', label: 'Publish Event' } });
     await client.callTool({ name: 'connect', arguments: { source_id: 'ecs2', target_id: 'apigw', label: 'REST API Call' } });
@@ -408,6 +409,7 @@ async function main() {
     const ecs1ToEcs2Edge = r.edges.find(e => e.source === 'ecs1' && e.target === 'ecs2');
     const clientToAlbEdge = r.edges.find(e => e.source === 'client' && e.target === 'albA');
     const cfToAlbEdge = r.edges.find(e => e.source === 'cf' && e.target === 'albA');
+    const cfToEcs1Edge = r.edges.find(e => e.source === 'cf' && e.target === 'ecs1');
     const cfToApigwEdge = r.edges.find(e => e.source === 'cf' && e.target === 'apigw');
     const apigwToAlbEdge = r.edges.find(e => e.source === 'apigw' && e.target === 'albA');
     const ecs1ToApigwEdge = r.edges.find(e => e.source === 'ecs1' && e.target === 'apigw');
@@ -417,10 +419,10 @@ async function main() {
     const r53ToWafEdge = r.edges.find(e => e.source === 'r53' && e.target === 'waf');
     const keepAlbNode = r.nodes.find(n => n.type === 'alb');
 
-    const doubleAlbMerged = albsCount === 1 && keepAlbNode && keepAlbNode.parent === 'pub1';
+    const doubleAlbMerged = albsCount === 1 && keepAlbNode && keepAlbNode.parent === 'vpc';
     const horizontalComputeEdgeDeleted = !ecs1ToEcs2Edge;
     const clientBypassFixed = !clientToAlbEdge && apigwToAlbEdge && apigwToAlbEdge.label === 'Forward';
-    const cdnToApigwAligned = !cfToAlbEdge && cfToApigwEdge && cfToApigwEdge.label === 'Forward';
+    const cdnToApigwAligned = !cfToAlbEdge && !cfToEcs1Edge && cfToApigwEdge && cfToApigwEdge.label === 'Forward';
     const eventFlowTargetingFixed = !ecs1ToApigwEdge && ecs1ToSqsEdge && ecs1ToSqsEdge.label === 'Publish Event Logs';
     const reverseSyncEdgePurged = !ecs2ToApigwEdge;
     const dnsHallucinationFixed = !r53ToEcs1Edge && r53ToWafEdge && r53ToWafEdge.label === 'Route Traffic';
@@ -430,7 +432,7 @@ async function main() {
     record(
       'Test 11: Multi-AZ Ingress and Compute Corrections',
       correctionsOk,
-      `Double ALB Merged/Nested: ${doubleAlbMerged}. Cross-AZ compute edge deleted: ${horizontalComputeEdgeDeleted}. Client Bypass Rerouted: ${clientBypassFixed}. CDN Aligned: ${cdnToApigwAligned}. Event Flow Rerouted to SQS: ${eventFlowTargetingFixed}. Reverse Sync Purged: ${reverseSyncEdgePurged}. DNS Hallucination Fixed: ${dnsHallucinationFixed}.`
+      `Double ALB Merged/Nested (VPC): ${doubleAlbMerged}. Cross-AZ compute edge deleted: ${horizontalComputeEdgeDeleted}. Client Bypass Rerouted: ${clientBypassFixed}. CDN Aligned: ${cdnToApigwAligned}. Event Flow Rerouted to SQS: ${eventFlowTargetingFixed}. Reverse Sync Purged: ${reverseSyncEdgePurged}. DNS Hallucination Fixed: ${dnsHallucinationFixed}.`
     );
 
     // ───── Test 12: validate_file Tool ──────────────────────────────────────
@@ -454,6 +456,7 @@ async function main() {
       <mxCell id="0"/>
       <mxCell id="1" parent="0"/>
       <mxCell id="client" value="User Client" style="shape=mxgraph.aws3.user" vertex="1" parent="1"><mxGeometry x="10" y="10" width="80" height="40" as="geometry"/></mxCell>
+      <mxCell id="cf" value="CloudFront CDN" style="shape=mxgraph.aws3.cloudfront" vertex="1" parent="1"><mxGeometry x="10" y="10" width="80" height="40" as="geometry"/></mxCell>
       <mxCell id="alb" value="External ALB" style="shape=mxgraph.aws3.application_load_balancer" vertex="1" parent="1"><mxGeometry x="10" y="10" width="80" height="40" as="geometry"/></mxCell>
       <mxCell id="ecs" value="ECS Web Task" style="shape=mxgraph.aws3.ecs" vertex="1" parent="1"><mxGeometry x="10" y="10" width="80" height="40" as="geometry"/></mxCell>
       <mxCell id="apigw" value="API Gateway" style="shape=mxgraph.aws3.apigateway" vertex="1" parent="1"><mxGeometry x="10" y="10" width="80" height="40" as="geometry"/></mxCell>
@@ -462,6 +465,7 @@ async function main() {
       <mxCell id="e1" edge="1" source="client" target="alb" parent="1"/>
       <mxCell id="e2" edge="1" source="ecs" target="apigw" parent="1"/>
       <mxCell id="e3" edge="1" source="r53" target="ecs" parent="1"/>
+      <mxCell id="e4" edge="1" source="cf" target="ecs" parent="1"/>
     </root></mxGraphModel>`;
     
     fs.writeFileSync(tempInvalidFile, invalidXmlContent, 'utf8');
@@ -471,12 +475,13 @@ async function main() {
     const hasBypassErr = r.errors.some(e => e.includes('bypassing CDN/WAF to External ALB are forbidden'));
     const hasApigwErr = r.errors.some(e => e.includes('Outbound API Gateway event targeting is forbidden'));
     const hasDnsErr = r.errors.some(e => e.includes('Direct routing from Route 53 to private compute nodes is forbidden'));
+    const hasCdnComputeErr = r.errors.some(e => e.includes('Direct connections from CloudFront to private compute nodes are forbidden'));
 
-    const validationMatrixOk = !r.success && hasBypassErr && hasApigwErr && hasDnsErr;
+    const validationMatrixOk = !r.success && hasBypassErr && hasApigwErr && hasDnsErr && hasCdnComputeErr;
     record(
       'Test 13: Edge Type Validation Matrix (aws.js)',
       validationMatrixOk,
-      `Bypass Err: ${hasBypassErr}. APIGW Err: ${hasApigwErr}. DNS Err: ${hasDnsErr}.`
+      `Bypass Err: ${hasBypassErr}. APIGW Err: ${hasApigwErr}. DNS Err: ${hasDnsErr}. CDN->Compute Err: ${hasCdnComputeErr}.`
     );
 
     // ───── Test 14: compile_json_spec Tool ───────────────────────────────────

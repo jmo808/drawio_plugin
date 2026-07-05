@@ -19,7 +19,7 @@ function getAwsNodeType(style, value) {
         else if (v.includes('rds') || v.includes('database')) type = 'rds';
         else if (v.includes('route 53') || v.includes('route53')) type = 'route53';
         else if (v.includes('cloudfront') || v.includes('cdn')) type = 'cloudfront';
-        else if (v.includes('apigateway') || v.includes('api gateway')) type = 'apigateway';
+        else if (v.includes('apigateway') || v.includes('api gateway') || v.includes('endpoint') || v.includes('api')) type = 'apigateway';
         else if (v.includes('waf') || v.includes('shield')) type = 'waf';
         else if (v.includes('client') || v.includes('user')) type = 'user';
     }
@@ -28,7 +28,7 @@ function getAwsNodeType(style, value) {
     if (type && type.includes('ec2')) return 'ec2';
     if (type && type.includes('ecs')) return 'ecs';
     if (type && type.includes('lambda')) return 'lambda';
-    if (type && (type.includes('apigateway') || type.includes('api_gateway'))) return 'apigateway';
+    if (type && (type.includes('apigateway') || type.includes('api_gateway') || type.includes('endpoint'))) return 'apigateway';
     if (type && (type.includes('cloudfront') || type.includes('cdn'))) return 'cloudfront';
     if (type && (type.includes('route53') || type.includes('route_53'))) return 'route53';
     if (type && type.includes('waf')) return 'waf';
@@ -96,6 +96,11 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
         // Rule 6: Route 53 -> Compute direct (DNS Direct Routing Hallucination)
         if (source.type === 'route53' && statelessComputeTypes.includes(target.type)) {
             reportError('TOPOLOGY_ERROR', id, `Direct routing from Route 53 to private compute nodes is forbidden. Route 53 must target WAF/CloudFront/ALB.`);
+        }
+
+        // Rule 7: CDN -> Compute bypass (Direct CDN-to-Compute Bypass)
+        if (source.type === 'cloudfront' && statelessComputeTypes.includes(target.type)) {
+            reportError('TOPOLOGY_ERROR', id, `Direct connections from CloudFront to private compute nodes are forbidden.`);
         }
         
         // Rule 3: Stateless Horizontal Routing

@@ -1030,11 +1030,25 @@ class DiagramBuilder {
             const keepAlb = albs[0];
             keepAlb.label = keepAlb.label.replace(/ A$/, '').replace(/ B$/, '').replace(/ [12]$/, '');
 
-            // Keep it nested in its original public subnet parent, but center it inside it
-            const parentCell = this.cells.get(keepAlb.parentId);
-            if (parentCell) {
-                keepAlb.x = (parentCell.width - keepAlb.width) / 2;
-                keepAlb.y = (parentCell.height - keepAlb.height) / 2;
+            // Reparent to the VPC to span the AZs
+            let vpcCell = null;
+            for (const [, cell] of this.cells) {
+                if (cell.type === 'vpc') {
+                    vpcCell = cell;
+                    break;
+                }
+            }
+
+            if (vpcCell) {
+                keepAlb.parentId = vpcCell.id;
+                keepAlb.x = (vpcCell.width - keepAlb.width) / 2;
+                keepAlb.y = 204 + (183 - keepAlb.height) / 2; // aligned with public subnets
+            } else {
+                const parentCell = this.cells.get(keepAlb.parentId);
+                if (parentCell) {
+                    keepAlb.x = (parentCell.width - keepAlb.width) / 2;
+                    keepAlb.y = (parentCell.height - keepAlb.height) / 2;
+                }
             }
 
             for (let i = 1; i < albs.length; i++) {
@@ -1072,7 +1086,7 @@ class DiagramBuilder {
         for (const [, cell] of this.cells) {
             if (cell.type === 'user') clientNode = cell;
             if (cell.type === 'cloudfront') cdnNode = cell;
-            if (cell.type === 'apigateway') apigwNode = cell;
+            if (cell.type === 'apigateway' || cell.type === 'endpoint') apigwNode = cell;
             if (cell.type === 'alb' || cell.type === 'nlb') albNode = cell;
         }
 
@@ -1085,6 +1099,21 @@ class DiagramBuilder {
                         edge.sourceId = cdnNode.id;
                     }
                     edge.label = 'Forward';
+                }
+            }
+
+            // Reroute CloudFront -> Compute bypass directly to API Gateway / ALB
+            for (const [, edge] of this.edges) {
+                if (edge.sourceId === cdnNode.id) {
+                    const tgt = this.cells.get(edge.targetId);
+                    if (tgt && isCompute(tgt)) {
+                        if (apigwNode) {
+                            edge.targetId = apigwNode.id;
+                        } else {
+                            edge.targetId = albNode.id;
+                        }
+                        edge.label = 'Forward';
+                    }
                 }
             }
 
@@ -1125,7 +1154,7 @@ class DiagramBuilder {
         for (const [edgeId, edge] of this.edges) {
             const src = this.cells.get(edge.sourceId);
             const tgt = this.cells.get(edge.targetId);
-            if (src && tgt && isCompute(src) && tgt.type === 'apigateway') {
+            if (src && tgt && isCompute(src) && (tgt.type === 'apigateway' || tgt.type === 'endpoint')) {
                 const lbl = (edge.label || '').toLowerCase();
                 if (lbl.includes('publish') || lbl.includes('event') || lbl.includes('log') || lbl.includes('queue')) {
                     if (sqsNode) {
@@ -1173,7 +1202,7 @@ class DiagramBuilder {
             for (const [, edge] of this.edges) {
                 if (edge.sourceId === r53Node.id) {
                     const tgt = this.cells.get(edge.targetId);
-                    if (tgt && (isCompute(tgt) || tgt.type === 'alb' || tgt.type === 'nlb' || tgt.type === 'apigateway')) {
+                    if (tgt && (isCompute(tgt) || tgt.type === 'alb' || tgt.type === 'nlb' || tgt.type === 'apigateway' || tgt.type === 'endpoint')) {
                         if (tgt.id !== nextIngressNode.id) {
                             edge.targetId = nextIngressNode.id;
                             edge.label = 'Route Traffic';
