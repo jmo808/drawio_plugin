@@ -329,7 +329,7 @@ class DiagramBuilder {
         }
 
         const edgeId = `e_${this.nextEdgeId++}`;
-        let edgeStyle = EDGE_STYLES[style] || EDGE_STYLES.solid;
+        let edgeStyle = EDGE_STYLES[style] || (style && style.includes('=') ? style : EDGE_STYLES.solid);
         if (color) edgeStyle += `strokeColor=${color};`;
         if (label) {
             edgeStyle += 'labelBackgroundColor=#ffffff;';
