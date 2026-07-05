@@ -1143,6 +1143,45 @@ class DiagramBuilder {
         for (const edgeId of edgesToPurge) {
             this.edges.delete(edgeId);
         }
+
+        // 8. DNS Direct Routing / Route 53 Hallucination Correction
+        let r53Node = null;
+        let nextIngressNode = null;
+        
+        for (const [, cell] of this.cells) {
+            if (cell.type === 'route53') r53Node = cell;
+            if (!nextIngressNode && cell.type === 'waf') nextIngressNode = cell;
+        }
+        
+        if (!nextIngressNode) {
+            for (const [, cell] of this.cells) {
+                if (!nextIngressNode && cell.type === 'cloudfront') nextIngressNode = cell;
+            }
+        }
+        if (!nextIngressNode) {
+            for (const [, cell] of this.cells) {
+                if (!nextIngressNode && cell.type === 'apigateway') nextIngressNode = cell;
+            }
+        }
+        if (!nextIngressNode) {
+            for (const [, cell] of this.cells) {
+                if (!nextIngressNode && (cell.type === 'alb' || cell.type === 'nlb')) nextIngressNode = cell;
+            }
+        }
+        
+        if (r53Node && nextIngressNode) {
+            for (const [, edge] of this.edges) {
+                if (edge.sourceId === r53Node.id) {
+                    const tgt = this.cells.get(edge.targetId);
+                    if (tgt && (isCompute(tgt) || tgt.type === 'alb' || tgt.type === 'nlb' || tgt.type === 'apigateway')) {
+                        if (tgt.id !== nextIngressNode.id) {
+                            edge.targetId = nextIngressNode.id;
+                            edge.label = 'Route Traffic';
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

@@ -14,15 +14,25 @@ function getAwsNodeType(style, value) {
     if (!type) {
         if (v.includes('alb') || v.includes('load balancer')) type = 'application_load_balancer';
         else if (v.includes('ec2') || v.includes('web tier')) type = 'ec2';
-        else if (v.includes('ecs') || v.includes('fargate')) type = 'ecs';
+        else if (v.includes('ecs') || v.includes('fargate') || v.includes('worker') || v.includes('web task')) type = 'ecs';
         else if (v.includes('lambda')) type = 'lambda';
         else if (v.includes('rds') || v.includes('database')) type = 'rds';
+        else if (v.includes('route 53') || v.includes('route53')) type = 'route53';
+        else if (v.includes('cloudfront') || v.includes('cdn')) type = 'cloudfront';
+        else if (v.includes('apigateway') || v.includes('api gateway')) type = 'apigateway';
+        else if (v.includes('waf') || v.includes('shield')) type = 'waf';
+        else if (v.includes('client') || v.includes('user')) type = 'user';
     }
     
     if (type === 'application_load_balancer' || type === 'alb') return 'application_load_balancer';
     if (type && type.includes('ec2')) return 'ec2';
     if (type && type.includes('ecs')) return 'ecs';
     if (type && type.includes('lambda')) return 'lambda';
+    if (type && (type.includes('apigateway') || type.includes('api_gateway'))) return 'apigateway';
+    if (type && (type.includes('cloudfront') || type.includes('cdn'))) return 'cloudfront';
+    if (type && (type.includes('route53') || type.includes('route_53'))) return 'route53';
+    if (type && type.includes('waf')) return 'waf';
+    if (type && (type.includes('user') || type.includes('client'))) return 'user';
     
     return type;
 }
@@ -33,6 +43,7 @@ function isInternalAlb(value) {
 }
 
 module.exports = function({ cells, mxCells, doc, reportError }) {
+    const statelessComputeTypes = ['ec2', 'ecs', 'lambda'];
     // Find all AWS nodes and categorize them
     const awsNodes = {};
     const webTierNodes = [];
@@ -71,9 +82,23 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
             target.type === 'application_load_balancer' && isInternalAlb(target.value)) {
             reportError('TOPOLOGY_ERROR', id, `External ALB cannot bypass Web Tier and route directly to Internal ALB.`);
         }
+
+        // Rule 4: Client -> ALB bypass (The Grand Ingress Bypass)
+        if (source.type === 'user' && target.type === 'application_load_balancer' && !isInternalAlb(target.value)) {
+            reportError('TOPOLOGY_ERROR', id, `Direct client connections bypassing CDN/WAF to External ALB are forbidden.`);
+        }
+
+        // Rule 5: Compute -> API Gateway outbound (API Gateway Anti-Pattern)
+        if (statelessComputeTypes.includes(source.type) && target.type === 'apigateway') {
+            reportError('TOPOLOGY_ERROR', id, `Outbound API Gateway event targeting is forbidden. Use Task Queue (SQS) instead.`);
+        }
+
+        // Rule 6: Route 53 -> Compute direct (DNS Direct Routing Hallucination)
+        if (source.type === 'route53' && statelessComputeTypes.includes(target.type)) {
+            reportError('TOPOLOGY_ERROR', id, `Direct routing from Route 53 to private compute nodes is forbidden. Route 53 must target WAF/CloudFront/ALB.`);
+        }
         
         // Rule 3: Stateless Horizontal Routing
-        const statelessComputeTypes = ['ec2', 'ecs', 'lambda'];
         if (statelessComputeTypes.includes(source.type) && statelessComputeTypes.includes(target.type)) {
             let sourceAz = null;
             let p1 = cells[source.parent];

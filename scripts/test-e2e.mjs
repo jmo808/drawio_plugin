@@ -374,6 +374,8 @@ async function main() {
     await client.callTool({ name: 'add_node', arguments: { id: 'cf', label: 'CloudFront CDN', type: 'cloudfront', parent_id: '1' } });
     await client.callTool({ name: 'add_node', arguments: { id: 'apigw', label: 'API Gateway', type: 'apigateway', parent_id: '1' } });
     await client.callTool({ name: 'add_node', arguments: { id: 'queue', label: 'Task Queue', type: 'sqs', parent_id: '1' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'r53', label: 'Route 53', type: 'route53', parent_id: '1' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'waf', label: 'WAF & Shield', type: 'waf', parent_id: '1' } });
     
     await client.callTool({ name: 'add_container', arguments: { id: 'vpc', label: 'Production VPC', type: 'vpc' } });
     await client.callTool({ name: 'add_container', arguments: { id: 'az1', label: 'us-east-1a', type: 'az', parent_id: 'vpc' } });
@@ -394,6 +396,7 @@ async function main() {
     await client.callTool({ name: 'connect', arguments: { source_id: 'ecs1', target_id: 'ecs2', label: 'Sync' } });
     await client.callTool({ name: 'connect', arguments: { source_id: 'ecs1', target_id: 'apigw', label: 'Publish Event' } });
     await client.callTool({ name: 'connect', arguments: { source_id: 'ecs2', target_id: 'apigw', label: 'REST API Call' } });
+    await client.callTool({ name: 'connect', arguments: { source_id: 'r53', target_id: 'ecs1', label: 'DNS Resolve' } });
 
     // Finalize triggers corrections
     r = parseBuilderResult(await client.callTool({ name: 'finalize', arguments: {} }));
@@ -410,6 +413,8 @@ async function main() {
     const ecs1ToApigwEdge = r.edges.find(e => e.source === 'ecs1' && e.target === 'apigw');
     const ecs2ToApigwEdge = r.edges.find(e => e.source === 'ecs2' && e.target === 'apigw');
     const ecs1ToSqsEdge = r.edges.find(e => e.source === 'ecs1' && e.target === 'queue');
+    const r53ToEcs1Edge = r.edges.find(e => e.source === 'r53' && e.target === 'ecs1');
+    const r53ToWafEdge = r.edges.find(e => e.source === 'r53' && e.target === 'waf');
     const keepAlbNode = r.nodes.find(n => n.type === 'alb');
 
     const doubleAlbMerged = albsCount === 1 && keepAlbNode && keepAlbNode.parent === 'pub1';
@@ -418,13 +423,14 @@ async function main() {
     const cdnToApigwAligned = !cfToAlbEdge && cfToApigwEdge && cfToApigwEdge.label === 'Forward';
     const eventFlowTargetingFixed = !ecs1ToApigwEdge && ecs1ToSqsEdge && ecs1ToSqsEdge.label === 'Publish Event Logs';
     const reverseSyncEdgePurged = !ecs2ToApigwEdge;
+    const dnsHallucinationFixed = !r53ToEcs1Edge && r53ToWafEdge && r53ToWafEdge.label === 'Route Traffic';
 
-    const correctionsOk = r.success && doubleAlbMerged && horizontalComputeEdgeDeleted && clientBypassFixed && cdnToApigwAligned && eventFlowTargetingFixed && reverseSyncEdgePurged;
+    const correctionsOk = r.success && doubleAlbMerged && horizontalComputeEdgeDeleted && clientBypassFixed && cdnToApigwAligned && eventFlowTargetingFixed && reverseSyncEdgePurged && dnsHallucinationFixed;
 
     record(
       'Test 11: Multi-AZ Ingress and Compute Corrections',
       correctionsOk,
-      `Double ALB Merged/Nested: ${doubleAlbMerged}. Cross-AZ compute edge deleted: ${horizontalComputeEdgeDeleted}. Client Bypass Rerouted: ${clientBypassFixed}. CDN Aligned: ${cdnToApigwAligned}. Event Flow Rerouted to SQS: ${eventFlowTargetingFixed}. Reverse Sync Purged: ${reverseSyncEdgePurged}.`
+      `Double ALB Merged/Nested: ${doubleAlbMerged}. Cross-AZ compute edge deleted: ${horizontalComputeEdgeDeleted}. Client Bypass Rerouted: ${clientBypassFixed}. CDN Aligned: ${cdnToApigwAligned}. Event Flow Rerouted to SQS: ${eventFlowTargetingFixed}. Reverse Sync Purged: ${reverseSyncEdgePurged}. DNS Hallucination Fixed: ${dnsHallucinationFixed}.`
     );
 
     // ───── Test 12: validate_file Tool ──────────────────────────────────────
@@ -440,6 +446,37 @@ async function main() {
       'Test 12: validate_file Tool',
       validateFileOk,
       `Validation succeeded: ${r.success}, Errors count: ${r.errors?.length}`
+    );
+
+    // ───── Test 13: Edge Type Validation Matrix (aws.js) ─────────────────────
+    const tempInvalidFile = path.join(os.tmpdir(), `test-e2e-invalid-${Date.now()}.xml`);
+    const invalidXmlContent = `<mxGraphModel><root>
+      <mxCell id="0"/>
+      <mxCell id="1" parent="0"/>
+      <mxCell id="client" value="User Client" style="shape=mxgraph.aws3.user" vertex="1" parent="1"><mxGeometry x="10" y="10" width="80" height="40" as="geometry"/></mxCell>
+      <mxCell id="alb" value="External ALB" style="shape=mxgraph.aws3.application_load_balancer" vertex="1" parent="1"><mxGeometry x="10" y="10" width="80" height="40" as="geometry"/></mxCell>
+      <mxCell id="ecs" value="ECS Web Task" style="shape=mxgraph.aws3.ecs" vertex="1" parent="1"><mxGeometry x="10" y="10" width="80" height="40" as="geometry"/></mxCell>
+      <mxCell id="apigw" value="API Gateway" style="shape=mxgraph.aws3.apigateway" vertex="1" parent="1"><mxGeometry x="10" y="10" width="80" height="40" as="geometry"/></mxCell>
+      <mxCell id="r53" value="Route 53" style="shape=mxgraph.aws3.route53" vertex="1" parent="1"><mxGeometry x="10" y="10" width="80" height="40" as="geometry"/></mxCell>
+      
+      <mxCell id="e1" edge="1" source="client" target="alb" parent="1"/>
+      <mxCell id="e2" edge="1" source="ecs" target="apigw" parent="1"/>
+      <mxCell id="e3" edge="1" source="r53" target="ecs" parent="1"/>
+    </root></mxGraphModel>`;
+    
+    fs.writeFileSync(tempInvalidFile, invalidXmlContent, 'utf8');
+    r = parseBuilderResult(await client.callTool({ name: 'validate_file', arguments: { file_path: tempInvalidFile } }));
+    fs.unlinkSync(tempInvalidFile);
+
+    const hasBypassErr = r.errors.some(e => e.includes('bypassing CDN/WAF to External ALB are forbidden'));
+    const hasApigwErr = r.errors.some(e => e.includes('Outbound API Gateway event targeting is forbidden'));
+    const hasDnsErr = r.errors.some(e => e.includes('Direct routing from Route 53 to private compute nodes is forbidden'));
+
+    const validationMatrixOk = !r.success && hasBypassErr && hasApigwErr && hasDnsErr;
+    record(
+      'Test 13: Edge Type Validation Matrix (aws.js)',
+      validationMatrixOk,
+      `Bypass Err: ${hasBypassErr}. APIGW Err: ${hasApigwErr}. DNS Err: ${hasDnsErr}.`
     );
 
 
