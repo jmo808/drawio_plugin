@@ -244,7 +244,7 @@ For detailed syntax and patterns, consult:
 - `references/pid-reference.md` — ISA conventions and native draw.io shapes for industrial P&ID / PFDs
 - `references/pfd-engineering-expert.md` — Process engineering (PFD) domain rules and validation instructions (Oil & Gas, Mining, etc.)
 - `references/aws-well-architected-reviewer.md` — Cloud architecture domain constraints and AWS anti-pattern prevention
-
+- `examples/` — reference diagram implementations (AWS architecture XML, org chart CSV, process flow diagram XML)
 
 ## [Few-Shot Examples]
 When generating AWS architectures, you MUST enforce strict decoupling between tiers using Load Balancers. NEVER route directly from Web Tier compute to App Tier compute.

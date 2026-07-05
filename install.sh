@@ -53,10 +53,9 @@ if [ -d "$GEMINI_PLUGINS_DIR" ]; then
     rm -rf "$GEMINI_PLUGINS_DIR/drawio/skills/drawio/references"
     cp -r "$SCRIPT_DIR/skills/drawio/references" "$GEMINI_PLUGINS_DIR/drawio/skills/drawio/references"
   fi
-  if [ -d "$SCRIPT_DIR/skills/drawio/examples" ] && [ ! -L "$SCRIPT_DIR/skills/drawio/examples" ]; then
-    rm -rf "$GEMINI_PLUGINS_DIR/drawio/skills/drawio/examples"
-    cp -r "$SCRIPT_DIR/skills/drawio/examples" "$GEMINI_PLUGINS_DIR/drawio/skills/drawio/examples"
-  fi
+  # Clean up target examples folder (if any) to keep agent environment clean
+  rm -rf "$GEMINI_PLUGINS_DIR/drawio/skills/drawio/examples"
+
   
   # Copy scripts
   if [ -d "$SCRIPT_DIR/scripts" ]; then

@@ -55,10 +55,12 @@ if (Test-Path $GeminiPluginsDir) {
     if (Test-Path $RefsDir) {
         Copy-Item -Recurse -Force $RefsDir (Join-Path $SkillDest "references")
     }
-    $ExamplesDir = Join-Path $ScriptDir "skills\drawio\examples"
-    if (Test-Path $ExamplesDir) {
-        Copy-Item -Recurse -Force $ExamplesDir (Join-Path $SkillDest "examples")
+    # Clean up target examples folder (if any) to keep agent environment clean
+    $TargetExamples = Join-Path $SkillDest "examples"
+    if (Test-Path $TargetExamples) {
+        Remove-Item -Recurse -Force $TargetExamples
     }
+
     
     $ScriptsDir = Join-Path $ScriptDir "scripts"
     if (Test-Path $ScriptsDir) {
