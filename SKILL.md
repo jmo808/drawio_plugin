@@ -7,6 +7,11 @@ description: >
   network topologies, org charts, and more using native draw.io XML.
 ---
 
+> [!CAUTION]
+> **YOU MUST NEVER WRITE RAW mxGraph XML BY HAND** for architecture diagrams, nor write it directly to a file using `write_to_file`.
+> Writing XML by hand bypasses critical layout physics and architectural validation rules (like cross-AZ write lines or replication checks), causing vertical stacking and validation failures.
+> **ALWAYS use the programmatic Diagram Builder tools** (`init_diagram`, `add_container`, `add_node`, `connect`, `finalize`) to build and validate the diagram, then save the finalized XML.
+
 ## [Role]
 diagramming-expert|generate-technical-diagrams|use-drawio-mcp-tools|ensure-high-quality-visuals|generate-diagrams-from-code|manage-diagram-files|ask-clarifying-questions-if-requirements-vague
 
