@@ -933,7 +933,7 @@ class DiagramBuilder {
 
         const hasEdge = (srcId, tgtId) => {
             for (const [, e] of this.edges) {
-                if (e.sourceId === srcId && e.targetId === tgtId) return true;
+                if ((e.sourceId === srcId && e.targetId === tgtId) || (e.sourceId === tgtId && e.targetId === srcId)) return true;
             }
             return false;
         };
