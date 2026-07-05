@@ -15,7 +15,7 @@ vpc-services:ALB|NLB|EC2|ECS|RDS|ElastiCache→enforce:place-inside-VPC-Subnets
 eda-flow:Client→CDN(CloudFront)→Ingress(API-GW)→Compute(Publisher)→Broker(SQS/SNS)→Compute(Consumer)→Data(DB)
 async-physics:Broker=decoupler|publishers:push/publish→broker|consumers:poll(SQS)-or-invoke(SNS/EB)|prevent:API-GW-polling
 api-gw-physics:inbound-proxy-only|prevent:direct-access-to-VPC-data(RDS/Cache)→must-route-through-Compute(Lambda)
-state-physics:compute-is-stateless(Lambda,ECS)→prevent:replication|data-is-stateful(RDS,DynamoDB)→require:cross-az-or-global-replication
+state-physics:compute-is-stateless(Lambda,ECS)→prevent:replication|data-is-stateful(RDS,DynamoDB,ElastiCache)→require:cross-az-or-global-replication
 cdn-topology:CloudFront-must-front-API-Gateway/ALB|prevent:parallel-bifurcated-ingress-from-client
 
 ## [Project Conventions]
@@ -33,7 +33,8 @@ bifurcated-cdn-ingress|correction:route-Client→CloudFront→API-Gateway(linear
 nlb-fronting-api-gw|correction:swap-order→API-Gateway-fronts-NLB(via-VPC-Link)OR-route-CDN→API-Gateway
 stateless-compute-replication|correction:delete-replication-lines-between-Lambdas/ECS
 daisy-chained-compute|correction:unravel-Lambda→ECS+route-through-EventBridge/SQS-decoupler
-az-isolated-db-writes|correction:route-AZ-B-compute→AZ-A-Primary-RDS-for-writes
+az-isolated-db-writes|correction:route-AZ-B-compute→AZ-A-Primary-RDS-for-writes+ensure-all-polling-consumers-have-write-paths
+missing-cache-replication|correction:draw-async-replication-line-between-ElastiCache-Redis-nodes-across-AZs
 cdn-bypass|correction:delete-edges-from-CloudFront-to-Compute(ECS/EC2)→route-only-to-Ingress(API-GW/ALB)
 
 ## [Visual Styling]
