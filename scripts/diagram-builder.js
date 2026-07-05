@@ -1556,6 +1556,93 @@ class DiagramBuilder {
                 }
             }
         }
+
+        // 9. Mirror Macro Symmetry Constraint (AZ-A / AZ-B Edge Alignment)
+        const getBaseName = (str) => {
+            return str.toLowerCase()
+                .replace(/_a$/, '').replace(/_b$/, '')
+                .replace(/ a$/, '').replace(/ b$/, '')
+                .replace(/a$/, '').replace(/b$/, '')
+                .replace(/1$/, '').replace(/2$/, '')
+                .replace(/web/, '').replace(/worker/, '');
+        };
+
+        const getMirror = (cell) => {
+            if (!cell || cell.parentId === '1') return null;
+            const az = getAz(cell);
+            if (!az) return null;
+            
+            const isWeb = cell.id.toLowerCase().includes('web') || (cell.label || '').toLowerCase().includes('web');
+            const isWorker = cell.id.toLowerCase().includes('worker') || (cell.label || '').toLowerCase().includes('worker');
+
+            for (const [, other] of this.cells) {
+                if (other.id === cell.id) continue;
+                if (other.type !== cell.type) continue;
+                const otherAz = getAz(other);
+                if (!otherAz || otherAz.id === az.id) continue;
+
+                if (cell.type === 'ecs' || cell.type === 'ec2') {
+                    const otherWeb = other.id.toLowerCase().includes('web') || (other.label || '').toLowerCase().includes('web');
+                    const otherWorker = other.id.toLowerCase().includes('worker') || (other.label || '').toLowerCase().includes('worker');
+                    if (isWeb && !otherWeb) continue;
+                    if (isWorker && !otherWorker) continue;
+                }
+                
+                if (getBaseName(other.id) === getBaseName(cell.id) || getBaseName(other.label || '') === getBaseName(cell.label || '')) {
+                    return other;
+                }
+            }
+            return null;
+        };
+
+        // Mirror existing edges to enforce perfect symmetry
+        const edgesToMirror = [];
+        for (const [, edge] of this.edges) {
+            edgesToMirror.push({
+                sourceId: edge.sourceId,
+                targetId: edge.targetId,
+                label: edge.label,
+                style: edge.style
+            });
+        }
+
+        for (const edge of edgesToMirror) {
+            const src = this.cells.get(edge.sourceId);
+            const tgt = this.cells.get(edge.targetId);
+            if (!src || !tgt) continue;
+
+            const srcMirror = getMirror(src);
+            const tgtMirror = getMirror(tgt);
+
+            // Case A: Target is regional/global (outside VPC)
+            if (srcMirror && (!tgt.parentId || tgt.parentId === '1' || this.cells.get(tgt.parentId)?.type === 'region')) {
+                if (!hasEdge(srcMirror.id, tgt.id) && !hasEdge(tgt.id, srcMirror.id)) {
+                    this.connect(srcMirror.id, tgt.id, edge.label, edge.style.includes('dashed') ? 'dashed' : 'solid');
+                }
+            }
+            // Case B: Source is regional/global (outside VPC), target is in AZ
+            else if (tgtMirror && (!src.parentId || src.parentId === '1' || this.cells.get(src.parentId)?.type === 'region')) {
+                if (!hasEdge(src.id, tgtMirror.id) && !hasEdge(tgtMirror.id, src.id)) {
+                    this.connect(src.id, tgtMirror.id, edge.label, edge.style.includes('dashed') ? 'dashed' : 'solid');
+                }
+            }
+            // Case C: Both source and target are in AZs (only mirror if intra-AZ to avoid mirroring cross-AZ replication)
+            else if (srcMirror && tgtMirror) {
+                const srcAz = getAz(src);
+                const tgtAz = getAz(tgt);
+                if (srcAz && tgtAz && srcAz.id === tgtAz.id) {
+                    if (!hasEdge(srcMirror.id, tgtMirror.id) && !hasEdge(tgtMirror.id, srcMirror.id)) {
+                        let label = edge.label;
+                        if (tgtMirror.type === 'rds' && this._isReplica(tgtMirror)) {
+                            label = 'Read Only';
+                        } else if (tgtMirror.type === 'rds' && this._isPrimary(tgtMirror)) {
+                            label = 'Read/Write';
+                        }
+                        this.connect(srcMirror.id, tgtMirror.id, label, edge.style.includes('dashed') ? 'dashed' : 'solid');
+                    }
+                }
+            }
+        }
     }
 }
 
