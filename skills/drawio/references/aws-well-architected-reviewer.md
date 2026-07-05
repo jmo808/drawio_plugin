@@ -45,6 +45,11 @@ unprotected-public-ingress|correction:attach-WAF-node-to-CloudFront-or-API-Gatew
 single-az-load-balancer|correction:ensure-ALB-routes-to-compute-targets-in-at-least-two-AZs
 direct-s3-client-access|correction:route-Client→CloudFront→S3(OAC)
 
+## [Sequential Execution Pairing (MANDATORY)]
+pairing:cross-az-writes|trigger:draw-read-only-edge-to-AZ-B-replica|action:simultaneously-draw-write-edge-to-AZ-A-primary
+pairing:cache-replication|trigger:draw-rds-async-replication|action:simultaneously-draw-elasticache-async-replication
+pairing:async-polling|trigger:connect-compute-to-broker/queue|action:enforce-dashed-edge-style
+
 ## [Visual Styling]
 icon-style:enforce-aws-silhouettes|correction:use-shape=mxgraph.aws4.resourceIcon-for-services-and-shape=mxgraph.aws4.user-for-clients+never-use-flowchart-clouds-or-generic-text-boxes
 edge-style:enforce-orthogonal|correction:inject-edgeStyle=orthogonalEdgeStyle;exitX=0.5;exitY=1;entryX=0.5;entryY=0-for-strict-vertical-tiering
