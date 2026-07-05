@@ -8,8 +8,8 @@ description: >
 ---
 
 > [!CAUTION]
-> **YOU MUST NEVER WRITE RAW mxGraph XML BY HAND** for architecture diagrams, nor write it directly to a file using `write_to_file`.
-> Writing XML by hand bypasses critical layout physics and architectural validation rules (like cross-AZ write lines or replication checks), causing vertical stacking and validation failures.
+> **YOU MUST NEVER WRITE RAW mxGraph XML BY HAND** for structured diagrams, nor write it directly to a file using `write_to_file`.
+> Writing XML by hand bypasses critical layout physics and validation correction rules, causing layout regressions and validation failures.
 > **ALWAYS use the programmatic Diagram Builder tools** (`init_diagram`, `add_container`, `add_node`, `connect`, `finalize`) to build and validate the diagram, then save the finalized XML.
 
 ## [Role]
