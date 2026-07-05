@@ -59,7 +59,7 @@ For architecture diagrams, use the builder tools instead of raw XML. These tools
 | `finalize` | (none) | Validate and open the diagram in draw.io |
 
 ### Available Node Types
-Compute: `ec2`, `ecs`, `lambda` | Data: `rds`, `elasticache`, `dynamodb`, `s3` | Network: `alb`, `nlb`, `cloudfront` | Messaging: `sqs`, `sns` | Other: `user`, `internet`, `rectangle`, `diamond`, `cylinder`, `circle`
+Compute: `ec2`, `ecs`, `lambda` | Data: `rds`, `elasticache`, `dynamodb`, `s3` | Network: `alb`, `nlb`, `cloudfront`, `apigateway` | Messaging: `sqs`, `sns` | Other: `user`, `internet`, `rectangle`, `diamond`, `cylinder`, `circle`
 
 ### Container Types and Tiers
 - `vpc` — VPC boundary (blue)

@@ -1,0 +1,93 @@
+<mxGraphModel>
+  <root>
+    <mxCell id="0"/>
+    <mxCell id="1" parent="0"/>
+    <mxCell id="client" value="Mobile Client" style="shape=mxgraph.aws4.user;fillColor=#5A6C86;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;" vertex="1" parent="1">
+      <mxGeometry x="1" y="10" width="78" height="78" as="geometry"/>
+    </mxCell>
+    <mxCell id="cloudfront" value="CloudFront CDN" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.cloudfront;fillColor=#8C4FFF;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;" vertex="1" parent="1">
+      <mxGeometry x="181" y="10" width="78" height="78" as="geometry"/>
+    </mxCell>
+    <mxCell id="api_gw" value="API Gateway" style="rounded=1;whiteSpace=wrap;html=1;" vertex="1" parent="1">
+      <mxGeometry x="330" y="10" width="140" height="60" as="geometry"/>
+    </mxCell>
+    <mxCell id="lambda_api" value="API Handler" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;fillColor=#ED7100;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;" vertex="1" parent="1">
+      <mxGeometry x="541" y="10" width="78" height="78" as="geometry"/>
+    </mxCell>
+    <mxCell id="sqs_queue" value="Task Queue" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.sqs;fillColor=#E7157B;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;" vertex="1" parent="1">
+      <mxGeometry x="721" y="10" width="78" height="78" as="geometry"/>
+    </mxCell>
+    <mxCell id="vpc1" value="Production VPC" style="swimlane;startSize=24;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+      <mxGeometry x="40" y="180" width="1200" height="1060" as="geometry"/>
+    </mxCell>
+    <mxCell id="az1" value="us-east-1a" style="swimlane;startSize=24;fillColor=#fff2cc;strokeColor=#d6b656;html=1;fontSize=11;fontStyle=1;" vertex="1" parent="vpc1">
+      <mxGeometry x="20" y="160" width="470" height="860" as="geometry"/>
+    </mxCell>
+    <mxCell id="az2" value="us-east-1b" style="swimlane;startSize=24;fillColor=#fff2cc;strokeColor=#d6b656;html=1;fontSize=11;fontStyle=1;" vertex="1" parent="vpc1">
+      <mxGeometry x="700" y="160" width="470" height="860" as="geometry"/>
+    </mxCell>
+    <mxCell id="app1" value="App Subnet" style="swimlane;startSize=24;fillColor=#d5e8d4;strokeColor=#82b366;html=1;fontSize=11;fontStyle=1;" vertex="1" parent="az1">
+      <mxGeometry x="20" y="44" width="420" height="183" as="geometry"/>
+    </mxCell>
+    <mxCell id="data1" value="Data Subnet" style="swimlane;startSize=24;fillColor=#f8cecc;strokeColor=#b85450;html=1;fontSize=11;fontStyle=1;" vertex="1" parent="az1">
+      <mxGeometry x="20" y="251" width="420" height="260" as="geometry"/>
+    </mxCell>
+    <mxCell id="app2" value="App Subnet" style="swimlane;startSize=24;fillColor=#d5e8d4;strokeColor=#82b366;html=1;fontSize=11;fontStyle=1;" vertex="1" parent="az2">
+      <mxGeometry x="20" y="44" width="420" height="183" as="geometry"/>
+    </mxCell>
+    <mxCell id="data2" value="Data Subnet" style="swimlane;startSize=24;fillColor=#f8cecc;strokeColor=#b85450;html=1;fontSize=11;fontStyle=1;" vertex="1" parent="az2">
+      <mxGeometry x="20" y="251" width="420" height="260" as="geometry"/>
+    </mxCell>
+    <mxCell id="ecs_worker1" value="ECS Worker" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.ecs;fillColor=#ED7100;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;" vertex="1" parent="app1">
+      <mxGeometry x="81" y="75" width="78" height="78" as="geometry"/>
+    </mxCell>
+    <mxCell id="ecs_worker2" value="ECS Worker" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.ecs;fillColor=#ED7100;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;" vertex="1" parent="app2">
+      <mxGeometry x="81" y="75" width="78" height="78" as="geometry"/>
+    </mxCell>
+    <mxCell id="rds_primary" value="Primary DB" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.rds;fillColor=#C925D1;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;" vertex="1" parent="data1">
+      <mxGeometry x="81" y="75" width="78" height="78" as="geometry"/>
+    </mxCell>
+    <mxCell id="elasticache1" value="Redis Cache" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.elasticache;fillColor=#C925D1;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;" vertex="1" parent="data1">
+      <mxGeometry x="261" y="75" width="78" height="78" as="geometry"/>
+    </mxCell>
+    <mxCell id="rds_replica" value="Replica DB" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.rds;fillColor=#C925D1;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;" vertex="1" parent="data2">
+      <mxGeometry x="81" y="75" width="78" height="78" as="geometry"/>
+    </mxCell>
+    <mxCell id="elasticache2" value="Redis Cache" style="shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.elasticache;fillColor=#C925D1;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;" vertex="1" parent="data2">
+      <mxGeometry x="261" y="75" width="78" height="78" as="geometry"/>
+    </mxCell>
+    <mxCell id="e_1" value="HTTPS" edge="1" parent="1" source="client" target="cloudfront" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;labelBackgroundColor=#ffffff;">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="e_2" value="Forward" edge="1" parent="1" source="cloudfront" target="api_gw" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;labelBackgroundColor=#ffffff;">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="e_3" value="Invoke" edge="1" parent="1" source="api_gw" target="lambda_api" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;labelBackgroundColor=#ffffff;">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="e_4" value="Publish Event" edge="1" parent="1" source="lambda_api" target="sqs_queue" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;labelBackgroundColor=#ffffff;">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="e_5" value="Polls" edge="1" parent="1" source="sqs_queue" target="ecs_worker1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;labelBackgroundColor=#ffffff;">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="e_6" value="Polls" edge="1" parent="1" source="sqs_queue" target="ecs_worker2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;labelBackgroundColor=#ffffff;">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="e_7" value="Read/Write" edge="1" parent="1" source="ecs_worker1" target="rds_primary" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;labelBackgroundColor=#ffffff;">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="e_8" value="Cache Access" edge="1" parent="1" source="ecs_worker1" target="elasticache1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;labelBackgroundColor=#ffffff;">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="e_9" value="Read Only" edge="1" parent="1" source="ecs_worker2" target="rds_replica" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;labelBackgroundColor=#ffffff;">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="e_10" value="Cache Access" edge="1" parent="1" source="ecs_worker2" target="elasticache2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;labelBackgroundColor=#ffffff;">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+    <mxCell id="e_11" value="Async Replication" edge="1" parent="1" source="rds_primary" target="rds_replica" style="edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;labelBackgroundColor=#ffffff;">
+      <mxGeometry relative="1" as="geometry"/>
+    </mxCell>
+  </root>
+</mxGraphModel>
