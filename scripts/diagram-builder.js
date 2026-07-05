@@ -148,6 +148,26 @@ class DiagramBuilder {
             return { success: false, error: `Parent "${parentId}" not found.` };
         }
 
+        // Auto-correct generic types if label implies a specific AWS resource
+        const lowerLabel = (label || '').toLowerCase();
+        if (lowerLabel.includes('api gateway') || lowerLabel.includes('api_gateway')) {
+            type = 'apigateway';
+        } else if (lowerLabel.includes('cloudfront') || lowerLabel.includes('cdn')) {
+            type = 'cloudfront';
+        } else if (lowerLabel.includes('task queue') || lowerLabel.includes('sqs')) {
+            type = 'sqs';
+        } else if (lowerLabel.includes('lambda') || lowerLabel.includes('api handler')) {
+            type = 'lambda';
+        } else if (lowerLabel.includes('ecs') || lowerLabel.includes('worker')) {
+            type = 'ecs';
+        } else if (lowerLabel.includes('rds') || lowerLabel.includes('database') || lowerLabel.includes(' db')) {
+            type = 'rds';
+        } else if (lowerLabel.includes('redis') || lowerLabel.includes('cache')) {
+            type = 'elasticache';
+        } else if (lowerLabel.includes('user') || lowerLabel.includes('client')) {
+            type = 'user';
+        }
+
         const nodeSize = NODE_SIZES[type] || NODE_SIZE;
         const style = NODE_STYLES[type] || NODE_STYLES.rectangle;
         const parent = this.cells.get(parentId);
@@ -734,11 +754,11 @@ class DiagramBuilder {
         const parent = this.cells.get(parentId);
 
         if (type === 'region') {
-            return { x: 20, y: 40, width: 1280, height: 1350 };
+            return { x: 20, y: 40, width: 1280, height: 300 };
         }
 
         if (type === 'vpc') {
-            return { x: 40, y: 180, width: 1200, height: 1120 };
+            return { x: 40, y: 180, width: 1200, height: 300 };
         }
 
         if (type === 'az') {
@@ -746,7 +766,7 @@ class DiagramBuilder {
             const azWidth = 460;
             // First AZ at x=20, second AZ at x=20+460+AZ_GAP=700
             const x = 20 + azIndex * (azWidth + AZ_GAP);
-            return { x, y: 160, width: azWidth, height: 860 };
+            return { x, y: 160, width: azWidth, height: 200 };
         }
 
         if (type === 'subnet' || type.startsWith('subnet_')) {
