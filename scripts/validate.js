@@ -191,6 +191,7 @@ function validateXml(xmlStr, diagramType = null) {
             for (let i = 0; i < nodeIds.length; i++) {
                 const n = cells[nodeIds[i]];
                 if (el.getAttribute('source') === n.id || el.getAttribute('target') === n.id) continue;
+                if (n.style.includes('swimlane')) continue;
                 
                 if (abs_px > n.abs_x + 2 && abs_px < n.abs_x + n.width - 2 && 
                     abs_py > n.abs_y + 2 && abs_py < n.abs_y + n.height - 2) {

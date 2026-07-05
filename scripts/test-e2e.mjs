@@ -709,6 +709,68 @@ async function main() {
       `Success: ${r.success}. Output exists: ${outputExists19}. Port/Color in XML: ${portColorOk}`
     );
 
+    // ───── Test 20: Serverless Layout and Data Matrix validation ───────────
+    r = parseBuilderResult(await client.callTool({ name: 'init_diagram', arguments: { title: 'Serverless Layout Test', type: 'architecture' } }));
+    if (!r.success) { record('Test 20: Serverless Layout and Data Matrix validation', false, `init failed: ${r.error}`); throw new Error('stop'); }
+
+    // Add API Gateway, Event Bridge, and DynamoDB Tables
+    await client.callTool({ name: 'add_node', arguments: { id: 'apigw', label: 'API Gateway', type: 'apigateway', parent_id: '1' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'eb', label: 'Event Bus', type: 'eventbridge', parent_id: '1' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'dbA', label: 'DynamoDB Table A Primary', type: 'dynamodb', parent_id: '1', variant: 'primary' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'dbB', label: 'DynamoDB Table B Replica', type: 'dynamodb', parent_id: '1', variant: 'replica' } });
+
+    // VPC and AZs
+    await client.callTool({ name: 'add_container', arguments: { id: 'vpc', label: 'VPC', type: 'vpc' } });
+    await client.callTool({ name: 'add_container', arguments: { id: 'az1', label: 'AZ A', type: 'az', parent_id: 'vpc' } });
+    await client.callTool({ name: 'add_container', arguments: { id: 'az2', label: 'AZ B', type: 'az', parent_id: 'vpc' } });
+
+    // Subnets: AZ A has both, AZ B has only one (creating empty subnet to be purged in AZ A)
+    await client.callTool({ name: 'add_container', arguments: { id: 'appSubnetA', label: 'App Subnet A', type: 'subnet', parent_id: 'az1', tier: 'app' } });
+    await client.callTool({ name: 'add_container', arguments: { id: 'dataSubnetA', label: 'Private Data Subnet A', type: 'subnet', parent_id: 'az1', tier: 'data' } });
+    await client.callTool({ name: 'add_container', arguments: { id: 'appSubnetB', label: 'App Subnet B', type: 'subnet', parent_id: 'az2', tier: 'app' } });
+
+    // AZ A compute nodes
+    await client.callTool({ name: 'add_node', arguments: { id: 'apiA', label: 'API Handler Api', type: 'lambda', parent_id: 'appSubnetA' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'workerA', label: 'Processor Worker Worker', type: 'ecs', parent_id: 'appSubnetA' } });
+
+    // AZ B compute nodes
+    await client.callTool({ name: 'add_node', arguments: { id: 'apiB', label: 'API Handler Api', type: 'lambda', parent_id: 'appSubnetB' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'workerB', label: 'Processor Worker Worker', type: 'ecs', parent_id: 'appSubnetB' } });
+
+    // Connect API Gateway directly to Event Bridge (direct integration hallucination)
+    await client.callTool({ name: 'connect', arguments: { source_id: 'apigw', target_id: 'eb', label: 'Direct Integration' } });
+
+    // Connect compute nodes to Event Bridge (to show upward routing)
+    await client.callTool({ name: 'connect', arguments: { source_id: 'apiA', target_id: 'eb', label: 'Trigger' } });
+    await client.callTool({ name: 'connect', arguments: { source_id: 'workerA', target_id: 'eb', label: 'Publish' } });
+
+    // Finalize
+    r = parseBuilderResult(await client.callTool({ name: 'finalize', arguments: {} }));
+
+    // Get final state
+    r = parseBuilderResult(await client.callTool({ name: 'get_state', arguments: {} }));
+
+    const hasApigwToEb = r.edges.some(e => e.source === 'apigw' && e.target === 'eb');
+    const dataSubnetDeleted = !r.containers.some(c => c.id === 'dataSubnetA');
+    const apiAToPrimary = r.edges.some(e => e.source === 'apiA' && e.target === 'dbA');
+    const workerAToPrimary = r.edges.some(e => e.source === 'workerA' && e.target === 'dbA');
+    const apiBToReplica = r.edges.some(e => e.source === 'apiB' && e.target === 'dbB');
+    const workerBToReplica = r.edges.some(e => e.source === 'workerB' && e.target === 'dbB');
+    const apiBToPrimaryCross = r.edges.some(e => e.source === 'apiB' && e.target === 'dbA');
+    const workerBToPrimaryCross = r.edges.some(e => e.source === 'workerB' && e.target === 'dbA');
+
+    const dbAPosition = r.nodes.find(n => n.id === 'dbA');
+    const ebPosition = r.nodes.find(n => n.id === 'eb');
+    const dbBPosition = r.nodes.find(n => n.id === 'dbB');
+    const flankedCorrectly = dbAPosition && ebPosition && dbBPosition && dbAPosition.x < ebPosition.x && ebPosition.x < dbBPosition.x;
+
+    const test20Ok = r.success && !hasApigwToEb && dataSubnetDeleted && apiAToPrimary && workerAToPrimary && apiBToReplica && workerBToReplica && apiBToPrimaryCross && workerBToPrimaryCross && flankedCorrectly;
+
+    record(
+      'Test 20: Serverless Layout and Data Matrix validation',
+      test20Ok,
+      `API Gateway to EventBridge purged: ${!hasApigwToEb}. Empty subnet purged: ${dataSubnetDeleted}. AZ-A worker connected to Primary: ${workerAToPrimary}. AZ-B worker connected to Replica/Primary: ${workerBToReplica}/${workerBToPrimaryCross}. DynamoDB flanking EB: ${flankedCorrectly}.`
+    );
 
   } catch (err) {
     if (err.message !== 'stop') {

@@ -174,4 +174,88 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
             reportError('TOPOLOGY_ERROR', webNodeId, `Web Tier compute node is stranded. It must receive inbound traffic from an ALB and route outbound traffic forward to the App Tier or Internal ALB.`);
         }
     }
+
+    // Rule: Every node containing "api" or "worker" in its label/value residing in an AZ must have an explicitly defined edge targeting the DynamoDB tier (if DynamoDB is present)
+    let hasDynamo = false;
+    let dynamoPrimaryId = null;
+    let dynamoReplicaId = null;
+    for (const nid in awsNodes) {
+        const node = awsNodes[nid];
+        if (node.type === 'dynamodb') {
+            hasDynamo = true;
+            const val = (node.value || '').toLowerCase();
+            const id = node.id.toLowerCase();
+            if (val.includes('primary') || id.includes('primary')) {
+                dynamoPrimaryId = node.id;
+            } else if (val.includes('replica') || val.includes('secondary') || id.includes('replica') || id.includes('secondary')) {
+                dynamoReplicaId = node.id;
+            }
+        }
+    }
+
+    if (hasDynamo && dynamoPrimaryId) {
+        for (const id in cells) {
+            const cell = cells[id];
+            if (cell.isEdge || !cell.value) continue;
+            
+            const valLower = cell.value.toLowerCase();
+            if (valLower.includes('api') || valLower.includes('worker')) {
+                // Find if it is in an AZ
+                let azId = null;
+                let p = cells[cell.parent];
+                while (p && p.id !== "1" && p.id !== "0") {
+                    if (p.value && p.value.toLowerCase().includes('az ')) { 
+                        azId = p.id; 
+                        break; 
+                    }
+                    p = cells[p.parent];
+                }
+                
+                if (azId) {
+                    const isAzB = azId.endsWith('b') || azId.endsWith('2') || /[\s\-\/]b\b|[\s\-\/]2\b/i.test(cells[azId].value || '');
+                    if (!isAzB) {
+                        // AZ-A node: must connect to primary DynamoDB
+                        let hasEdgeToPrimary = false;
+                        for (const eid in cells) {
+                            const edge = cells[eid];
+                            if (edge.isEdge) {
+                                const el = doc.getElementById(eid) || mxCells[Array.from(mxCells).findIndex(e => e.getAttribute('id') === eid)];
+                                if (el && el.getAttribute('source') === id && el.getAttribute('target') === dynamoPrimaryId) {
+                                    hasEdgeToPrimary = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (!hasEdgeToPrimary) {
+                            reportError('TOPOLOGY_ERROR', id, `Node labeled "Api" or "Worker" in AZ-A must have outbound edge to DynamoDB Primary.`);
+                        }
+                    } else {
+                        // AZ-B node: must connect to primary DynamoDB (for write) and replica DynamoDB (for read) if replica exists
+                        let hasEdgeToPrimary = false;
+                        let hasEdgeToReplica = false;
+                        for (const eid in cells) {
+                            const edge = cells[eid];
+                            if (edge.isEdge) {
+                                const el = doc.getElementById(eid) || mxCells[Array.from(mxCells).findIndex(e => e.getAttribute('id') === eid)];
+                                if (el) {
+                                    if (el.getAttribute('source') === id && el.getAttribute('target') === dynamoPrimaryId) {
+                                        hasEdgeToPrimary = true;
+                                    }
+                                    if (dynamoReplicaId && el.getAttribute('source') === id && el.getAttribute('target') === dynamoReplicaId) {
+                                        hasEdgeToReplica = true;
+                                    }
+                                }
+                            }
+                        }
+                        if (!hasEdgeToPrimary) {
+                            reportError('TOPOLOGY_ERROR', id, `Node labeled "Api" or "Worker" in AZ-B must have outbound edge to DynamoDB Primary.`);
+                        }
+                        if (dynamoReplicaId && !hasEdgeToReplica) {
+                            reportError('TOPOLOGY_ERROR', id, `Node labeled "Api" or "Worker" in AZ-B must have outbound edge to DynamoDB Replica.`);
+                        }
+                    }
+                }
+            }
+        }
+    }
 };

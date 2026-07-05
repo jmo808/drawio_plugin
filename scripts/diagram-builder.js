@@ -167,6 +167,12 @@ class DiagramBuilder {
             type = 'elasticache';
         } else if (lowerLabel.includes('user') || lowerLabel.includes('client')) {
             type = 'user';
+        } else if (lowerLabel.includes('dynamodb') || lowerLabel.includes('dynamo')) {
+            type = 'dynamodb';
+        }
+
+        if (type === 'dynamodb') {
+            parentId = '1';
         }
 
         const nodeSize = NODE_SIZES[type] || NODE_SIZE;
@@ -303,7 +309,13 @@ class DiagramBuilder {
         // 1b. Automatic Async Polling/Messaging Styles
         if (sourceNode && targetNode) {
             const isBroker = (n) => ['sqs', 'sns', 'eventbridge'].includes(n.type);
-            const isCompute = (n) => ['ecs', 'ec2', 'lambda'].includes(n.type);
+            const isCompute = (n) => {
+                if (['apigateway', 'api_gateway', 'route53', 'waf', 'cloudfront', 'dynamodb', 'rds', 'elasticache', 'sqs', 'sns', 'eventbridge'].includes(n.type)) return false;
+                if (['ecs', 'ec2', 'lambda'].includes(n.type)) return true;
+                const labelLower = (n.label || '').toLowerCase();
+                const idLower = (n.id || '').toLowerCase();
+                return labelLower.includes('api') || labelLower.includes('worker') || idLower.includes('api') || idLower.includes('worker');
+            };
             if ((isBroker(sourceNode) && isCompute(targetNode)) || (isCompute(sourceNode) && isBroker(targetNode))) {
                 style = 'dashed';
             }
@@ -319,7 +331,13 @@ class DiagramBuilder {
         const edgeId = `e_${this.nextEdgeId++}`;
         let edgeStyle = EDGE_STYLES[style] || EDGE_STYLES.solid;
         if (color) edgeStyle += `strokeColor=${color};`;
-        if (label) edgeStyle += 'labelBackgroundColor=#ffffff;';
+        if (label) {
+            edgeStyle += 'labelBackgroundColor=#ffffff;';
+            const lowerL = label.toLowerCase();
+            if (lowerL.includes('read') || lowerL.includes('write')) {
+                edgeStyle += 'labelPosition=left;verticalLabelPosition=top;align=right;spacingRight=5;';
+            }
+        }
 
         if (exitPort) {
             let px = 0.5, py = 0.5;
@@ -344,73 +362,7 @@ class DiagramBuilder {
 
         this.edges.set(edgeId, edge);
         
-        // --- Atomic Transactions Post-Processing ---
-        if (sourceNode && targetNode) {
-            const isCompute = (n) => ['ecs', 'ec2', 'lambda'].includes(n.type);
-            
-            // 2. Cross-AZ Writes for Replica Reads
-            if (isCompute(sourceNode) && targetNode.type === 'rds' && this._isReplica(targetNode)) {
-                let primaryRds = null;
-                for (const [, cell] of this.cells) {
-                    if (cell.type === 'rds' && this._isPrimary(cell)) {
-                        primaryRds = cell;
-                        break;
-                    }
-                }
-                if (primaryRds) {
-                    let hasWriteEdge = false;
-                    for (const [, e] of this.edges) {
-                        if (e.sourceId === sourceId && e.targetId === primaryRds.id) {
-                            hasWriteEdge = true;
-                            break;
-                        }
-                    }
-                    if (!hasWriteEdge) {
-                        this.connect(sourceId, primaryRds.id, 'Read/Write', 'solid', color, exitPort, entryPort);
-                    }
-                }
-            }
 
-            // 3. Cache Replication paired with Database Replication
-            if (sourceNode.type === 'rds' && targetNode.type === 'rds' && style === 'dashed') {
-                if (this._isPrimary(sourceNode) && this._isReplica(targetNode)) {
-                    
-                    const getAz = (cell) => {
-                        let curr = cell;
-                        while(curr && curr.parentId && curr.parentId !== '1') {
-                            if (curr.type === 'az') return curr;
-                            curr = this.cells.get(curr.parentId);
-                        }
-                        return null;
-                    };
-                    
-                    const primaryAz = getAz(sourceNode);
-                    const replicaAz = getAz(targetNode);
-                    
-                    if (primaryAz && replicaAz) {
-                        let cacheA = null;
-                        let cacheB = null;
-                        for (const [, cell] of this.cells) {
-                            if (cell.type === 'elasticache' && getAz(cell) === primaryAz) cacheA = cell;
-                            if (cell.type === 'elasticache' && getAz(cell) === replicaAz) cacheB = cell;
-                        }
-                        
-                        if (cacheA && cacheB) {
-                            let hasCacheRep = false;
-                            for (const [, e] of this.edges) {
-                                if (e.sourceId === cacheA.id && e.targetId === cacheB.id) {
-                                    hasCacheRep = true;
-                                    break;
-                                }
-                            }
-                            if (!hasCacheRep) {
-                                this.connect(cacheA.id, cacheB.id, 'Async Replication', 'dashed', color, exitPort, entryPort);
-                            }
-                        }
-                    }
-                }
-            }
-        }
 
         return { success: true, id: edgeId, message: `Edge: ${sourceId} → ${targetId}${label ? ` (${label})` : ''}` };
     }
@@ -713,7 +665,17 @@ class DiagramBuilder {
         for (const [, edge] of this.edges) {
             const valueAttr = edge.label ? ` value="${this._esc(edge.label)}"` : '';
             lines.push(`    <mxCell id="${this._esc(edge.id)}"${valueAttr} edge="1" parent="1" source="${this._esc(edge.sourceId)}" target="${this._esc(edge.targetId)}" style="${this._esc(edge.style)}">`);
-            lines.push('      <mxGeometry relative="1" as="geometry"/>');
+            if (edge.points && edge.points.length > 0) {
+                lines.push('      <mxGeometry relative="1" as="geometry">');
+                lines.push('        <Array as="points">');
+                for (const pt of edge.points) {
+                    lines.push(`          <mxPoint x="${pt.x}" y="${pt.y}"/>`);
+                }
+                lines.push('        </Array>');
+                lines.push('      </mxGeometry>');
+            } else {
+                lines.push('      <mxGeometry relative="1" as="geometry"/>');
+            }
             lines.push('    </mxCell>');
         }
 
@@ -907,7 +869,8 @@ class DiagramBuilder {
         if (!cell) return false;
         const DATA_TYPES = ['rds', 'elasticache', 'dynamodb'];
         const v = (cell.variant || '').toLowerCase();
-        const id = (cell.id || '').toLowerCase();
+        const rawId = cell.id || '';
+        const id = rawId.toLowerCase();
         const lbl = (cell.label || '').toLowerCase();
         
         if (v.includes('primary')) return true;
@@ -930,9 +893,9 @@ class DiagramBuilder {
             if (azId.endsWith('a') || azId.endsWith('1') || azLbl.endsWith('a') || azLbl.endsWith('1')) return true;
         }
 
-        // Only apply suffix heuristics to data-tier nodes
+        // Only apply suffix heuristics to data-tier nodes (case-sensitive and separator checks)
         if (DATA_TYPES.includes(cell.type)) {
-            if (id.endsWith('a') || id.endsWith('1')) return true;
+            if (rawId.endsWith('A') || rawId.endsWith('1') || rawId.endsWith('_a') || rawId.endsWith('_1') || rawId.endsWith(' a') || rawId.endsWith(' 1')) return true;
             if (lbl.endsWith(' a') || lbl.endsWith(' 1')) return true;
         }
         return false;
@@ -942,7 +905,8 @@ class DiagramBuilder {
         if (!cell) return false;
         const DATA_TYPES = ['rds', 'elasticache', 'dynamodb'];
         const v = (cell.variant || '').toLowerCase();
-        const id = (cell.id || '').toLowerCase();
+        const rawId = cell.id || '';
+        const id = rawId.toLowerCase();
         const lbl = (cell.label || '').toLowerCase();
         
         if (v.includes('replica') || v.includes('secondary')) return true;
@@ -965,16 +929,22 @@ class DiagramBuilder {
             if (azId.endsWith('b') || azId.endsWith('2') || azLbl.endsWith('b') || azLbl.endsWith('2')) return true;
         }
 
-        // Only apply suffix heuristics to data-tier nodes
+        // Only apply suffix heuristics to data-tier nodes (case-sensitive and separator checks)
         if (DATA_TYPES.includes(cell.type)) {
-            if (id.endsWith('b') || id.endsWith('2')) return true;
+            if (rawId.endsWith('B') || rawId.endsWith('2') || rawId.endsWith('_b') || rawId.endsWith('_2') || rawId.endsWith(' b') || rawId.endsWith(' 2')) return true;
             if (lbl.endsWith(' b') || lbl.endsWith(' 2')) return true;
         }
         return false;
     }
 
     _applyTopologicalCorrections() {
-        const isCompute = (n) => ['ecs', 'ec2', 'lambda'].includes(n.type);
+        const isCompute = (n) => {
+            if (['apigateway', 'api_gateway', 'route53', 'waf', 'cloudfront', 'dynamodb', 'rds', 'elasticache', 'sqs', 'sns', 'eventbridge'].includes(n.type)) return false;
+            if (['ecs', 'ec2', 'lambda'].includes(n.type)) return true;
+            const labelLower = (n.label || '').toLowerCase();
+            const idLower = (n.id || '').toLowerCase();
+            return labelLower.includes('api') || labelLower.includes('worker') || idLower.includes('api') || idLower.includes('worker');
+        };
         const isBroker = (n) => ['sqs', 'sns', 'eventbridge'].includes(n.type);
 
         const getAz = (cell) => {
@@ -986,6 +956,20 @@ class DiagramBuilder {
             return null;
         };
 
+        const getAbsoluteCoords = (c) => {
+            let x = c.x || 0;
+            let y = c.y || 0;
+            let curr = c;
+            while (curr && curr.parentId && curr.parentId !== '1') {
+                curr = this.cells.get(curr.parentId);
+                if (curr) {
+                    x += curr.x || 0;
+                    y += curr.y || 0;
+                }
+            }
+            return { x, y };
+        };
+
         const hasEdge = (srcId, tgtId, bidirectional = false) => {
             for (const [, e] of this.edges) {
                 if (e.sourceId === srcId && e.targetId === tgtId) return true;
@@ -993,6 +977,73 @@ class DiagramBuilder {
             }
             return false;
         };
+
+        // 0. Inject User Client if missing and Route 53 is present
+        let hasUser = false;
+        for (const [, cell] of this.cells) {
+            if (cell.type === 'user') {
+                hasUser = true;
+                break;
+            }
+        }
+        if (!hasUser) {
+            let r53Node = null;
+            for (const [, cell] of this.cells) {
+                if (cell.type === 'route53') {
+                    r53Node = cell;
+                    break;
+                }
+            }
+            if (r53Node) {
+                // Determine layout sizing
+                const nodeSize = NODE_SIZES['user'] || NODE_SIZE;
+                const style = NODE_STYLES['user'] || NODE_STYLES.rectangle;
+                const userNode = {
+                    id: 'user',
+                    label: 'User Client',
+                    type: 'user',
+                    style,
+                    parentId: '1',
+                    x: 0,
+                    y: 10,
+                    width: nodeSize.width,
+                    height: nodeSize.height
+                };
+                this.cells.set('user', userNode);
+                this.connect('user', r53Node.id, 'HTTPS Request', 'solid');
+
+                // Re-trigger top-level horizontal centering for sibling nodes
+                const siblingNodes = this._childrenOf('1').filter(c => !c.isContainer);
+                const siblingContainers = this._childrenOf('1').filter(c => c.isContainer);
+                const vpc = siblingContainers.find(c => c.type === 'vpc');
+                const centerX = vpc ? (vpc.x + vpc.width / 2) : 600;
+                const totalWidth = siblingNodes.length * NODE_SPACING.x;
+                const startX = centerX - totalWidth / 2;
+
+                siblingNodes.forEach((n, idx) => {
+                    const nSize = NODE_SIZES[n.type] || NODE_SIZE;
+                    n.x = startX + idx * NODE_SPACING.x + (NODE_SPACING.x - nSize.width) / 2;
+                    n.y = 10;
+                });
+            }
+        }
+
+        // Purge any compute-to-compute horizontal edges (no horizontal cross-talk across AZs)
+        const computeToComputeEdges = [];
+        for (const [edgeId, edge] of this.edges) {
+            const src = this.cells.get(edge.sourceId);
+            const tgt = this.cells.get(edge.targetId);
+            if (src && tgt && isCompute(src) && isCompute(tgt)) {
+                const srcAz = getAz(src);
+                const tgtAz = getAz(tgt);
+                if (srcAz && tgtAz && srcAz.id !== tgtAz.id) {
+                    computeToComputeEdges.push(edgeId);
+                }
+            }
+        }
+        for (const edgeId of computeToComputeEdges) {
+            this.edges.delete(edgeId);
+        }
 
         // 1. Force dashed style for broker-to-compute edges
         for (const [, edge] of this.edges) {
@@ -1003,69 +1054,185 @@ class DiagramBuilder {
                     // Replace entire style to guarantee orthogonal routing + dashed
                     edge.style = EDGE_STYLES.dashed;
                     if (edge.label) edge.style += 'labelBackgroundColor=#ffffff;';
+
+                    // Force upward routing for EventBridge with waypoints at y = 250 to avoid AZ crossing detours
+                    if (src.type === 'eventbridge' || tgt.type === 'eventbridge') {
+                        const compNode = isCompute(src) ? src : tgt;
+                        const ebNode = src.type === 'eventbridge' ? src : tgt;
+                        const srcCoords = getAbsoluteCoords(compNode);
+                        const tgtCoords = getAbsoluteCoords(ebNode);
+
+                        edge.style += 'exitX=0.5;exitY=0;exitPerimeter=0;entryX=0.5;entryY=1;entryPerimeter=0;';
+                        edge.points = [
+                            { x: srcCoords.x + (compNode.width || 78) / 2, y: 250 },
+                            { x: tgtCoords.x + (ebNode.width || 78) / 2, y: 250 }
+                        ];
+                    }
                 }
             }
         }
 
-        // 2. Cross-AZ Writes for Replica Reads
+        // 2. Explicit Database Tier Matrices
+        let primaryDb = null;
+        let replicaDb = null;
         for (const [, cell] of this.cells) {
-            if (isCompute(cell)) {
-                let replicaRds = null;
-                for (const [, target] of this.cells) {
-                    if (target.type === 'rds' && this._isReplica(target)) {
-                        if (hasEdge(cell.id, target.id)) {
-                            replicaRds = target;
-                            break;
+            if (cell.type === 'rds' || cell.type === 'dynamodb') {
+                if (this._isPrimary(cell)) primaryDb = cell;
+                if (this._isReplica(cell)) replicaDb = cell;
+            }
+        }
+
+        if (primaryDb && replicaDb) {
+            // A. Clean up ALL existing database connection edges first
+            const existingDbEdges = [];
+            for (const [edgeId, edge] of this.edges) {
+                const tgt = this.cells.get(edge.targetId);
+                if (tgt && (tgt.type === 'rds' || tgt.type === 'dynamodb')) {
+                    existingDbEdges.push(edgeId);
+                }
+            }
+            for (const edgeId of existingDbEdges) {
+                this.edges.delete(edgeId);
+            }
+
+            // B. Clean up ALL existing replication edges first
+            const replicationEdges = [];
+            for (const [edgeId, edge] of this.edges) {
+                const lbl = (edge.label || '').toLowerCase();
+                if (lbl.includes('replication')) {
+                    replicationEdges.push(edgeId);
+                }
+            }
+            for (const edgeId of replicationEdges) {
+                this.edges.delete(edgeId);
+            }
+
+            // C. Establish strict data tier matrix connection
+            for (const [, cell] of this.cells) {
+                if (isCompute(cell)) {
+                    const az = getAz(cell);
+                    const isAzB = az && (az.id.endsWith('b') || az.id.endsWith('2') || /[\s\-\/]b\b|[\s\-\/]2\b|us-east-1b/i.test(az.label || ''));
+
+                    if (!isAzB) {
+                        // AZ-A Compute Node: Local Read/Write to Primary DB (No Cross-AZ)
+                        let style = EDGE_STYLES.solid + 'labelBackgroundColor=#ffffff;';
+                        if (primaryDb.type === 'dynamodb') {
+                            // Force upward routing to regional DynamoDB
+                            style += 'exitX=0.5;exitY=0;exitPerimeter=0;entryX=0.5;entryY=1;entryPerimeter=0;';
+                        }
+                        this.connect(cell.id, primaryDb.id, 'Read/Write', style);
+                    } else {
+                        // AZ-B Compute Node:
+                        // 1. Local Read Only / Read Local to Replica DB (Solid)
+                        const readLbl = primaryDb.type === 'dynamodb' ? 'Read Local' : 'Read Only';
+                        let readStyle = EDGE_STYLES.solid + 'labelBackgroundColor=#ffffff;';
+                        if (primaryDb.type === 'dynamodb') {
+                            readStyle += 'exitX=0.5;exitY=0;exitPerimeter=0;entryX=0.5;entryY=1;entryPerimeter=0;';
+                        }
+                        this.connect(cell.id, replicaDb.id, readLbl, readStyle);
+                        
+                        // 2. Cross-AZ Read/Write / Write Cross-AZ to Primary DB in AZ-A
+                        const writeLbl = primaryDb.type === 'dynamodb' ? 'Write Cross-AZ' : 'Read/Write';
+                        let writeStyle = EDGE_STYLES.solid + 'labelBackgroundColor=#ffffff;';
+                        if (primaryDb.type === 'rds') {
+                            const isWeb = cell.id.toLowerCase().includes('web') || (cell.label || '').toLowerCase().includes('web');
+                            const entryY = isWeb ? 0.35 : 0.65;
+                            writeStyle += `exitX=0;exitY=0.5;exitPerimeter=0;entryX=1;entryY=${entryY};entryPerimeter=0;`;
+                            const connRes = this.connect(cell.id, primaryDb.id, writeLbl, writeStyle);
+                            
+                            // Force waypoint to route cleanly below the App Subnet (offset Web/Worker to avoid overlap/header collision)
+                            if (connRes.success) {
+                                const createdEdge = this.edges.get(connRes.id);
+                                if (createdEdge) {
+                                    const srcCoords = getAbsoluteCoords(cell);
+                                    const tgtCoords = getAbsoluteCoords(primaryDb);
+                                    const routeY = isWeb ? 760 : 840;
+                                    createdEdge.points = [
+                                        { x: srcCoords.x, y: routeY },
+                                        { x: tgtCoords.x + (primaryDb.width || 78), y: routeY }
+                                    ];
+                                }
+                            }
+                        } else {
+                            // DynamoDB (Regional): Force clean upward routing without waypoints
+                            writeStyle += 'exitX=0.5;exitY=0;exitPerimeter=0;entryX=0.5;entryY=1;entryPerimeter=0;';
+                            this.connect(cell.id, primaryDb.id, writeLbl, writeStyle);
                         }
                     }
                 }
-
-                if (replicaRds) {
-                    let primaryRds = null;
-                    for (const [, target] of this.cells) {
-                        if (target.type === 'rds' && this._isPrimary(target)) {
-                            primaryRds = target;
-                            break;
-                        }
-                    }
-
-                    if (primaryRds && !hasEdge(cell.id, primaryRds.id)) {
-                        this.connect(cell.id, primaryRds.id, 'Read/Write', 'solid');
-                    }
-                }
             }
-        }
 
-        // 3. Cache Replication paired with Database Replication
-        let primaryRds = null;
-        let replicaRds = null;
-        for (const [, cell] of this.cells) {
-            if (cell.type === 'rds') {
-                if (this._isPrimary(cell)) primaryRds = cell;
-                if (this._isReplica(cell)) replicaRds = cell;
-            }
-        }
-
-        if (primaryRds && replicaRds && hasEdge(primaryRds.id, replicaRds.id)) {
-            const primaryAz = getAz(primaryRds);
-            const replicaAz = getAz(replicaRds);
-
-            if (primaryAz && replicaAz) {
-                let cacheA = null;
-                let cacheB = null;
+            // Hardcode assertion ensuring every node labeled "Api" and "Worker" in both AZs has an explicitly defined edge targeting the DynamoDB tier
+            if (primaryDb && primaryDb.type === 'dynamodb') {
                 for (const [, cell] of this.cells) {
-                    if (cell.type === 'elasticache') {
-                        const cellAz = getAz(cell);
-                        if (cellAz && cellAz.id === primaryAz.id) cacheA = cell;
-                        if (cellAz && cellAz.id === replicaAz.id) cacheB = cell;
+                    if (cell.isContainer || !cell.label) continue;
+                    const labelLower = cell.label.toLowerCase();
+                    if (labelLower.includes('api') || labelLower.includes('worker')) {
+                        const az = getAz(cell);
+                        if (az) {
+                            const isAzB = az.id.endsWith('b') || az.id.endsWith('2') || /[\s\-\/]b\b|[\s\-\/]2\b|us-east-1b/i.test(az.label || '');
+                            if (!isAzB) {
+                                if (!hasEdge(cell.id, primaryDb.id)) {
+                                    let style = EDGE_STYLES.solid + 'labelBackgroundColor=#ffffff;';
+                                    style += 'exitX=0.5;exitY=0;exitPerimeter=0;entryX=0.5;entryY=1;entryPerimeter=0;';
+                                    this.connect(cell.id, primaryDb.id, 'Read/Write', style);
+                                }
+                            } else {
+                                if (replicaDb && !hasEdge(cell.id, replicaDb.id)) {
+                                    let readStyle = EDGE_STYLES.solid + 'labelBackgroundColor=#ffffff;';
+                                    readStyle += 'exitX=0.5;exitY=0;exitPerimeter=0;entryX=0.5;entryY=1;entryPerimeter=0;';
+                                    this.connect(cell.id, replicaDb.id, 'Read Local', readStyle);
+                                }
+                                if (!hasEdge(cell.id, primaryDb.id)) {
+                                    let writeStyle = EDGE_STYLES.solid + 'labelBackgroundColor=#ffffff;';
+                                    writeStyle += 'exitX=0.5;exitY=0;exitPerimeter=0;entryX=0.5;entryY=1;entryPerimeter=0;';
+                                    this.connect(cell.id, primaryDb.id, 'Write Cross-AZ', writeStyle);
+                                }
+                            }
+                        }
                     }
                 }
+            }
 
-                if (cacheA && cacheB && !hasEdge(cacheA.id, cacheB.id)) {
-                    this.connect(cacheA.id, cacheB.id, 'Async Replication', 'dashed');
+            // D. Connect DB replication: Primary DB -> Replica DB (Async Replication, dashed)
+            const dbRepRes = this.connect(primaryDb.id, replicaDb.id, 'Async Replication', EDGE_STYLES.dashed + 'labelBackgroundColor=#ffffff;');
+            if (dbRepRes.success && primaryDb.type === 'rds') {
+                const createdEdge = this.edges.get(dbRepRes.id);
+                if (createdEdge) {
+                    const srcCoords = getAbsoluteCoords(primaryDb);
+                    const tgtCoords = getAbsoluteCoords(replicaDb);
+                    createdEdge.points = [
+                        { x: srcCoords.x + (primaryDb.width || 78) / 2, y: 1000 },
+                        { x: tgtCoords.x + (replicaDb.width || 78) / 2, y: 1000 }
+                    ];
+                }
+            }
+
+            // E. Connect Cache replication: Cache Primary -> Cache Replica (Async Replication, dashed)
+            let primaryCache = null;
+            let replicaCache = null;
+            for (const [, cell] of this.cells) {
+                if (cell.type === 'elasticache') {
+                    if (this._isPrimary(cell)) primaryCache = cell;
+                    if (this._isReplica(cell)) replicaCache = cell;
+                }
+            }
+            if (primaryCache && replicaCache) {
+                const cacheRepRes = this.connect(primaryCache.id, replicaCache.id, 'Async Replication', EDGE_STYLES.dashed + 'labelBackgroundColor=#ffffff;');
+                if (cacheRepRes.success) {
+                    const createdEdge = this.edges.get(cacheRepRes.id);
+                    if (createdEdge) {
+                        const srcCoords = getAbsoluteCoords(primaryCache);
+                        const tgtCoords = getAbsoluteCoords(replicaCache);
+                        createdEdge.points = [
+                            { x: srcCoords.x + (primaryCache.width || 78) / 2, y: 835 },
+                            { x: tgtCoords.x + (replicaCache.width || 78) / 2, y: 835 }
+                        ];
+                    }
                 }
             }
         }
+
 
         // 4. ALB Deduplication: merge only ALBs that are in the SAME AZ.
         //    Per-AZ ALBs (one per AZ) are architecturally valid — do NOT merge them.
@@ -1379,6 +1546,22 @@ class DiagramBuilder {
             }
         }
 
+        // Purge any direct APIGW-to-Broker bypasses (ingress must flow through compute nodes/Lambda first)
+        if (apigwNode) {
+            const apigwToBrokerEdges = [];
+            for (const [edgeId, edge] of this.edges) {
+                if (edge.sourceId === apigwNode.id) {
+                    const tgt = this.cells.get(edge.targetId);
+                    if (tgt && isBroker(tgt)) {
+                        apigwToBrokerEdges.push(edgeId);
+                    }
+                }
+            }
+            for (const edgeId of apigwToBrokerEdges) {
+                this.edges.delete(edgeId);
+            }
+        }
+
         // Purge any WAF bypass edges (WAF directly to ALB or Compute)
         if (wafNode) {
             const wafBypassEdges = [];
@@ -1412,6 +1595,20 @@ class DiagramBuilder {
                     }
                     for (const edgeId of bypassEdges) {
                         this.edges.delete(edgeId);
+                    }
+                }
+            }
+        }
+        // Ingress spine-to-ALB port alignment: ensure all edges from last spine node to ALBs exit bottom and enter top
+        if (seq.length > 0 && allExtAlbs.length > 0) {
+            const lastSpineNode = seq[seq.length - 1];
+            for (const [, edge] of this.edges) {
+                if (edge.sourceId === lastSpineNode.id && allExtAlbIds.has(edge.targetId)) {
+                    if (!edge.style.includes('exitX=')) {
+                        edge.style += 'exitX=0.5;exitY=1;exitPerimeter=0;';
+                    }
+                    if (!edge.style.includes('entryX=')) {
+                        edge.style += 'entryX=0.5;entryY=0;entryPerimeter=0;';
                     }
                 }
             }
@@ -1459,10 +1656,28 @@ class DiagramBuilder {
             this.edges.delete(edgeId);
         }
 
+        // Purge ALB/NLB -> Worker edges (load balancers only route to Web tasks)
+        const albToWorkerEdges = [];
+        for (const [edgeId, edge] of this.edges) {
+            const src = this.cells.get(edge.sourceId);
+            const tgt = this.cells.get(edge.targetId);
+            if (src && tgt && (src.type === 'alb' || src.type === 'nlb')) {
+                if (isCompute(tgt)) {
+                    const isWorker = tgt.id.toLowerCase().includes('worker') || tgt.label.toLowerCase().includes('worker');
+                    if (isWorker) {
+                        albToWorkerEdges.push(edgeId);
+                    }
+                }
+            }
+        }
+        for (const edgeId of albToWorkerEdges) {
+            this.edges.delete(edgeId);
+        }
+
         // 7. Event Flow & API Gateway Target Correction
         let sqsNode = null;
         for (const [, cell] of this.cells) {
-            if (cell.type === 'sqs' || cell.type === 'sns' || cell.type === 'eventbridge') {
+            if (cell.type === 'sqs' || cell.type === 'sns') {
                 sqsNode = cell;
                 break;
             }
@@ -1490,6 +1705,28 @@ class DiagramBuilder {
             this.edges.delete(edgeId);
         }
 
+        // Purge any SQS edges connecting to non-compute nodes (e.g. user, r53, alb)
+        if (sqsNode) {
+            const badSqsEdges = [];
+            for (const [edgeId, edge] of this.edges) {
+                if (edge.targetId === sqsNode.id) {
+                    const src = this.cells.get(edge.sourceId);
+                    if (src && !isCompute(src)) {
+                        badSqsEdges.push(edgeId);
+                    }
+                }
+                if (edge.sourceId === sqsNode.id) {
+                    const tgt = this.cells.get(edge.targetId);
+                    if (tgt && !isCompute(tgt)) {
+                        badSqsEdges.push(edgeId);
+                    }
+                }
+            }
+            for (const edgeId of badSqsEdges) {
+                this.edges.delete(edgeId);
+            }
+        }
+
         // 7b. Symmetric SQS Wiring — ensure ALL Web Tasks publish and ALL Worker Tasks poll
         if (sqsNode) {
             for (const [, cell] of this.cells) {
@@ -1506,15 +1743,48 @@ class DiagramBuilder {
             }
 
             // 7c. SQS port constraints to avoid crossing top-level rows
-            for (const [, edge] of this.edges) {
-                if (edge.targetId === sqsNode.id) {
-                    if (!edge.style.includes('entryX=')) {
-                        edge.style += 'entryX=0.5;entryY=1;entryPerimeter=0;';
+            const getAbsoluteCoords = (c) => {
+                let x = c.x || 0;
+                let y = c.y || 0;
+                let curr = c;
+                while (curr && curr.parentId && curr.parentId !== '1') {
+                    curr = this.cells.get(curr.parentId);
+                    if (curr) {
+                        x += curr.x || 0;
+                        y += curr.y || 0;
                     }
                 }
-                if (edge.sourceId === sqsNode.id) {
-                    if (!edge.style.includes('exitX=')) {
-                        edge.style += 'exitX=0.5;exitY=1;exitPerimeter=0;';
+                return { x, y };
+            };
+
+            for (const [, edge] of this.edges) {
+                if (edge.sourceId === sqsNode.id || edge.targetId === sqsNode.id) {
+                    const src = this.cells.get(edge.sourceId);
+                    const tgt = this.cells.get(edge.targetId);
+                    if (src && tgt) {
+                        edge.style = edge.style
+                            .replace(/exitX=[^;]+;/g, '')
+                            .replace(/exitY=[^;]+;/g, '')
+                            .replace(/entryX=[^;]+;/g, '')
+                            .replace(/entryY=[^;]+;/g, '')
+                            .replace(/exitPerimeter=[^;]+;/g, '')
+                            .replace(/entryPerimeter=[^;]+;/g, '');
+                        
+                        if (edge.sourceId === sqsNode.id) {
+                            edge.style += 'exitX=0.5;exitY=1;exitPerimeter=0;entryX=0.5;entryY=0;entryPerimeter=0;';
+                        } else {
+                            edge.style += 'exitX=0.5;exitY=0;exitPerimeter=0;entryX=0.5;entryY=1;entryPerimeter=0;';
+                        }
+
+                        const srcCoords = getAbsoluteCoords(src);
+                        const tgtCoords = getAbsoluteCoords(tgt);
+                        const srcX = srcCoords.x + (src.width || 78) / 2;
+                        const tgtX = tgtCoords.x + (tgt.width || 78) / 2;
+                        
+                        edge.points = [
+                            { x: srcX, y: 620 },
+                            { x: tgtX, y: 620 }
+                        ];
                     }
                 }
             }
@@ -1642,6 +1912,46 @@ class DiagramBuilder {
                     }
                 }
             }
+        }
+
+        // B. Re-layout top-level nodes (parent '1') horizontally with correct flow sorting
+        const topLevelNodes = this._childrenOf('1').filter(c => !c.isContainer);
+        const topLevelContainers = this._childrenOf('1').filter(c => c.isContainer);
+        const vpc = topLevelContainers.find(c => c.type === 'vpc');
+        const centerX = vpc ? (vpc.x + vpc.width / 2) : 600;
+
+        // Sort by pipeline flow: user -> route53 -> waf -> cloudfront -> apigateway -> eventbridge -> dynamodb/rds
+        const nodeOrder = ['user', 'route53', 'waf', 'cloudfront', 'apigateway', 'api_gateway', 'eventbridge', 'dynamodb', 'rds'];
+        const getOrderIdx = (cell) => {
+            if (cell.type === 'dynamodb') {
+                if (this._isPrimary(cell)) return 5; // Put primary before EventBridge (index 6)
+                if (this._isReplica(cell)) return 7; // Put replica after EventBridge (index 6)
+            }
+            const idx = nodeOrder.indexOf(cell.type);
+            return idx === -1 ? 99 : idx;
+        };
+        topLevelNodes.sort((a, b) => getOrderIdx(a) - getOrderIdx(b));
+
+        const totalWidth = topLevelNodes.length * NODE_SPACING.x;
+        const startX = centerX - totalWidth / 2;
+
+        topLevelNodes.forEach((n, idx) => {
+            const nSize = NODE_SIZES[n.type] || NODE_SIZE;
+            n.x = startX + idx * NODE_SPACING.x + (NODE_SPACING.x - nSize.width) / 2;
+            n.y = 10;
+        });
+
+        // Cleanup empty Subnet containers
+        const emptySubnets = [];
+        for (const [id, cell] of this.cells) {
+            if (cell.isContainer && (cell.type === 'subnet' || cell.type.startsWith('subnet_'))) {
+                if (this._childrenOf(id).length === 0) {
+                    emptySubnets.push(id);
+                }
+            }
+        }
+        for (const id of emptySubnets) {
+            this.cells.delete(id);
         }
     }
 }
