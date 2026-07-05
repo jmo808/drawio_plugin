@@ -47,7 +47,8 @@ use-builder-for-architecture-diagrams→automates-coords,styles,containment
 write-JSON-spec-to-file→compile-with-mcp-tool
 - json-format:{title:str,theme:str,type:str,containers:[{id,label,type,parentId,tier}],nodes:[{id,label,type,parentId,variant}],edges:[{sourceId,targetId,label,style,exitPort,entryPort}]}
 - compile:always-use-mcp-tool-compile_json_spec(spec_path:str,output_path:str)→never-run-compilation-via-bash-command
-- validation:always-use-mcp-tool-validate_file(file_path:str)
+- validation:always-use-mcp-tool-validate_file(file_path:str)→never-run-validation-via-bash-command
+- inspection:never-run-grep-or-cat-on-xml-files-via-bash-command→always-read-with-view_file-tool
 - benefit:1-shot-generation|prevents-xml-hand-writing|runs-all-layout-physics-and-topological-corrections|prevents-user-approval-popups
 
 ## [Visual Layout Rules]
