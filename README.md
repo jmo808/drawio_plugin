@@ -326,7 +326,7 @@ Primary DB replicates asynchronously to Replica DB.
 
 ### Generated Output
 
-![AWS Architecture Example Diagram](skills/drawio/examples/aws-architecture.png?v=2)
+![AWS Architecture Example Diagram](examples/aws-architecture.png?v=2)
 
 ### Result
 
