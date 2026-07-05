@@ -123,12 +123,195 @@ Here's a real example of what using the plugin looks like. You type a natural-la
 ### Prompt
 
 ```
-Create a 3-tier AWS architecture diagram showing:
-- Users hitting an ALB
-- Web tier with EC2 instances across 2 AZs inside a VPC
-- App tier with ECS and Lambda
-- Data tier with RDS (primary + read replica) and ElastiCache
-- Show replication between AZs
+AWS High-Availability Web Application with Async Processing
+Goal: Create a native draw.io diagram representing a high-availability, decoupled three-tier web application utilizing both synchronous user traffic and asynchronous worker queues.
+
+Component Requirements:
+
+Regional Level (Outside VPC):
+
+A User Client that initiates requests.
+A Route 53 DNS endpoint.
+A WAF Shield for request filtering.
+A CloudFront CDN for edge caching.
+An API Gateway managing the REST API.
+A Task Queue (SQS) acting as the event buffer.
+Network Level (VPC):
+
+A Production VPC encapsulating the secure tiers.
+Nested Availability Zones: us-east-1a and us-east-1b.
+Within us-east-1a:
+Public Subnet hosting an External ALB.
+Private App Subnet hosting an ECS Web Task and a background ECS Worker Task.
+Private Data Subnet hosting a Redis Cache A (ElastiCache) and a Primary DB (RDS).
+Within us-east-1b:
+Public Subnet hosting an External ALB.
+Private App Subnet hosting an ECS Web Task and a background ECS Worker Task.
+Private Data Subnet hosting a Redis Cache B (ElastiCache) and a Replica DB (RDS).
+Architectural Routing & Connectivity:
+
+Ingress: User Client 
+→
+→ Route 53 
+→
+→ WAF Shield 
+→
+→ CloudFront 
+→
+→ External ALBs.
+Synchronous Flow: External ALBs 
+→
+→ ECS Web Tasks 
+→
+→ API Gateway.
+Asynchronous Buffer: ECS context AWS High-Availability Web Application with Async Processing
+Goal: Create a native draw.io diagram representing a high-availability, decoupled three-tier web application utilizing both synchronous user traffic and asynchronous worker queues.
+
+Component Requirements:
+
+Regional Level (Outside VPC):
+
+A User Client that initiates requests.
+A Route 53 DNS endpoint.
+A WAF Shield for request filtering.
+A CloudFront CDN for edge caching.
+An API Gateway managing the REST API.
+A Task Queue (SQS) acting as the event buffer.
+Network Level (VPC):
+
+A Production VPC encapsulating the secure tiers.
+Nested Availability Zones: us-east-1a and us-east-1b.
+Within us-east-1a:
+Public Subnet hosting an External ALB.
+Private App Subnet hosting an ECS Web Task and a background ECS Worker Task.
+Private Data Subnet hosting a Redis Cache A (ElastiCache) and a Primary DB (RDS).
+Within us-east-1b:
+Public Subnet hosting an External ALB.
+Private App Subnet hosting an ECS Web Task and a background ECS Worker Task.
+Private Data Subnet hosting a Redis Cache B (ElastiCache) and a Replica DB (RDS).
+Architectural Routing & Connectivity:
+
+Ingress: User Client 
+→
+→ Route 53 
+→
+→ WAF Shield 
+→
+→ CloudFront 
+→
+→ External ALBs.
+Synchronous Flow: External ALBs 
+→
+→ ECS Web Tasks 
+→
+→ API Gateway.
+Asynchronous Buffer: ECS Web Tasks publish event logs to the Task Queue (SQS).
+Worker Processing: ECS Worker Tasks in both AZs poll the SQS queue asynchronously.
+Stateful Cache Access: Both ECS Web and Worker tasks read/write to their local AZ Redis Caches.
+Database Routing:
+Compute in AZ-A reads/writes to the Primary DB.
+Compute in AZ-B reads from the local Replica DB, but routes write traffic back to the Primary DB in AZ-A.
+Cache A replicates asynchronously to Cache B.
+Primary DB replicates asynchronously to Replica DB.Web Tasks publish event logs to the Task Queue (SQS).
+Worker Processing: ECS Worker Tasks in both AZs poll the SQS queue asynchronously.
+Stateful Cache Access: Both ECS Web and Worker tasks read/write to their local AZ Redis Caches.
+Database Routing:
+Compute in AZ-A reads/writes to the Primary DB.
+Compute in AZ-B reads from the local Replica DB, but routes write traffic back to the Primary DB in AZ-A.
+Cache A replicates asynchronously to Cache B.
+Primary DB replicates asynchronously to Replica DB.
+Regional Level (Outside VPC):
+
+A User Client that initiates requests.
+A Route 53 DNS endpoint.
+A WAF Shield for request filtering.
+A CloudFront CDN for edge caching.
+An API Gateway managing the REST API.
+A Task Queue (SQS) acting as the event buffer.
+Network Level (VPC):
+
+A Production VPC encapsulating the secure tiers.
+Nested Availability Zones: us-east-1a and us-east-1b.
+Within us-east-1a:
+Public Subnet hosting an External ALB.
+Private App Subnet hosting an ECS Web Task and a background ECS Worker Task.
+Private Data Subnet hosting a Redis Cache A (ElastiCache) and a Primary DB (RDS).
+Within us-east-1b:
+Public Subnet hosting an External ALB.
+Private App Subnet hosting an ECS Web Task and a background ECS Worker Task.
+Private Data Subnet hosting a Redis Cache B (ElastiCache) and a Replica DB (RDS).
+Architectural Routing & Connectivity:
+
+Ingress: User Client 
+→
+→ Route 53 
+→
+→ WAF Shield 
+→
+→ CloudFront 
+→
+→ External ALBs.
+Synchronous Flow: External ALBs 
+→
+→ ECS Web Tasks 
+→
+→ API Gateway.
+Asynchronous Buffer: ECS context AWS High-Availability Web Application with Async Processing
+Goal: Create a native draw.io diagram representing a high-availability, decoupled three-tier web application utilizing both synchronous user traffic and asynchronous worker queues.
+
+Component Requirements:
+
+Regional Level (Outside VPC):
+
+A User Client that initiates requests.
+A Route 53 DNS endpoint.
+A WAF Shield for request filtering.
+A CloudFront CDN for edge caching.
+An API Gateway managing the REST API.
+A Task Queue (SQS) acting as the event buffer.
+Network Level (VPC):
+
+A Production VPC encapsulating the secure tiers.
+Nested Availability Zones: us-east-1a and us-east-1b.
+Within us-east-1a:
+Public Subnet hosting an External ALB.
+Private App Subnet hosting an ECS Web Task and a background ECS Worker Task.
+Private Data Subnet hosting a Redis Cache A (ElastiCache) and a Primary DB (RDS).
+Within us-east-1b:
+Public Subnet hosting an External ALB.
+Private App Subnet hosting an ECS Web Task and a background ECS Worker Task.
+Private Data Subnet hosting a Redis Cache B (ElastiCache) and a Replica DB (RDS).
+Architectural Routing & Connectivity:
+
+Ingress: User Client 
+→
+→ Route 53 
+→
+→ WAF Shield 
+→
+→ CloudFront 
+→
+→ External ALBs.
+Synchronous Flow: External ALBs 
+→
+→ ECS Web Tasks 
+→
+→ API Gateway.
+Asynchronous Buffer: ECS Web Tasks publish event logs to the Task Queue (SQS).
+Worker Processing: ECS Worker Tasks in both AZs poll the SQS queue asynchronously.
+Stateful Cache Access: Both ECS Web and Worker tasks read/write to their local AZ Redis Caches.
+Database Routing:
+Compute in AZ-A reads/writes to the Primary DB.
+Compute in AZ-B reads from the local Replica DB, but routes write traffic back to the Primary DB in AZ-A.
+Cache A replicates asynchronously to Cache B.
+Primary DB replicates asynchronously to Replica DB.Web Tasks publish event logs to the Task Queue (SQS).
+Worker Processing: ECS Worker Tasks in both AZs poll the SQS queue asynchronously.
+Stateful Cache Access: Both ECS Web and Worker tasks read/write to their local AZ Redis Caches.
+Database Routing:
+Compute in AZ-A reads/writes to the Primary DB.
+Compute in AZ-B reads from the local Replica DB, but routes write traffic back to the Primary DB in AZ-A.
+Cache A replicates asynchronously to Cache B.
+Primary DB replicates asynchronously to Replica DB.
 ```
 
 ### What the AI does
