@@ -17,6 +17,9 @@ async-physics:Broker=decoupler|publishers:push/publish→broker|consumers:poll(S
 api-gw-physics:inbound-proxy-only|prevent:direct-access-to-VPC-data(RDS/Cache)→must-route-through-Compute(Lambda)
 state-physics:compute-is-stateless(Lambda,ECS)→prevent:replication|data-is-stateful(RDS,DynamoDB,ElastiCache)→require:cross-az-or-global-replication
 cdn-topology:CloudFront-must-front-API-Gateway/ALB|prevent:parallel-bifurcated-ingress-from-client
+network-physics:private-subnets-have-no-internet-access→require:NAT-Gateway-or-VPC-Endpoint-for-outbound-routing
+security-physics:public-ingress-requires-WAF|s3-requires-cloudfront-oac
+reliability-physics:async-queues-require-dlq|load-balancers-must-be-multi-az
 
 ## [Project Conventions]
 topology:Client:top|Regional-Services:above-or-beside-VPC|VPC:central-boundary|AZs:parallel-vertical-columns
@@ -36,6 +39,11 @@ daisy-chained-compute|correction:unravel-Lambda→ECS+route-through-EventBridge/
 az-isolated-db-writes|correction:route-AZ-B-compute→AZ-A-Primary-RDS-for-writes+ensure-all-polling-consumers-have-write-paths
 missing-cache-replication|correction:draw-async-replication-line-between-ElastiCache-Redis-nodes-across-AZs
 cdn-bypass|correction:delete-edges-from-CloudFront-to-Compute(ECS/EC2)→route-only-to-Ingress(API-GW/ALB)
+private-compute-internet-bypass|correction:insert-NAT-Gateway-or-VPC-Endpoint-between-Private-Subnet-and-Regional-Service
+missing-dlq|correction:attach-secondary-SQS(DLQ)-to-primary-Broker-or-Consumer
+unprotected-public-ingress|correction:attach-WAF-node-to-CloudFront-or-API-Gateway-or-ALB
+single-az-load-balancer|correction:ensure-ALB-routes-to-compute-targets-in-at-least-two-AZs
+direct-s3-client-access|correction:route-Client→CloudFront→S3(OAC)
 
 ## [Visual Styling]
 icon-style:enforce-aws-silhouettes|correction:use-shape=mxgraph.aws4.resourceIcon-for-services-and-shape=mxgraph.aws4.user-for-clients+never-use-flowchart-clouds-or-generic-text-boxes
