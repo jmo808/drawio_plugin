@@ -292,7 +292,15 @@ class DiagramBuilder {
         const sourceNode = this.cells.get(sourceId);
         const targetNode = this.cells.get(targetId);
 
-        // 1. Automatic Async Polling/Messaging Styles
+        // 1. Hard Block: Load balancers cannot publish to asynchronous queues or brokers
+        if (sourceNode && targetNode) {
+            const isBroker = (n) => ['sqs', 'sns', 'eventbridge'].includes(n.type);
+            if ((sourceNode.type === 'alb' || sourceNode.type === 'nlb') && isBroker(targetNode)) {
+                return { success: false, error: `Load balancers (${sourceNode.label}) cannot publish to brokers/queues (${targetNode.label}). Outbound ALB traffic must only route to compute instances.` };
+            }
+        }
+
+        // 1b. Automatic Async Polling/Messaging Styles
         if (sourceNode && targetNode) {
             const isBroker = (n) => ['sqs', 'sns', 'eventbridge'].includes(n.type);
             const isCompute = (n) => ['ecs', 'ec2', 'lambda'].includes(n.type);
@@ -1290,11 +1298,12 @@ class DiagramBuilder {
             }
         }
 
-        // When APIGW exists: ensure APIGW fans out to EVERY external ALB
-        if (apigwNode && allExtAlbs.length > 0) {
+        // Fan out the last node in the ingress spine to ALL external ALBs
+        if (seq.length > 0 && allExtAlbs.length > 0) {
+            const lastSpineNode = seq[seq.length - 1];
             for (const alb of allExtAlbs) {
-                if (!hasEdge(apigwNode.id, alb.id)) {
-                    this.connect(apigwNode.id, alb.id, 'Forward', 'solid');
+                if (!hasEdge(lastSpineNode.id, alb.id)) {
+                    this.connect(lastSpineNode.id, alb.id, 'Forward', 'solid');
                 }
             }
         }
@@ -1314,7 +1323,6 @@ class DiagramBuilder {
         }
 
         // Purge non-consecutive edges within the ingress SPINE (bypasses/shortcuts/loops)
-        // The spine includes all nodes BEFORE apigw. apigw→alb fan-out edges are allowed.
         const seqIds = new Set(seq.map(n => n.id));
         const allExtAlbIds = new Set(allExtAlbs.map(a => a.id));
         const edgesToPurgeSeq = [];
@@ -1326,11 +1334,10 @@ class DiagramBuilder {
                     edgesToPurgeSeq.push(edgeId);
                 }
             }
-            // Also purge: any non-apigw ingress node connecting directly to an ALB
-            // (e.g. cdn → alb_a when apigw sits between them)
-            if (apigwNode && seqIds.has(edge.sourceId) && allExtAlbIds.has(edge.targetId)) {
-                const src = this.cells.get(edge.sourceId);
-                if (src && src.id !== apigwNode.id) {
+            // Strict ingress spine-to-ALB constraint: only the last node in the spine is allowed to connect to ALBs
+            if (seqIds.has(edge.sourceId) && allExtAlbIds.has(edge.targetId)) {
+                const lastSpineNode = seq[seq.length - 1];
+                if (edge.sourceId !== lastSpineNode.id) {
                     edgesToPurgeSeq.push(edgeId);
                 }
             }
