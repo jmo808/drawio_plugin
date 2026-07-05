@@ -1070,7 +1070,7 @@ class DiagramBuilder {
             }
         }
 
-        // Align External ALB visually centering it in the VPC, but keeping parent as pub1 to satisfy DOM constraints
+        // Align External ALB — force containment inside a public subnet (DOM hierarchy)
         let extAlb = null;
         for (const [, cell] of this.cells) {
             if (cell.type === 'alb' || cell.type === 'nlb') {
@@ -1081,22 +1081,45 @@ class DiagramBuilder {
         if (extAlb) {
             extAlb.label = extAlb.label.replace(/ A$/, '').replace(/ B$/, '').replace(/ [12]$/, '');
             
-            // Find a public subnet to parent the ALB
+            // Find a public/web subnet in AZ-A to parent the ALB
             let pubSubnet = null;
             for (const [, cell] of this.cells) {
                 if (cell.isContainer && (cell.type === 'subnet' || cell.id.toLowerCase().includes('subnet'))) {
                     const idLower = cell.id.toLowerCase();
                     const labelLower = (cell.label || '').toLowerCase();
-                    if (idLower.includes('pub') || idLower.includes('public') || labelLower.includes('pub') || labelLower.includes('public')) {
+                    if (idLower.includes('pub') || idLower.includes('public') || labelLower.includes('pub') || labelLower.includes('public') ||
+                        ((idLower.includes('web') || labelLower.includes('web')) && (idLower.includes('1') || idLower.includes('a')))) {
                         pubSubnet = cell;
                         break;
                     }
                 }
             }
+            // Fallback: any web-tier subnet
+            if (!pubSubnet) {
+                for (const [, cell] of this.cells) {
+                    if (cell.isContainer && (cell.type === 'subnet' || cell.id.toLowerCase().includes('subnet'))) {
+                        const idLower = cell.id.toLowerCase();
+                        const labelLower = (cell.label || '').toLowerCase();
+                        if (idLower.includes('web') || labelLower.includes('web')) {
+                            pubSubnet = cell;
+                            break;
+                        }
+                    }
+                }
+            }
             if (pubSubnet) {
                 extAlb.parentId = pubSubnet.id;
-                extAlb.x = 520; // Centered horizontal position in VPC relative to pubSubnet
-                extAlb.y = (pubSubnet.height - extAlb.height) / 2;
+                // Position ALB within the subnet bounds (relative coordinates)
+                const nodeW = extAlb.width || 78;
+                const nodeH = extAlb.height || 78;
+                extAlb.x = Math.max(20, Math.floor((pubSubnet.width - nodeW) / 2));
+                extAlb.y = Math.max(30, Math.floor((pubSubnet.height - nodeH) / 2));
+                // Auto-expand the subnet to fit the ALB if needed
+                const minHeight = extAlb.y + nodeH + 40;
+                if (pubSubnet.height < minHeight) {
+                    pubSubnet.height = minHeight;
+                }
+                this._autoExpand(pubSubnet.id);
             }
         }
 
@@ -1213,8 +1236,9 @@ class DiagramBuilder {
             this.edges.delete(edgeId);
         }
 
-        // Purge any direct APIGW-to-Compute bypasses if an ALB is present
-        if (apigwNode && albNode) {
+        // Purge any direct APIGW-to-Compute bypasses (API Gateway MUST only produce
+        // synchronous solid traffic to the next ingress node, never directly to compute)
+        if (apigwNode) {
             const apigwToComputeEdges = [];
             for (const [edgeId, edge] of this.edges) {
                 if (edge.sourceId === apigwNode.id) {
