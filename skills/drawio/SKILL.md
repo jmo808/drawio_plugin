@@ -44,11 +44,11 @@ use-builder-for-architecture-diagrams→automates-coords,styles,containment
 - other:user|internet|rectangle|diamond|cylinder|circle
 
 ## [Batch Diagram Generation (Highly Recommended)]
-write-JSON-spec-to-file→compile-with-node-script
+write-JSON-spec-to-file→compile-with-mcp-tool
 - json-format:{title:str,theme:str,type:str,containers:[{id,label,type,parentId,tier}],nodes:[{id,label,type,parentId,variant}],edges:[{sourceId,targetId,label,style,exitPort,entryPort}]}
-- compile-cmd:`node /home/jules/.gemini/config/plugins/drawio/scripts/build-diagram.js input.json output.drawio`
-- validation:always-use-mcp-tool-validate_file(file_path:str)→never-run-validation-via-bash-command
-- benefit:1-shot-generation|prevents-xml-hand-writing|runs-all-layout-physics-and-topological-corrections
+- compile:always-use-mcp-tool-compile_json_spec(spec_path:str,output_path:str)→never-run-compilation-via-bash-command
+- validation:always-use-mcp-tool-validate_file(file_path:str)
+- benefit:1-shot-generation|prevents-xml-hand-writing|runs-all-layout-physics-and-topological-corrections|prevents-user-approval-popups
 
 ## [Visual Layout Rules]
 - regional-services:outside-vpc|placed-directly-under-region-or-1|horizontal-packed|gap:60
