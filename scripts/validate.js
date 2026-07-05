@@ -137,6 +137,14 @@ for (let i = 0; i < nodeIds.length; i++) {
         // Ignore if one is an ancestor of the other
         if (isAncestor(a.id, b.id) || isAncestor(b.id, a.id)) continue;
 
+        // Ignore intentional spanning: ALBs (pointerEvents=1) that span sibling AZ swimlanes
+        // These share the same parent (VPC) and deliberately overlap AZ containers
+        const aSpans = a.style && a.style.includes('pointerEvents=1');
+        const bSpans = b.style && b.style.includes('pointerEvents=1');
+        const aSwimlane = a.style && a.style.includes('swimlane');
+        const bSwimlane = b.style && b.style.includes('swimlane');
+        if (a.parent === b.parent && ((aSpans && bSwimlane) || (bSpans && aSwimlane))) continue;
+
         // Bounding box intersection check
         const overlapX = a.abs_x < (b.abs_x + b.width) && (a.abs_x + a.width) > b.abs_x;
         const overlapY = a.abs_y < (b.abs_y + b.height) && (a.abs_y + a.height) > b.abs_y;
@@ -150,7 +158,28 @@ for (let i = 0; i < nodeIds.length; i++) {
     const node = cells[nodeIds[i]];
     if (node.parent && cells[node.parent] && cells[node.parent].parent !== "0") {
         const p = cells[node.parent];
-        if (node.abs_x < p.abs_x || node.abs_y < p.abs_y || (node.abs_x + node.width) > (p.abs_x + p.width) || (node.abs_y + node.height) > (p.abs_y + p.height)) {
+        
+        let minX = p.abs_x;
+        let minY = p.abs_y;
+        
+        // Handle swimlane headers
+        if (p.style && p.style.includes('swimlane')) {
+            let startSize = 24;
+            const startSizeMatch = p.style.match(/startSize=(\d+)/);
+            if (startSizeMatch) {
+                startSize = parseInt(startSizeMatch[1], 10);
+            } else if (p.style.includes('horizontal=0')) {
+                startSize = 110;
+            }
+            
+            if (p.style.includes('horizontal=0')) {
+                minX += startSize;
+            } else {
+                minY += startSize;
+            }
+        }
+        
+        if (node.abs_x < minX || node.abs_y < minY || (node.abs_x + node.width) > (p.abs_x + p.width) || (node.abs_y + node.height) > (p.abs_y + p.height)) {
             reportError('OUT_OF_BOUNDS', node.id, `Node is outside parent ${p.id} bounds!`);
         }
     }

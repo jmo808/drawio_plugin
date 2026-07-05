@@ -12,7 +12,10 @@ diagramming-expert|generate-technical-diagrams|use-drawio-mcp-tools|ensure-high-
 
 ## [Tools]
 ALWAYS-USE:
-- `@drawio/open_drawio_xml` — Raw mxGraph XML. **Use this for all diagrams** (flowcharts, architecture diagrams, wireframes, network topologies, sequence diagrams, class diagrams, etc.). Using XML ensures the diagram is constructed with native draw.io shapes, making it fully and easily editable by the user. **DO NOT USE `open_drawio_mermaid`.**
+- `@drawio/open_drawio_xml` — Raw mxGraph XML.
+  - For **architecture diagrams**: use the **Diagram Builder tools** (see [Diagram Builder Tools] below). These handle all coordinates, styles, and containment automatically.
+  - For **all other diagrams** (flowcharts, wireframes, network topologies, sequence diagrams, class diagrams, etc.): use `@drawio/open_drawio_xml` with raw XML. Using XML ensures the diagram is constructed with native draw.io shapes, making it fully and easily editable by the user.
+  - **DO NOT USE `open_drawio_mermaid`.**
 - `@drawio/open_drawio_csv` — CSV import. Use for org charts or any diagram from tabular data.
 - `@drawio/search_shapes` — Search draw.io's shape libraries for domain-specific icons (AWS, Azure, GCP, Cisco, Kubernetes, BPMN). Use `limit` parameter (default 10, max 50) to control result count.
 
@@ -29,6 +32,42 @@ ALWAYS-USE:
 | `open_drawio_csv` | `lightbox` | boolean | Lightbox mode |
 | `search_shapes` | `query` | string (required) | Search term for shape libraries |
 | `search_shapes` | `limit` | integer | Max results (default 10, max 50) |
+
+## [Diagram Builder Tools]
+For architecture diagrams, use the builder tools instead of raw XML. These tools handle all graph physics (coordinates, styles, containment) so you can focus on the architecture.
+
+### Workflow
+1. Call `init_diagram` to start
+2. Call `add_container` to create VPC, AZs, Subnets (top-down)
+3. Call `add_node` to place resources inside containers
+4. Call `connect` to wire resources together
+5. Call `get_state` to review the current diagram
+6. Call `finalize` to validate and open in draw.io
+
+### Builder Tool Reference
+
+| Tool | Arguments | Description |
+|------|-----------|-------------|
+| `init_diagram` | `title` (string) | Initialize a new empty diagram |
+| `add_container` | `id`, `label`, `type` (vpc/az/subnet), `parent_id?`, `tier?` (public/web/app/data) | Add a container. Auto-sized, auto-positioned within parent. |
+| `add_node` | `id`, `label`, `type` (ec2/ecs/lambda/rds/elasticache/alb/etc), `parent_id`, `variant?` (primary/replica) | Add a resource node. Auto-placed on grid within parent. |
+| `connect` | `source_id`, `target_id`, `label?`, `style?` (solid/dashed), `color?` | Connect two nodes with an edge |
+| `disconnect` | `source_id`, `target_id` | Remove an edge between two nodes |
+| `connect_tiers` | `source_tier`, `target_tier`, `label?`, `style?` | Bulk-connect all nodes matching source tier to all nodes matching target tier |
+| `get_state` | (none) | Returns JSON summary of current diagram (containers, nodes, edges) |
+| `validate` | (none) | Run validation. Returns errors if any. |
+| `finalize` | (none) | Validate and open the diagram in draw.io |
+
+### Available Node Types
+Compute: `ec2`, `ecs`, `lambda` | Data: `rds`, `elasticache`, `dynamodb`, `s3` | Network: `alb`, `nlb`, `cloudfront` | Messaging: `sqs`, `sns` | Other: `user`, `internet`, `rectangle`, `diamond`, `cylinder`, `circle`
+
+### Container Types and Tiers
+- `vpc` — VPC boundary (blue)
+- `az` — Availability Zone (yellow)
+- `subnet` with `tier: "public"` — Public Subnet (purple, short)
+- `subnet` with `tier: "web"` — Web Subnet (purple)
+- `subnet` with `tier: "app"` — App Subnet (green)
+- `subnet` with `tier: "data"` — Data Subnet (red, tall)
 
 ## [Validation (MANDATORY)]
 
@@ -203,3 +242,39 @@ For detailed syntax and patterns, consult:
 - `references/pfd-engineering-expert.md` — Process engineering (PFD) domain rules and validation instructions (Oil & Gas, Mining, etc.)
 - `references/aws-well-architected-reviewer.md` — Cloud architecture domain constraints and AWS anti-pattern prevention
 - `examples/` — reference diagram implementations (AWS architecture XML, org chart CSV, process flow diagram XML)
+
+## [Few-Shot Examples]
+When generating AWS architectures, you MUST enforce strict decoupling between tiers using Load Balancers. NEVER route directly from Web Tier compute to App Tier compute.
+
+**BAD ROUTING (Anti-Pattern: Bypassing Load Balancers)**
+```xml
+<mxCell id="e_bad1" edge="1" parent="1" source="ext-alb" target="int-alb" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;">
+  <mxGeometry relative="1" as="geometry"/>
+</mxCell>
+<mxCell id="e_bad2" edge="1" parent="1" source="web1" target="app1-ecs" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;">
+  <mxGeometry relative="1" as="geometry"/>
+</mxCell>
+```
+
+**CORRECT ROUTING (Decoupled 3-Tier Architecture)**
+```xml
+<mxCell id="e_ext_to_web1" edge="1" parent="1" source="ext-alb" target="web1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;">
+  <mxGeometry relative="1" as="geometry"/>
+</mxCell>
+<mxCell id="e_ext_to_web2" edge="1" parent="1" source="ext-alb" target="web2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;">
+  <mxGeometry relative="1" as="geometry"/>
+</mxCell>
+<mxCell id="e_web1_to_int" edge="1" parent="1" source="web1" target="int-alb" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;">
+  <mxGeometry relative="1" as="geometry"/>
+</mxCell>
+<mxCell id="e_web2_to_int" edge="1" parent="1" source="web2" target="int-alb" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;">
+  <mxGeometry relative="1" as="geometry"/>
+</mxCell>
+<mxCell id="e_int_to_app1" edge="1" parent="1" source="int-alb" target="app1-ecs" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;">
+  <mxGeometry relative="1" as="geometry"/>
+</mxCell>
+<mxCell id="e_int_to_app2" edge="1" parent="1" source="int-alb" target="app2-ecs" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;">
+  <mxGeometry relative="1" as="geometry"/>
+</mxCell>
+```
+All ALBs must also be placed within the VPC container (`parent="vpc"`) and their bounds must not collide with or overlap the Availability Zone swimlane boundaries.
