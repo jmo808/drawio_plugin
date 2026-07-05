@@ -33,6 +33,7 @@ const NODE_STYLES = {
     s3: 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.s3;fillColor=#3F8624;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
     cloudfront: 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.cloudfront;fillColor=#8C4FFF;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
     apigateway: 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.api_gateway;fillColor=#8C4FFF;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
+    api_gateway: 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.api_gateway;fillColor=#8C4FFF;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
     waf: 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.waf;fillColor=#C925D1;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
     nat_gateway: 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.nat_gateway;fillColor=#8C4FFF;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
     endpoint: 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.endpoints;fillColor=#8C4FFF;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
@@ -311,10 +312,10 @@ class DiagramBuilder {
             const isCompute = (n) => ['ecs', 'ec2', 'lambda'].includes(n.type);
             
             // 2. Cross-AZ Writes for Replica Reads
-            if (isCompute(sourceNode) && targetNode.type === 'rds' && targetNode.variant && targetNode.variant.toLowerCase() === 'replica') {
+            if (isCompute(sourceNode) && targetNode.type === 'rds' && this._isReplica(targetNode)) {
                 let primaryRds = null;
                 for (const [, cell] of this.cells) {
-                    if (cell.type === 'rds' && cell.variant && cell.variant.toLowerCase() === 'primary') {
+                    if (cell.type === 'rds' && this._isPrimary(cell)) {
                         primaryRds = cell;
                         break;
                     }
@@ -335,8 +336,7 @@ class DiagramBuilder {
 
             // 3. Cache Replication paired with Database Replication
             if (sourceNode.type === 'rds' && targetNode.type === 'rds' && style === 'dashed') {
-                if (sourceNode.variant && sourceNode.variant.toLowerCase() === 'primary' && 
-                    targetNode.variant && targetNode.variant.toLowerCase() === 'replica') {
+                if (this._isPrimary(sourceNode) && this._isReplica(targetNode)) {
                     
                     const getAz = (cell) => {
                         let curr = cell;
@@ -641,6 +641,8 @@ class DiagramBuilder {
     finalize() {
         if (!this.initialized) return { success: false, error: 'Call init_diagram first.' };
 
+        this._applyTopologicalCorrections();
+
         const validation = this.validate();
         if (!validation.success) {
             return { success: false, error: 'Cannot finalize — validation failed.', details: validation.details };
@@ -854,6 +856,116 @@ class DiagramBuilder {
             .replace(/</g, '&lt;')
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;');
+    }
+
+    _isPrimary(cell) {
+        if (!cell) return false;
+        if (cell.variant && cell.variant.toLowerCase().includes('primary')) return true;
+        if (cell.id && cell.id.toLowerCase().includes('primary')) return true;
+        if (cell.label && cell.label.toLowerCase().includes('primary')) return true;
+        return false;
+    }
+
+    _isReplica(cell) {
+        if (!cell) return false;
+        if (cell.variant && (cell.variant.toLowerCase().includes('replica') || cell.variant.toLowerCase().includes('secondary'))) return true;
+        if (cell.id && (cell.id.toLowerCase().includes('replica') || cell.id.toLowerCase().includes('secondary'))) return true;
+        if (cell.label && (cell.label.toLowerCase().includes('replica') || cell.label.toLowerCase().includes('secondary'))) return true;
+        return false;
+    }
+
+    _applyTopologicalCorrections() {
+        const isCompute = (n) => ['ecs', 'ec2', 'lambda'].includes(n.type);
+        const isBroker = (n) => ['sqs', 'sns', 'eventbridge'].includes(n.type);
+
+        const getAz = (cell) => {
+            let curr = cell;
+            while (curr && curr.parentId && curr.parentId !== '1') {
+                if (curr.type === 'az') return curr;
+                curr = this.cells.get(curr.parentId);
+            }
+            return null;
+        };
+
+        const hasEdge = (srcId, tgtId) => {
+            for (const [, e] of this.edges) {
+                if (e.sourceId === srcId && e.targetId === tgtId) return true;
+            }
+            return false;
+        };
+
+        // 1. Force dashed style for broker-to-compute edges
+        for (const [, edge] of this.edges) {
+            const src = this.cells.get(edge.sourceId);
+            const tgt = this.cells.get(edge.targetId);
+            if (src && tgt) {
+                if ((isBroker(src) && isCompute(tgt)) || (isCompute(src) && isBroker(tgt))) {
+                    if (!edge.style.includes('dashed=1')) {
+                        edge.style += 'dashed=1;';
+                    }
+                }
+            }
+        }
+
+        // 2. Cross-AZ Writes for Replica Reads
+        for (const [, cell] of this.cells) {
+            if (isCompute(cell)) {
+                let replicaRds = null;
+                for (const [, target] of this.cells) {
+                    if (target.type === 'rds' && this._isReplica(target)) {
+                        if (hasEdge(cell.id, target.id)) {
+                            replicaRds = target;
+                            break;
+                        }
+                    }
+                }
+
+                if (replicaRds) {
+                    let primaryRds = null;
+                    for (const [, target] of this.cells) {
+                        if (target.type === 'rds' && this._isPrimary(target)) {
+                            primaryRds = target;
+                            break;
+                        }
+                    }
+
+                    if (primaryRds && !hasEdge(cell.id, primaryRds.id)) {
+                        this.connect(cell.id, primaryRds.id, 'Read/Write', 'solid');
+                    }
+                }
+            }
+        }
+
+        // 3. Cache Replication paired with Database Replication
+        let primaryRds = null;
+        let replicaRds = null;
+        for (const [, cell] of this.cells) {
+            if (cell.type === 'rds') {
+                if (this._isPrimary(cell)) primaryRds = cell;
+                if (this._isReplica(cell)) replicaRds = cell;
+            }
+        }
+
+        if (primaryRds && replicaRds && hasEdge(primaryRds.id, replicaRds.id)) {
+            const primaryAz = getAz(primaryRds);
+            const replicaAz = getAz(replicaRds);
+
+            if (primaryAz && replicaAz) {
+                let cacheA = null;
+                let cacheB = null;
+                for (const [, cell] of this.cells) {
+                    if (cell.type === 'elasticache') {
+                        const cellAz = getAz(cell);
+                        if (cellAz && cellAz.id === primaryAz.id) cacheA = cell;
+                        if (cellAz && cellAz.id === replicaAz.id) cacheB = cell;
+                    }
+                }
+
+                if (cacheA && cacheB && !hasEdge(cacheA.id, cacheB.id)) {
+                    this.connect(cacheA.id, cacheB.id, 'Async Replication', 'dashed');
+                }
+            }
+        }
     }
 }
 

@@ -111,7 +111,7 @@ const BUILDER_TOOLS = [
             properties: {
                 id: { type: 'string', description: 'Unique ID for this node' },
                 label: { type: 'string', description: 'Display label' },
-                type: { type: 'string', enum: ['ec2', 'ecs', 'lambda', 'rds', 'elasticache', 'dynamodb', 's3', 'alb', 'nlb', 'cloudfront', 'sqs', 'sns', 'user', 'internet', 'rectangle', 'diamond', 'cylinder', 'circle', 'pump', 'compressor', 'valve', 'vessel', 'cyclone', 'heat_exchanger'], description: 'Node type — determines shape and style' },
+                type: { type: 'string', enum: ['ec2', 'ecs', 'lambda', 'rds', 'elasticache', 'dynamodb', 's3', 'alb', 'nlb', 'cloudfront', 'apigateway', 'api_gateway', 'waf', 'nat_gateway', 'endpoint', 'sqs', 'sns', 'user', 'internet', 'rectangle', 'diamond', 'cylinder', 'circle', 'pump', 'compressor', 'valve', 'vessel', 'cyclone', 'heat_exchanger'], description: 'Node type — determines shape and style' },
                 parent_id: { type: 'string', description: 'Parent container ID' },
                 variant: { type: 'string', description: 'Optional variant label (e.g., "primary", "replica")' },
             },
