@@ -1073,7 +1073,7 @@ class DiagramBuilder {
         // Align External ALB — force containment inside a public subnet (DOM hierarchy)
         let extAlb = null;
         for (const [, cell] of this.cells) {
-            if (cell.type === 'alb' || cell.type === 'nlb') {
+            if ((cell.type === 'alb' || cell.type === 'nlb') && !isInternalAlb(cell)) {
                 extAlb = cell;
                 break;
             }
@@ -1094,16 +1094,26 @@ class DiagramBuilder {
                     }
                 }
             }
-            // Fallback: any web-tier subnet
+            // Fallback: any web-tier or public-labeled subnet
             if (!pubSubnet) {
                 for (const [, cell] of this.cells) {
                     if (cell.isContainer && (cell.type === 'subnet' || cell.id.toLowerCase().includes('subnet'))) {
                         const idLower = cell.id.toLowerCase();
                         const labelLower = (cell.label || '').toLowerCase();
-                        if (idLower.includes('web') || labelLower.includes('web')) {
+                        if (idLower.includes('web') || labelLower.includes('web') ||
+                            idLower.includes('pub') || labelLower.includes('pub')) {
                             pubSubnet = cell;
                             break;
                         }
+                    }
+                }
+            }
+            // Last resort: the first subnet in the first AZ
+            if (!pubSubnet) {
+                for (const [, cell] of this.cells) {
+                    if (cell.isContainer && cell.type === 'subnet') {
+                        pubSubnet = cell;
+                        break;
                     }
                 }
             }
@@ -1312,6 +1322,19 @@ class DiagramBuilder {
                     }
                 }
             }
+        }
+
+        // Purge ALB/NLB -> Broker edges (load balancers NEVER publish to SQS/SNS/EventBridge)
+        const albToBrokerEdges = [];
+        for (const [edgeId, edge] of this.edges) {
+            const src = this.cells.get(edge.sourceId);
+            const tgt = this.cells.get(edge.targetId);
+            if (src && tgt && (src.type === 'alb' || src.type === 'nlb') && isBroker(tgt)) {
+                albToBrokerEdges.push(edgeId);
+            }
+        }
+        for (const edgeId of albToBrokerEdges) {
+            this.edges.delete(edgeId);
         }
 
         // 7. Event Flow & API Gateway Target Correction
