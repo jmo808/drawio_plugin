@@ -56,6 +56,8 @@ const NODE_STYLES = {
     vessel: 'shape=rectangle;rounded=1;arcSize=50;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
     cyclone: 'shape=mxgraph.pid.misc.cyclone;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
     heat_exchanger: 'shape=mxgraph.pid.heat_exchangers.shell_and_tube_1;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    crusher: 'shape=mxgraph.pid.crushers_grinding.crusher;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    conveyor: 'shape=mxgraph.pid.misc.conveyor_(belt);fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
 };
 
 const EDGE_STYLES = {
@@ -78,6 +80,8 @@ const NODE_SIZES = {
     valve: { width: 80, height: 50 },
     cyclone: { width: 80, height: 120 },
     heat_exchanger: { width: 120, height: 80 },
+    crusher: { width: 100, height: 80 },
+    conveyor: { width: 120, height: 40 },
 };
 
 const NODE_SPACING = { x: 180, y: 140 };  // grid spacing within containers
@@ -200,6 +204,25 @@ class DiagramBuilder {
             type = 'user';
         } else if (lowerLabel.includes('dynamodb') || lowerLabel.includes('dynamo')) {
             type = 'dynamodb';
+        }
+
+        // Auto-correct generic types if label implies a specific PFD/P&ID shape
+        if (lowerLabel.includes('crusher')) {
+            type = 'crusher';
+        } else if (lowerLabel.includes('conveyor')) {
+            type = 'conveyor';
+        } else if (lowerLabel.includes('scrubber') || lowerLabel.includes('separator') || lowerLabel.includes('fractionator') || lowerLabel.includes('column') || lowerLabel.includes('vessel')) {
+            type = 'vessel';
+        } else if (lowerLabel.includes('pump')) {
+            type = 'pump';
+        } else if (lowerLabel.includes('compressor')) {
+            type = 'compressor';
+        } else if (lowerLabel.includes('valve')) {
+            type = 'valve';
+        } else if (lowerLabel.includes('cyclone')) {
+            type = 'cyclone';
+        } else if (lowerLabel.includes('exchanger')) {
+            type = 'heat_exchanger';
         }
 
         if (type === 'dynamodb') {
