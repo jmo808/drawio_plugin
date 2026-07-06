@@ -78,8 +78,9 @@ prefer-retrieval-led-reasoning|read-file-before-using-APIs
 three-pillars-to-add-new-domains(electrical,HVAC,UML,etc.):
 
 ### 1.Reference-Docs(AI-Knowledge)
-- create:`skills/drawio/references/<domain>-expert.md`→agent-retrieves-at-prompt-time
-- define:shapes|grid-rules|routing-restrictions|anti-patterns
+- create:`skills/drawio/references/<domain>-expert.md`→define:shapes|grid-rules|routing-restrictions|anti-patterns
+- register-in:`SKILL.md`→`[Docs Index]`→add:`- references/<domain>-expert.md:<keywords>`→agent-discovers-at-prompt-time
+- without-registration→agent-will-not-discover-or-load-the-reference-doc
 
 ### 2.Validator-Scripts(Programmatic-Enforcement)
 - create:`scripts/validators/<domain>.js`→exports-single-function({cells,mxCells,doc,reportError,nodeIds})

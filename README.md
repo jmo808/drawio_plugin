@@ -360,7 +360,19 @@ You can teach the agent entirely new diagramming domains (like electrical schema
 
 ### 1. Reference Documents (AI Knowledge)
 
-Create a markdown file ending with `expert.md` (e.g., `electrical-expert.md`) and drop it into `skills/drawio/references/`. Define the strict domain rules — standard shapes, grid snapping, routing restrictions, and anti-patterns. The AI will retrieve these rules when a user requests a diagram in that domain.
+**Step 1 — Create the reference file:**
+
+Create a markdown file ending with `expert.md` (e.g., `electrical-expert.md`) and place it in `skills/drawio/references/`. Define the strict domain rules — standard shapes, grid snapping, routing restrictions, and anti-patterns.
+
+**Step 2 — Register it in `SKILL.md`:**
+
+Add a line to the `[Docs Index]` section in `SKILL.md` (and `skills/drawio/SKILL.md`) so the AI agent knows the file exists and when to retrieve it:
+
+```
+- references/electrical-expert.md:electrical-schematic-rules|circuit-symbols|wiring-standards
+```
+
+Without this entry, the agent won't discover or load your reference doc.
 
 **Bundled examples:**
 - `aws-well-architected-reviewer.md` — AWS cloud architecture topology rules
