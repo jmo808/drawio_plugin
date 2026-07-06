@@ -58,6 +58,10 @@ const NODE_STYLES = {
     heat_exchanger: 'shape=mxgraph.pid.heat_exchangers.shell_and_tube_1;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
     crusher: 'shape=mxgraph.pid.crushers_grinding.crusher;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
     conveyor: 'shape=mxgraph.pid.misc.conveyor_(belt);fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    mill: 'shape=mxgraph.pid.crushers_grinding.mill,_pulverizer;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    screen: 'shape=mxgraph.pid.separators.separator,_sifter2;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    silo: 'shape=mxgraph.pid.misc.bin;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    loadout: 'shape=mxgraph.pid.misc.loading_arm;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
 };
 
 const EDGE_STYLES = {
@@ -82,6 +86,10 @@ const NODE_SIZES = {
     heat_exchanger: { width: 120, height: 80 },
     crusher: { width: 100, height: 80 },
     conveyor: { width: 120, height: 40 },
+    mill: { width: 100, height: 70 },
+    screen: { width: 100, height: 80 },
+    silo: { width: 100, height: 120 },
+    loadout: { width: 100, height: 80 },
 };
 
 const NODE_SPACING = { x: 180, y: 140 };  // grid spacing within containers
@@ -223,6 +231,14 @@ class DiagramBuilder {
             type = 'cyclone';
         } else if (lowerLabel.includes('exchanger')) {
             type = 'heat_exchanger';
+        } else if (lowerLabel.includes('mill')) {
+            type = 'mill';
+        } else if (lowerLabel.includes('screen') || lowerLabel.includes('sifter')) {
+            type = 'screen';
+        } else if (lowerLabel.includes('silo') || lowerLabel.includes('bin') || lowerLabel.includes('hopper')) {
+            type = 'silo';
+        } else if (lowerLabel.includes('loadout') || lowerLabel.includes('loading')) {
+            type = 'loadout';
         }
 
         if (type === 'dynamodb') {
