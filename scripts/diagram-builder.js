@@ -53,7 +53,7 @@ const NODE_STYLES = {
     pump: 'shape=mxgraph.pid.pumps.centrifugal_pump_1;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
     compressor: 'shape=mxgraph.pid.compressors.centrifugal_compressor;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
     valve: 'shape=mxgraph.pid2valves.gate_valve;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
-    vessel: 'shape=mxgraph.pid.vessels.vertical_vessel;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    vessel: 'shape=rectangle;rounded=1;arcSize=50;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
     cyclone: 'shape=mxgraph.pid.misc.cyclone;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
     heat_exchanger: 'shape=mxgraph.pid.heat_exchangers.shell_and_tube_1;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
 };
@@ -675,7 +675,7 @@ class DiagramBuilder {
     // --- Serialize to XML ---
     toXml() {
         const lines = [];
-        lines.push('<mxGraphModel>');
+        lines.push('<mxGraphModel adaptiveColors="auto">');
         lines.push('  <root>');
         lines.push('    <mxCell id="0"/>');
         lines.push('    <mxCell id="1" parent="0"/>');
@@ -698,8 +698,8 @@ class DiagramBuilder {
         for (const [, edge] of this.edges) {
             const valueAttr = edge.label ? ` value="${this._esc(edge.label)}"` : '';
             let style = edge.style || '';
-            if (style.includes('labelBackgroundColor=#ffffff')) {
-                style = style.replace(/labelBackgroundColor=#ffffff/g, 'labelBackgroundColor=light-dark(#ffffff,#121212)');
+            if (style.includes('labelBackgroundColor=')) {
+                style = style.replace(/labelBackgroundColor=[^;]+/g, 'labelBackgroundColor=none');
             }
             lines.push(`    <mxCell id="${this._esc(edge.id)}"${valueAttr} edge="1" parent="1" source="${this._esc(edge.sourceId)}" target="${this._esc(edge.targetId)}" style="${this._esc(style)}">`);
             if (edge.points && edge.points.length > 0) {
