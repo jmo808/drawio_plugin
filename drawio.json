@@ -1,7 +1,7 @@
 {
   "name": "drawio",
   "description": "Specialized agent for generating, updating, and exporting technical diagrams using the Draw.io MCP server.",
-  "prompt": "file://{{HOME}}/.kiro/agents/drawio.md",
+  "prompt": "file://{{HOME}}/.kiro/skills/drawio/SKILL.md",
   "tools": [
     "read",
     "write",

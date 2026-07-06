@@ -23,14 +23,16 @@ echo "Installing local dependencies..."
 cd "$SCRIPT_DIR"
 npm install --silent
 
-# 1. Setup Kiro CLI Agents
+# 1. Setup Kiro CLI/IDE
 KIRO_DIR="$HOME/.kiro"
 KIRO_AGENTS_DIR="$KIRO_DIR/agents"
+KIRO_SKILLS_DIR="$KIRO_DIR/skills/drawio"
 if [ -d "$KIRO_DIR" ]; then
-  echo "Installing Kiro agent files..."
+  echo "Installing Kiro agent and skill files..."
   mkdir -p "$KIRO_AGENTS_DIR"
+  mkdir -p "$KIRO_SKILLS_DIR"
 
-  # Dynamically replace {{HOME}} placeholder in drawio.json
+  # Install agent config with prompt pointing to skill location
   node -e '
   const fs = require("fs");
   const template = fs.readFileSync(process.argv[1], "utf8");
@@ -38,7 +40,26 @@ if [ -d "$KIRO_DIR" ]; then
   fs.writeFileSync(process.argv[3], resolved, "utf8");
   ' "$SCRIPT_DIR/drawio.json" "$HOME_DIR" "$KIRO_AGENTS_DIR/drawio.json"
 
-  cp "$SCRIPT_DIR/skills/drawio/SKILL.md" "$KIRO_AGENTS_DIR/drawio.md"
+  # Install skill with full directory structure
+  cp "$SCRIPT_DIR/skills/drawio/SKILL.md" "$KIRO_SKILLS_DIR/SKILL.md"
+
+  # Copy references/ for progressive disclosure (loaded on-demand)
+  if [ -d "$SCRIPT_DIR/skills/drawio/references" ] && [ ! -L "$SCRIPT_DIR/skills/drawio/references" ]; then
+    rm -rf "$KIRO_SKILLS_DIR/references"
+    cp -r "$SCRIPT_DIR/skills/drawio/references" "$KIRO_SKILLS_DIR/references"
+  fi
+
+  # Copy scripts/ for executable utilities
+  if [ -d "$SCRIPT_DIR/scripts" ]; then
+    rm -rf "$KIRO_SKILLS_DIR/scripts"
+    cp -r "$SCRIPT_DIR/scripts" "$KIRO_SKILLS_DIR/scripts"
+  fi
+
+  # Remove legacy drawio.md from agents/ if present from older installs
+  if [ -f "$KIRO_AGENTS_DIR/drawio.md" ]; then
+    rm "$KIRO_AGENTS_DIR/drawio.md"
+    echo "  - Cleaned up legacy agent spec: $KIRO_AGENTS_DIR/drawio.md"
+  fi
 fi
 
 # 2. Setup Antigravity Agent Plugins
@@ -75,8 +96,20 @@ CLAUDE_SKILLS_DIR="$CLAUDE_DIR/skills/drawio"
 if [ -d "$CLAUDE_DIR" ]; then
   echo "Installing Claude Code skill files..."
   mkdir -p "$CLAUDE_SKILLS_DIR"
-  # Claude Code supports name and description YAML frontmatter natively
+  # Claude Code supports the full SKILL.md + subdirectory structure natively
   cp "$SCRIPT_DIR/skills/drawio/SKILL.md" "$CLAUDE_SKILLS_DIR/SKILL.md"
+
+  # Copy references/ for progressive disclosure (loaded on-demand)
+  if [ -d "$SCRIPT_DIR/skills/drawio/references" ] && [ ! -L "$SCRIPT_DIR/skills/drawio/references" ]; then
+    rm -rf "$CLAUDE_SKILLS_DIR/references"
+    cp -r "$SCRIPT_DIR/skills/drawio/references" "$CLAUDE_SKILLS_DIR/references"
+  fi
+
+  # Copy scripts/ for executable utilities
+  if [ -d "$SCRIPT_DIR/scripts" ]; then
+    rm -rf "$CLAUDE_SKILLS_DIR/scripts"
+    cp -r "$SCRIPT_DIR/scripts" "$CLAUDE_SKILLS_DIR/scripts"
+  fi
 fi
 
 # 4. Setup Cursor Rule
@@ -95,20 +128,33 @@ $DRAWIO_BODY
 EOF
 fi
 
-# 5. Setup Copilot Agent
+# 5. Setup Copilot Skill
 COPILOT_DIR="$HOME/.github"
-COPILOT_AGENTS_DIR="$COPILOT_DIR/agents"
+COPILOT_SKILLS_DIR="$COPILOT_DIR/skills/drawio"
 if [ -d "$HOME/.copilot" ]; then
-  # Note: checking .copilot but installing to .github/agents as that is the standard
-  echo "Installing Copilot agent files..."
-  mkdir -p "$COPILOT_AGENTS_DIR"
-  cat <<EOF > "$COPILOT_AGENTS_DIR/drawio.agent.md"
----
-name: drawio
-description: Specialized agent for generating, updating, and exporting technical diagrams using the Draw.io MCP server.
----
-$DRAWIO_BODY
-EOF
+  echo "Installing Copilot skill files..."
+  mkdir -p "$COPILOT_SKILLS_DIR"
+  # Copilot CLI supports the full SKILL.md + subdirectory structure
+  cp "$SCRIPT_DIR/skills/drawio/SKILL.md" "$COPILOT_SKILLS_DIR/SKILL.md"
+
+  # Copy references/ for progressive disclosure (loaded on-demand)
+  if [ -d "$SCRIPT_DIR/skills/drawio/references" ] && [ ! -L "$SCRIPT_DIR/skills/drawio/references" ]; then
+    rm -rf "$COPILOT_SKILLS_DIR/references"
+    cp -r "$SCRIPT_DIR/skills/drawio/references" "$COPILOT_SKILLS_DIR/references"
+  fi
+
+  # Copy scripts/ for executable utilities
+  if [ -d "$SCRIPT_DIR/scripts" ]; then
+    rm -rf "$COPILOT_SKILLS_DIR/scripts"
+    cp -r "$SCRIPT_DIR/scripts" "$COPILOT_SKILLS_DIR/scripts"
+  fi
+
+  # Remove legacy .agent.md file if present from older installs
+  LEGACY_AGENT="$COPILOT_DIR/agents/drawio.agent.md"
+  if [ -f "$LEGACY_AGENT" ]; then
+    rm "$LEGACY_AGENT"
+    echo "  - Cleaned up legacy agent file: $LEGACY_AGENT"
+  fi
 fi
 
 # 6. Configure MCP Servers across clients using Node.js

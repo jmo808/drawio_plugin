@@ -22,21 +22,46 @@ if ([string]::IsNullOrEmpty($ScriptDir)) {
     $ScriptDir = (Get-Location).Path
 }
 
-# 1. Setup Kiro CLI Agents
+# 1. Setup Kiro CLI/IDE
 $KiroDir = Join-Path $HomeDir ".kiro"
 $KiroAgentsDir = Join-Path $KiroDir "agents"
+$KiroSkillsDir = Join-Path $KiroDir "skills\drawio"
 if (Test-Path $KiroDir) {
-    Write-Host "Installing Kiro agent files..." -ForegroundColor Green
+    Write-Host "Installing Kiro agent and skill files..." -ForegroundColor Green
     New-Item -ItemType Directory -Force -Path $KiroAgentsDir | Out-Null
+    New-Item -ItemType Directory -Force -Path $KiroSkillsDir | Out-Null
 
-    # Replace {{HOME}} placeholder in drawio.json
-    # Convert backslashes to forward slashes for the file URI
+    # Install agent config with prompt pointing to skill location
     $FormattedHome = $HomeDir.Replace("\", "/")
     $JsonTemplate = Get-Content (Join-Path $ScriptDir "drawio.json") -Raw
     $ResolvedJson = $JsonTemplate.Replace("{{HOME}}", $FormattedHome)
     [System.IO.File]::WriteAllText((Join-Path $KiroAgentsDir "drawio.json"), $ResolvedJson, [System.Text.UTF8Encoding]::new($false))
 
-    Copy-Item -Force (Join-Path $ScriptDir "skills\drawio\SKILL.md") (Join-Path $KiroAgentsDir "drawio.md")
+    # Install skill with full directory structure
+    Copy-Item -Force (Join-Path $ScriptDir "skills\drawio\SKILL.md") (Join-Path $KiroSkillsDir "SKILL.md")
+
+    # Copy references/ for progressive disclosure (loaded on-demand)
+    $RefsDir = Join-Path $ScriptDir "skills\drawio\references"
+    if (Test-Path $RefsDir) {
+        $KiroRefsTarget = Join-Path $KiroSkillsDir "references"
+        if (Test-Path $KiroRefsTarget) { Remove-Item -Recurse -Force $KiroRefsTarget }
+        Copy-Item -Recurse -Force $RefsDir $KiroRefsTarget
+    }
+
+    # Copy scripts/ for executable utilities
+    $ScriptsDir = Join-Path $ScriptDir "scripts"
+    if (Test-Path $ScriptsDir) {
+        $KiroScriptsTarget = Join-Path $KiroSkillsDir "scripts"
+        if (Test-Path $KiroScriptsTarget) { Remove-Item -Recurse -Force $KiroScriptsTarget }
+        Copy-Item -Recurse -Force $ScriptsDir $KiroScriptsTarget
+    }
+
+    # Remove legacy drawio.md from agents/ if present from older installs
+    $LegacyMd = Join-Path $KiroAgentsDir "drawio.md"
+    if (Test-Path $LegacyMd) {
+        Remove-Item -Force $LegacyMd
+        Write-Host "  - Cleaned up legacy agent spec: $LegacyMd" -ForegroundColor Yellow
+    }
 }
 
 # 2. Setup Antigravity Agent Plugins
@@ -82,7 +107,24 @@ $ClaudeSkillsDir = Join-Path $ClaudeDir "skills\drawio"
 if (Test-Path $ClaudeDir) {
     Write-Host "Installing Claude Code skill files..." -ForegroundColor Green
     New-Item -ItemType Directory -Force -Path $ClaudeSkillsDir | Out-Null
+    # Claude Code supports the full SKILL.md + subdirectory structure natively
     Copy-Item -Force $DrawioMdPath (Join-Path $ClaudeSkillsDir "SKILL.md")
+
+    # Copy references/ for progressive disclosure (loaded on-demand)
+    $RefsDir = Join-Path $ScriptDir "skills\drawio\references"
+    if (Test-Path $RefsDir) {
+        $ClaudeRefsTarget = Join-Path $ClaudeSkillsDir "references"
+        if (Test-Path $ClaudeRefsTarget) { Remove-Item -Recurse -Force $ClaudeRefsTarget }
+        Copy-Item -Recurse -Force $RefsDir $ClaudeRefsTarget
+    }
+
+    # Copy scripts/ for executable utilities
+    $ScriptsDir = Join-Path $ScriptDir "scripts"
+    if (Test-Path $ScriptsDir) {
+        $ClaudeScriptsTarget = Join-Path $ClaudeSkillsDir "scripts"
+        if (Test-Path $ClaudeScriptsTarget) { Remove-Item -Recurse -Force $ClaudeScriptsTarget }
+        Copy-Item -Recurse -Force $ScriptsDir $ClaudeScriptsTarget
+    }
 }
 
 # 4. Setup Cursor Rule
@@ -102,20 +144,37 @@ $DrawioBody
     [System.IO.File]::WriteAllText((Join-Path $CursorRulesDir "drawio.mdc"), $CursorMdcContent, [System.Text.UTF8Encoding]::new($false))
 }
 
-# 5. Setup Copilot Agent
+# 5. Setup Copilot Skill
 $CopilotDir = Join-Path $HomeDir ".github"
-$CopilotAgentsDir = Join-Path $CopilotDir "agents"
+$CopilotSkillsDir = Join-Path $CopilotDir "skills\drawio"
 if (Test-Path (Join-Path $HomeDir ".copilot")) {
-    Write-Host "Installing Copilot agent files..." -ForegroundColor Green
-    New-Item -ItemType Directory -Force -Path $CopilotAgentsDir | Out-Null
-    $CopilotAgentContent = @"
----
-name: drawio
-description: Specialized agent for generating, updating, and exporting technical diagrams using the Draw.io MCP server.
----
-$DrawioBody
-"@
-    [System.IO.File]::WriteAllText((Join-Path $CopilotAgentsDir "drawio.agent.md"), $CopilotAgentContent, [System.Text.UTF8Encoding]::new($false))
+    Write-Host "Installing Copilot skill files..." -ForegroundColor Green
+    New-Item -ItemType Directory -Force -Path $CopilotSkillsDir | Out-Null
+    # Copilot CLI supports the full SKILL.md + subdirectory structure
+    Copy-Item -Force $DrawioMdPath (Join-Path $CopilotSkillsDir "SKILL.md")
+
+    # Copy references/ for progressive disclosure (loaded on-demand)
+    $RefsDir = Join-Path $ScriptDir "skills\drawio\references"
+    if (Test-Path $RefsDir) {
+        $CopilotRefsTarget = Join-Path $CopilotSkillsDir "references"
+        if (Test-Path $CopilotRefsTarget) { Remove-Item -Recurse -Force $CopilotRefsTarget }
+        Copy-Item -Recurse -Force $RefsDir $CopilotRefsTarget
+    }
+
+    # Copy scripts/ for executable utilities
+    $ScriptsDir = Join-Path $ScriptDir "scripts"
+    if (Test-Path $ScriptsDir) {
+        $CopilotScriptsTarget = Join-Path $CopilotSkillsDir "scripts"
+        if (Test-Path $CopilotScriptsTarget) { Remove-Item -Recurse -Force $CopilotScriptsTarget }
+        Copy-Item -Recurse -Force $ScriptsDir $CopilotScriptsTarget
+    }
+
+    # Remove legacy .agent.md file if present from older installs
+    $LegacyAgent = Join-Path $CopilotDir "agents\drawio.agent.md"
+    if (Test-Path $LegacyAgent) {
+        Remove-Item -Force $LegacyAgent
+        Write-Host "  - Cleaned up legacy agent file: $LegacyAgent" -ForegroundColor Yellow
+    }
 }
 
 # 6. Configure MCP Servers across clients

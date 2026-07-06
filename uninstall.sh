@@ -59,15 +59,21 @@ paths.forEach(client => {
 '
 fi
 
-# 1. Remove Kiro agent files
+# 1. Remove Kiro agent and skill files
 KIRO_AGENTS_DIR="$HOME_DIR/.kiro/agents"
+KIRO_SKILLS_DIR="$HOME_DIR/.kiro/skills/drawio"
 if [ -f "$KIRO_AGENTS_DIR/drawio.json" ]; then
   rm "$KIRO_AGENTS_DIR/drawio.json"
   echo "- Removed Kiro agent config: $KIRO_AGENTS_DIR/drawio.json"
 fi
+if [ -d "$KIRO_SKILLS_DIR" ] && [ ! -L "$KIRO_SKILLS_DIR" ]; then
+  rm -rf "$KIRO_SKILLS_DIR"
+  echo "- Removed Kiro skill: $KIRO_SKILLS_DIR"
+fi
+# Remove legacy drawio.md from agents/ if present from older installs
 if [ -f "$KIRO_AGENTS_DIR/drawio.md" ]; then
   rm "$KIRO_AGENTS_DIR/drawio.md"
-  echo "- Removed Kiro agent spec: $KIRO_AGENTS_DIR/drawio.md"
+  echo "- Removed legacy Kiro agent spec: $KIRO_AGENTS_DIR/drawio.md"
 fi
 
 # 2. Remove Antigravity plugin directory
@@ -91,11 +97,17 @@ if [ -f "$CURSOR_RULE_FILE" ]; then
   echo "- Removed Cursor rule: $CURSOR_RULE_FILE"
 fi
 
-# 5. Remove Copilot Agent
-COPILOT_AGENT_FILE="$HOME_DIR/.github/agents/drawio.agent.md"
-if [ -f "$COPILOT_AGENT_FILE" ]; then
-  rm "$COPILOT_AGENT_FILE"
-  echo "- Removed Copilot agent: $COPILOT_AGENT_FILE"
+# 5. Remove Copilot Skill
+COPILOT_SKILLS_DIR="$HOME_DIR/.github/skills/drawio"
+if [ -d "$COPILOT_SKILLS_DIR" ] && [ ! -L "$COPILOT_SKILLS_DIR" ]; then
+  rm -rf "$COPILOT_SKILLS_DIR"
+  echo "- Removed Copilot skill: $COPILOT_SKILLS_DIR"
+fi
+# Remove legacy .agent.md file if present from older installs
+COPILOT_LEGACY="$HOME_DIR/.github/agents/drawio.agent.md"
+if [ -f "$COPILOT_LEGACY" ]; then
+  rm "$COPILOT_LEGACY"
+  echo "- Removed legacy Copilot agent: $COPILOT_LEGACY"
 fi
 
 echo "Uninstallation complete! Please restart your client sessions."

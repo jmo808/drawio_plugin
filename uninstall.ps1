@@ -5,18 +5,24 @@ Write-Host "=== Draw.io MCP Server & Agent Uninstaller (Windows) ===" -Foregroun
 $HomeDir = $env:USERPROFILE
 $AppData = $env:APPDATA
 
-# 1. Remove Kiro agent files
+# 1. Remove Kiro agent and skill files
 $KiroAgentsDir = Join-Path $HomeDir ".kiro\agents"
+$KiroSkillsDir = Join-Path $HomeDir ".kiro\skills\drawio"
 $KiroJson = Join-Path $KiroAgentsDir "drawio.json"
-$KiroMd = Join-Path $KiroAgentsDir "drawio.md"
 
 if (Test-Path $KiroJson) {
     Remove-Item -Force $KiroJson
     Write-Host "- Removed Kiro agent config: $KiroJson" -ForegroundColor Yellow
 }
-if (Test-Path $KiroMd) {
-    Remove-Item -Force $KiroMd
-    Write-Host "- Removed Kiro agent spec: $KiroMd" -ForegroundColor Yellow
+if ((Test-Path $KiroSkillsDir) -and -not (Get-Item $KiroSkillsDir).Attributes.HasFlag([System.IO.FileAttributes]::ReparsePoint)) {
+    Remove-Item -Recurse -Force $KiroSkillsDir
+    Write-Host "- Removed Kiro skill: $KiroSkillsDir" -ForegroundColor Yellow
+}
+# Remove legacy drawio.md from agents/ if present from older installs
+$KiroLegacyMd = Join-Path $KiroAgentsDir "drawio.md"
+if (Test-Path $KiroLegacyMd) {
+    Remove-Item -Force $KiroLegacyMd
+    Write-Host "- Removed legacy Kiro agent spec: $KiroLegacyMd" -ForegroundColor Yellow
 }
 
 # 2. Remove Antigravity plugin directory
@@ -40,11 +46,17 @@ if (Test-Path $CursorRuleFile) {
     Write-Host "- Removed Cursor rule: $CursorRuleFile" -ForegroundColor Yellow
 }
 
-# 5. Remove Copilot Agent
-$CopilotAgentFile = Join-Path $HomeDir ".github\agents\drawio.agent.md"
-if (Test-Path $CopilotAgentFile) {
-    Remove-Item -Force $CopilotAgentFile
-    Write-Host "- Removed Copilot agent: $CopilotAgentFile" -ForegroundColor Yellow
+# 5. Remove Copilot Skill
+$CopilotSkillsDir = Join-Path $HomeDir ".github\skills\drawio"
+if ((Test-Path $CopilotSkillsDir) -and -not (Get-Item $CopilotSkillsDir).Attributes.HasFlag([System.IO.FileAttributes]::ReparsePoint)) {
+    Remove-Item -Recurse -Force $CopilotSkillsDir
+    Write-Host "- Removed Copilot skill: $CopilotSkillsDir" -ForegroundColor Yellow
+}
+# Remove legacy .agent.md file if present from older installs
+$CopilotLegacy = Join-Path $HomeDir ".github\agents\drawio.agent.md"
+if (Test-Path $CopilotLegacy) {
+    Remove-Item -Force $CopilotLegacy
+    Write-Host "- Removed legacy Copilot agent: $CopilotLegacy" -ForegroundColor Yellow
 }
 
 # 6. Remove 'drawio' key from MCP config files
