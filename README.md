@@ -6,14 +6,18 @@
 
 > ⚠️ **Disclaimer:** This is a personal side project. It is provided "as is" with no warranty, no assumption of support, and no guarantee of continued maintenance. Use at your own risk. See [LICENSE](LICENSE) for full terms.
 
-This plugin connects the [draw.io MCP server](https://github.com/jgraph/drawio-mcp) to your AI coding assistant and teaches it how to generate **high-quality, native draw.io XML diagrams** — not Mermaid imports, but real, individually-editable shapes on the canvas.
+This plugin is a **wrapper and extension layer** built on top of the upstream [`@drawio/mcp`](https://github.com/jgraph/drawio-mcp) server by JGraph. It proxies all upstream MCP tools and adds 13 builder tools, a validation pipeline, domain-specific validators, and a topological correction engine — turning a basic "open XML in draw.io" server into a full diagramming assistant that generates **high-quality, native draw.io XML diagrams** from natural language.
+
+> 💡 **How it works:** The upstream `@drawio/mcp` server provides four tools for opening diagrams in draw.io. This plugin wraps that server with a proxy ([`mcp-wrapper.js`](scripts/mcp-wrapper.js)) that intercepts MCP traffic, injects 13 additional builder tools, runs validation before forwarding XML, and applies topological corrections at finalize time. The upstream server is bundled as a pinned dependency (`@drawio/mcp@^1.3.4`) — you don't need to install it separately.
 
 ## ✨ Features
 
 - **🎨 Native draw.io shapes** — Every diagram is built with native mxGraph XML, producing fully editable shapes, connectors, and containers
+- **🏗️ Builder tools** — 13 MCP tools (`init_diagram`, `add_container`, `add_node`, `connect`, `finalize`, etc.) that handle layout, positioning, and styling automatically
+- **🔍 Validation pipeline** — Bundled linter checks for layout collisions, formatting errors, and domain-specific topology violations before presenting diagrams
+- **🧠 Domain experts** — Extensible system of reference docs, validator scripts, and auto-correction functions for specialized domains (AWS, PFD/P&ID, and more)
 - **🔌 Multi-client support** — One installer for Kiro CLI, Claude Desktop, Claude Code, Cursor, Copilot CLI, and Antigravity
 - **📁 Codebase-to-diagram** — Generate architecture, class, ER, and dependency diagrams directly from your project structure
-- **✅ Auto-validation** — Bundled Node.js script checks diagrams for layout collisions and formatting errors before presenting them to the user
 - **🔄 Round-trip editing** — Read existing `.drawio` files, modify them, and re-render
 - **📚 Rich skill knowledge** — Bundled reference docs and examples ensure the AI produces correct, beautiful diagrams on the first try
 - **🔒 Security hardened** — Pinned package versions, atomic config writes, config backups, least-privilege agent access
