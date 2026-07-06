@@ -4,7 +4,7 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-> ⚠️ **Disclaimer:** This is a personal side project by [Jules Ouellette](https://github.com/jmo808). It is provided "as is" with no warranty, no assumption of support, and no guarantee of continued maintenance. Use at your own risk. See [LICENSE](LICENSE) for full terms.
+> ⚠️ **Disclaimer:** This is a personal side project. It is provided "as is" with no warranty, no assumption of support, and no guarantee of continued maintenance. Use at your own risk. See [LICENSE](LICENSE) for full terms.
 
 This plugin connects the [draw.io MCP server](https://github.com/jgraph/drawio-mcp) to your AI coding assistant and teaches it how to generate **high-quality, native draw.io XML diagrams** — not Mermaid imports, but real, individually-editable shapes on the canvas.
 
