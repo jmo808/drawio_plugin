@@ -26,13 +26,13 @@ This plugin is a **wrapper and extension layer** built on top of the upstream [`
 
 | Client | What gets installed |
 |--------|-------------------|
-| **Kiro CLI** | Custom `@drawio` steering agent + MCP server registration |
+| **Kiro CLI** | Custom `@drawio` agent + full skill directory (SKILL.md, references, scripts) + MCP server registration |
 | **Kiro IDE** | GUI Powers panel plugin setup |
 | **Claude Desktop** | MCP server registration |
-| **Claude Code** | Native SKILL.md file + MCP server registration |
+| **Claude Code** | Full skill directory (SKILL.md, references, scripts) + MCP server registration |
 | **Cursor** | Native `.mdc` rule file + MCP server registration |
-| **Copilot CLI** | Native `.agent.md` file + MCP server registration |
-| **Antigravity** | Full skill plugin (SKILL.md, references, examples) + MCP server |
+| **Copilot CLI** | Full skill directory (SKILL.md, references, scripts) + MCP server registration |
+| **Antigravity** | Full skill plugin (SKILL.md, references, scripts) + MCP server registration |
 
 ## 📦 Prerequisites
 
@@ -98,12 +98,12 @@ The installer:
 
 | Location | Contents |
 |----------|----------|
-| `~/.kiro/agents/drawio.json` | Kiro CLI agent manifest |
-| `~/.kiro/agents/drawio.md` | Kiro CLI agent skill instructions |
-| `~/.gemini/config/plugins/drawio/` | Antigravity plugin (SKILL.md, references, examples) |
-| `~/.claude/skills/drawio/SKILL.md` | Claude Code skill instructions |
+| `~/.kiro/agents/drawio.json` | Kiro agent manifest (prompt points to skill) |
+| `~/.kiro/skills/drawio/` | Kiro skill directory (SKILL.md, references, scripts) |
+| `~/.gemini/config/plugins/drawio/` | Antigravity plugin (SKILL.md, references, scripts) |
+| `~/.claude/skills/drawio/` | Claude Code skill directory (SKILL.md, references, scripts) |
 | `~/.cursor/rules/drawio.mdc` | Cursor rule instructions |
-| `~/.github/agents/drawio.agent.md` | Copilot agent instructions |
+| `~/.github/skills/drawio/` | Copilot skill directory (SKILL.md, references, scripts) |
 | Various `mcp.json` / `config.json` | MCP server entry for each detected client |
 
 ## 🗑️ Uninstallation
