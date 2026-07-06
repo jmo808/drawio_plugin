@@ -105,10 +105,25 @@ class DiagramBuilder {
         this.edges.clear();
         this.nextEdgeId = 1;
         this.title = title;
-        this.type = type;
+        
+        let resolvedType = type;
+        const lowerTitle = (title || '').toLowerCase();
+        if (type !== 'pfd' && (
+            lowerTitle.includes('pfd') || 
+            lowerTitle.includes('process flow') || 
+            lowerTitle.includes('flotation') || 
+            lowerTitle.includes('compression') || 
+            lowerTitle.includes('grinding') ||
+            lowerTitle.includes('separation') ||
+            lowerTitle.includes('wellhead')
+        )) {
+            resolvedType = 'pfd';
+        }
+        
+        this.type = resolvedType;
         this.initialized = true;
         // Root cells 0 and 1 are implicit in serialization
-        return { success: true, message: `Diagram "${title}" initialized with type "${type}".` };
+        return { success: true, message: `Diagram "${title}" initialized with type "${resolvedType}".` };
     }
 
     // --- Add Container ---
@@ -117,6 +132,22 @@ class DiagramBuilder {
         if (this.cells.has(id)) return { success: false, error: `Cell "${id}" already exists.` };
         if (parentId !== '1' && !this.cells.has(parentId)) {
             return { success: false, error: `Parent "${parentId}" not found.` };
+        }
+
+        // Auto-detect PFD based on container label/type
+        if (this.type !== 'pfd') {
+            const lowerLabel = (label || '').toLowerCase();
+            if (
+                lowerLabel.includes('grinding') || 
+                lowerLabel.includes('milling') || 
+                lowerLabel.includes('separation') || 
+                lowerLabel.includes('flotation') || 
+                lowerLabel.includes('scrubber') || 
+                lowerLabel.includes('compressor') ||
+                lowerLabel.includes('wellhead')
+            ) {
+                this.type = 'pfd';
+            }
         }
 
         // Resolve style
