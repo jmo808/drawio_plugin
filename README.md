@@ -371,14 +371,27 @@ Create a markdown file ending with `expert.md` (e.g., `electrical-expert.md`) an
 
 Create a Node.js module in `scripts/validators/` that exports a single function. The function receives the parsed diagram state and a `reportError` callback. It runs automatically at validation time via `validate.js`.
 
-**Signature:**
+**Step 1 — Create the validator** (e.g., `scripts/validators/electrical.js`):
 ```javascript
 module.exports = function({ cells, mxCells, doc, reportError, nodeIds }) {
     // Inspect cells and edges, call reportError(type, cellId, message) for violations
+    // Example: ensure all power sources have a ground connection
 };
 ```
 
-Register the validator in the `VALIDATOR_TYPE_MAP` inside `scripts/validate.js` to control which diagram types trigger it.
+**Step 2 — Register it in `scripts/validate.js`:**
+
+Add your new validator filename and its applicable diagram types to the `VALIDATOR_TYPE_MAP` object:
+
+```javascript
+const VALIDATOR_TYPE_MAP = {
+    'aws.js': ['architecture', null],
+    'pfd.js': ['pfd', null],
+    'electrical.js': ['electrical', null],  // ← add your new domain here
+};
+```
+
+Each entry maps `'filename.js'` → `[array of diagram types]`. Including `null` means the validator also runs when the diagram type is unknown. If your validator should only run for a specific type, omit `null`.
 
 **Bundled examples:**
 - `validators/aws.js` — 11+ AWS topology rules (bypass detection, DNS hallucination, reverse proxy, etc.)

@@ -73,3 +73,19 @@ prefer-retrieval-led-reasoning|read-file-before-using-APIs
 - references/aws-well-architected-reviewer.md:cloud-constraints|well-architected-validation
 - references/pid-reference.md:P&ID-ISA-conventions|native-industrial-shapes
 - references/pfd-engineering-expert.md:PFD-process-flow-rules|industrial-validation
+
+## [Domain Expert Extensibility]
+three-pillars-to-add-new-domains(electrical,HVAC,UML,etc.):
+
+### 1.Reference-Docs(AI-Knowledge)
+- create:`skills/drawio/references/<domain>-expert.md`→agent-retrieves-at-prompt-time
+- define:shapes|grid-rules|routing-restrictions|anti-patterns
+
+### 2.Validator-Scripts(Programmatic-Enforcement)
+- create:`scripts/validators/<domain>.js`→exports-single-function({cells,mxCells,doc,reportError,nodeIds})
+- register-in:`scripts/validate.js`→VALIDATOR_TYPE_MAP→add:`'<domain>.js':['<diagramType>',null]`
+- bundled:validators/aws.js(architecture)|validators/pfd.js(pfd)
+
+### 3.Topological-Corrections(Auto-Fix)
+- extend:`scripts/diagram-builder.js`→`_applyTopologicalCorrections()`→runs-at-finalize()
+- bundled:AWS-corrections(~1000-lines)|ingress-linearization|cross-AZ-edge-deletion|event-flow-rewiring
