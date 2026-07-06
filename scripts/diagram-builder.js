@@ -54,14 +54,15 @@ const NODE_STYLES = {
     compressor: 'shape=mxgraph.pid.compressors.centrifugal_compressor;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
     valve: 'shape=mxgraph.pid2valves.gate_valve;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
     vessel: 'shape=rectangle;rounded=1;arcSize=50;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    tank: 'shape=rectangle;rounded=0;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
     cyclone: 'shape=mxgraph.pid.misc.cyclone;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
     heat_exchanger: 'shape=mxgraph.pid.heat_exchangers.shell_and_tube_1;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
-    crusher: 'shape=mxgraph.pid.crushers_grinding.crusher;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
-    conveyor: 'shape=mxgraph.pid.misc.conveyor_(belt);fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
-    mill: 'shape=mxgraph.pid.crushers_grinding.mill,_pulverizer;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
-    screen: 'shape=mxgraph.pid.separators.separator,_sifter2;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
-    silo: 'shape=mxgraph.pid.misc.bin;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
-    loadout: 'shape=mxgraph.pid.misc.loading_arm;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    crusher: 'shape=mxgraph.pid.crushers_grinding.crusher;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    conveyor: 'shape=mxgraph.pid.misc.conveyor_(belt);perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    mill: 'shape=mxgraph.pid.crushers_grinding.mill,_pulverizer;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    screen: 'shape=mxgraph.pid.separators.separator,_sifter2;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    silo: 'shape=mxgraph.pid.misc.bin;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    loadout: 'shape=mxgraph.pid.misc.loading_arm;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
 };
 
 const EDGE_STYLES = {
@@ -79,6 +80,7 @@ const NODE_SIZES = {
     cylinder: { width: 100, height: 70 },
     circle: { width: 60, height: 60 },
     vessel: { width: 120, height: 180 },
+    tank: { width: 120, height: 180 },
     pump: { width: 100, height: 70 },
     compressor: { width: 100, height: 80 },
     valve: { width: 80, height: 50 },
@@ -219,7 +221,9 @@ class DiagramBuilder {
             type = 'crusher';
         } else if (lowerLabel.includes('conveyor')) {
             type = 'conveyor';
-        } else if (lowerLabel.includes('scrubber') || lowerLabel.includes('separator') || lowerLabel.includes('fractionator') || lowerLabel.includes('column') || lowerLabel.includes('vessel')) {
+        } else if (lowerLabel.includes('scrubber') || lowerLabel.includes('conditioner') || lowerLabel.includes('float') || lowerLabel.includes('thickener') || lowerLabel.includes('tank')) {
+            type = 'tank';
+        } else if (lowerLabel.includes('separator') || lowerLabel.includes('fractionator') || lowerLabel.includes('column') || lowerLabel.includes('vessel')) {
             type = 'vessel';
         } else if (lowerLabel.includes('pump')) {
             type = 'pump';
