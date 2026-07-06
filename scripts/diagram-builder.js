@@ -11,15 +11,15 @@ const path = require('path');
 // Style Template Registry
 // ---------------------------------------------------------------------------
 const CONTAINER_STYLES = {
-    region: 'swimlane;startSize=24;fillColor=#f5f5f5;strokeColor=#cccccc;html=1;fontSize=12;fontStyle=1;fontColor=#000000;',
-    vpc: 'swimlane;startSize=24;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;fontSize=12;fontStyle=1;fontColor=#000000;',
-    az: 'swimlane;startSize=24;fillColor=#fff2cc;strokeColor=#d6b656;html=1;fontSize=11;fontStyle=1;fontColor=#000000;',
-    subnet: 'swimlane;startSize=24;fillColor=#e1d5e7;strokeColor=#9673a6;html=1;fontSize=11;fontStyle=1;dashed=1;fontColor=#000000;',
-    subnet_web: 'swimlane;startSize=24;fillColor=#e1d5e7;strokeColor=#9673a6;html=1;fontSize=11;fontStyle=1;fontColor=#000000;',
-    subnet_app: 'swimlane;startSize=24;fillColor=#d5e8d4;strokeColor=#82b366;html=1;fontSize=11;fontStyle=1;fontColor=#000000;',
-    subnet_data: 'swimlane;startSize=24;fillColor=#f8cecc;strokeColor=#b85450;html=1;fontSize=11;fontStyle=1;fontColor=#000000;',
+    region: 'swimlane;startSize=24;fillColor=#f5f5f5;strokeColor=#cccccc;html=1;fontSize=12;fontStyle=1;fontColor=light-dark(#000000,#000000);',
+    vpc: 'swimlane;startSize=24;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;fontSize=12;fontStyle=1;fontColor=light-dark(#000000,#000000);',
+    az: 'swimlane;startSize=24;fillColor=#fff2cc;strokeColor=#d6b656;html=1;fontSize=11;fontStyle=1;fontColor=light-dark(#000000,#000000);',
+    subnet: 'swimlane;startSize=24;fillColor=#e1d5e7;strokeColor=#9673a6;html=1;fontSize=11;fontStyle=1;dashed=1;fontColor=light-dark(#000000,#000000);',
+    subnet_web: 'swimlane;startSize=24;fillColor=#e1d5e7;strokeColor=#9673a6;html=1;fontSize=11;fontStyle=1;fontColor=light-dark(#000000,#000000);',
+    subnet_app: 'swimlane;startSize=24;fillColor=#d5e8d4;strokeColor=#82b366;html=1;fontSize=11;fontStyle=1;fontColor=light-dark(#000000,#000000);',
+    subnet_data: 'swimlane;startSize=24;fillColor=#f8cecc;strokeColor=#b85450;html=1;fontSize=11;fontStyle=1;fontColor=light-dark(#000000,#000000);',
     group: 'group;html=1;',
-    lane: 'swimlane;horizontal=0;startSize=110;fillColor=#f5f5f5;strokeColor=#666666;html=1;fontSize=12;fontStyle=1;fontColor=#000000;',
+    lane: 'swimlane;horizontal=0;startSize=110;fillColor=#f5f5f5;strokeColor=#666666;html=1;fontSize=12;fontStyle=1;fontColor=light-dark(#000000,#000000);',
 };
 
 const NODE_STYLES = {
@@ -569,6 +569,7 @@ class DiagramBuilder {
                     y: cell.y,
                     width: cell.width,
                     height: cell.height,
+                    style: cell.style,
                     children: this._childrenOf(cell.id).map(c => c.id),
                 });
             } else {
@@ -581,6 +582,7 @@ class DiagramBuilder {
                     y: cell.y,
                     width: cell.width,
                     height: cell.height,
+                    style: cell.style,
                     variant: cell.variant || null,
                 });
             }
@@ -726,9 +728,19 @@ class DiagramBuilder {
         if (type === 'az') {
             const azIndex = siblings.filter(s => s.type === 'az').length;
             const azWidth = 460;
-            // First AZ at x=20, second AZ at x=20+460+AZ_GAP=700
-            const x = 20 + azIndex * (azWidth + AZ_GAP);
-            return { x, y: 160, width: azWidth, height: 200 };
+            if (this.type === 'pfd') {
+                // Employ a "page sized wraparound" for PFD diagrams
+                const colsPerRow = 2;
+                const col = azIndex % colsPerRow;
+                const row = Math.floor(azIndex / colsPerRow);
+                const x = 20 + col * (azWidth + AZ_GAP);
+                const y = 160 + row * 340;
+                return { x, y, width: azWidth, height: 200 };
+            } else {
+                // First AZ at x=20, second AZ at x=20+460+AZ_GAP=700
+                const x = 20 + azIndex * (azWidth + AZ_GAP);
+                return { x, y: 160, width: azWidth, height: 200 };
+            }
         }
 
         if (type === 'subnet' || type.startsWith('subnet_')) {
@@ -811,7 +823,7 @@ class DiagramBuilder {
         }
 
         // If parent height changed, shift siblings below it (if they exist)
-        if (heightChanged && parent.parentId && parent.parentId !== '1') {
+        if (heightChanged && parent.parentId) {
             this._shiftSiblingsBelow(parent.parentId, parent.id, oldHeight, parent.height);
         }
 

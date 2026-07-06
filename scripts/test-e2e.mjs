@@ -772,6 +772,46 @@ async function main() {
       `API Gateway to EventBridge purged: ${!hasApigwToEb}. Empty subnet purged: ${dataSubnetDeleted}. AZ-A worker connected to Primary: ${workerAToPrimary}. AZ-B worker connected to Replica/Primary: ${workerBToReplica}/${workerBToPrimaryCross}. DynamoDB flanking EB: ${flankedCorrectly}.`
     );
 
+    // ───── Test 21: PFD Layout Wraparound & Font Color ───────────────────────
+    // Init diagram with type 'pfd'
+    r = parseBuilderResult(await client.callTool({ name: 'init_diagram', arguments: { title: 'PFD Wraparound Test', type: 'pfd' } }));
+    if (!r.success) { record('Test 21: PFD Layout Wraparound & Font Color', false, `init failed: ${r.error}`); throw new Error('stop'); }
+
+    // Add 3 AZ containers
+    r = parseBuilderResult(await client.callTool({ name: 'add_container', arguments: { id: 'az1', label: '120 Grinding', type: 'az' } }));
+    if (!r.success) { record('Test 21: PFD Layout Wraparound & Font Color', false, `add az1 failed: ${r.error}`); throw new Error('stop'); }
+
+    r = parseBuilderResult(await client.callTool({ name: 'add_container', arguments: { id: 'az2', label: '130 Milling Screen', type: 'az' } }));
+    if (!r.success) { record('Test 21: PFD Layout Wraparound & Font Color', false, `add az2 failed: ${r.error}`); throw new Error('stop'); }
+
+    r = parseBuilderResult(await client.callTool({ name: 'add_container', arguments: { id: 'az3', label: '210 Ore Separation', type: 'az' } }));
+    if (!r.success) { record('Test 21: PFD Layout Wraparound & Font Color', false, `add az3 failed: ${r.error}`); throw new Error('stop'); }
+
+    // Add a node into each to force autoExpand and check parent shifting
+    r = parseBuilderResult(await client.callTool({ name: 'add_node', arguments: { id: 'node1', label: 'Mill 1', type: 'vessel', parent_id: 'az1' } }));
+    r = parseBuilderResult(await client.callTool({ name: 'add_node', arguments: { id: 'node2', label: 'Screen 1', type: 'pump', parent_id: 'az2' } }));
+    r = parseBuilderResult(await client.callTool({ name: 'add_node', arguments: { id: 'node3', label: 'Float 1', type: 'cyclone', parent_id: 'az3' } }));
+
+    // Get final state
+    r = parseBuilderResult(await client.callTool({ name: 'get_state', arguments: {} }));
+
+    const az1Obj = r.containers.find(c => c.id === 'az1');
+    const az2Obj = r.containers.find(c => c.id === 'az2');
+    const az3Obj = r.containers.find(c => c.id === 'az3');
+
+    // az1 and az2 should be on row 0 (y=160), az3 should be on row 1 (y >= 500)
+    const row0Ok = az1Obj && az2Obj && az1Obj.y === 160 && az2Obj.y === 160;
+    const row1Ok = az3Obj && az3Obj.y >= 500;
+    const fontColorOk = az1Obj?.style?.includes('fontColor=light-dark') && az1Obj.style.includes('#000000');
+
+    const test21Ok = r.success && row0Ok && row1Ok && fontColorOk;
+
+    record(
+      'Test 21: PFD Layout Wraparound & Font Color',
+      test21Ok,
+      `Row 0 AZs aligned (y=160): ${row0Ok}. Row 1 AZ wrapped (y>=500): ${row1Ok}. Font color correct: ${fontColorOk}.`
+    );
+
   } catch (err) {
     if (err.message !== 'stop') {
       const testNum = results.length + 1;
