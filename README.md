@@ -4,6 +4,8 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
+> ⚠️ **Disclaimer:** This is a personal side project by [Jules Ouellette](https://github.com/jmo808). It is provided "as is" with no warranty, no assumption of support, and no guarantee of continued maintenance. Use at your own risk. See [LICENSE](LICENSE) for full terms.
+
 This plugin connects the [draw.io MCP server](https://github.com/jgraph/drawio-mcp) to your AI coding assistant and teaches it how to generate **high-quality, native draw.io XML diagrams** — not Mermaid imports, but real, individually-editable shapes on the canvas.
 
 ## ✨ Features
@@ -315,12 +317,18 @@ By combining `# layout: orgchart` with `"invert": true` and a clean edge style, 
 | `xml-style-reference.md` | Complete style properties, shape types, colors, HTML labels, grid system |
 | `layout-patterns.md` | Swimlane, nested container, and cross-functional table templates |
 | `edge-routing-guide.md` | Routing decisions: default vs libavoid, edge style compatibility |
+| `aws-well-architected-reviewer.md` | AWS cloud architecture topology rules and anti-patterns |
+| `pfd-engineering-expert.md` | Process flow diagram (PFD) physics and routing rules |
+| `pid-reference.md` | P&ID ISA 5.1 conventions and native shape mapping |
 
 ### Example Diagrams (`examples/`)
 
 | File | Type |
 |------|------|
 | `aws-architecture.xml` | 3-tier AWS architecture with nested VPC/AZ swimlanes |
+| `process-flow-diagram.xml` | Wellhead separation train with instrumentation loops |
+| `gas-compression.xml` | Two-stage gas compression train (PFD) |
+| `copper-flotation.xml` | Copper froth flotation circuit (PFD) |
 | `org-chart.csv` | Org chart using draw.io's CSV import format |
 
 ### 📊 CSV Org Chart Configuration
@@ -335,24 +343,52 @@ When importing organizational charts via CSV (`open_drawio_csv`), draw.io relies
 3. **No hardcoded edge exit/entry constraints** — Do not specify `exitX/Y` or `entryX/Y` in the edge `"style"`. Leaving these out allows the layout engine to automatically route lines orthogonally without creating awkward loops or overlapping nodes.
 
 
-### Validation Tools (`skills/drawio/scripts/`)
+### Scripts (`scripts/`)
 
 | File | Contents |
 |------|----------|
-| `validate.js` | Diagram linter that parses XML, computes absolute bounds across nested containers, and detects node collisions and HTML formatting errors. |
+| `validate.js` | Diagram linter — parses XML, computes absolute bounds, detects collisions, formatting errors, and runs domain validator plugins |
+| `build-diagram.js` | JSON spec compiler — converts declarative JSON diagram specs into validated draw.io XML via the DiagramBuilder engine |
+| `validators/aws.js` | AWS topology validator — 11+ rules covering bypass detection, DNS hallucinations, reverse proxy, and dashed edge enforcement |
+| `validators/pfd.js` | PFD/P&ID validator — detects hostile shape routing where draw.io silently ignores port overrides |
 
 ---
 
 ## 🧠 Extending with Domain Experts
 
-You can effortlessly teach the agent entirely new diagramming domains (like electrical schematics, HVAC layouts, or UML patterns) without modifying its core prompt.
+You can teach the agent entirely new diagramming domains (like electrical schematics, HVAC layouts, or UML patterns) without modifying its core prompt. The domain expert system has three pillars:
 
-To extend the agent's capabilities:
-1. Create a markdown file ending with `expert.md` (e.g., `electrical-expert.md`).
-2. Inside, define the strict rules for that domain (e.g., standard shapes, grid snapping, routing restrictions, and anti-patterns to avoid).
-3. Drop the file into the `skills/drawio/references/` folder.
+### 1. Reference Documents (AI Knowledge)
 
-When a user asks to draw an electrical schematic, the AI will naturally retrieve and ingest the `electrical-expert.md` rules alongside the standard draw.io layout tools, acting as a modular, highly-specialized domain expert.
+Create a markdown file ending with `expert.md` (e.g., `electrical-expert.md`) and drop it into `skills/drawio/references/`. Define the strict domain rules — standard shapes, grid snapping, routing restrictions, and anti-patterns. The AI will retrieve these rules when a user requests a diagram in that domain.
+
+**Bundled examples:**
+- `aws-well-architected-reviewer.md` — AWS cloud architecture topology rules
+- `pfd-engineering-expert.md` — Process flow diagram (PFD) physics and routing rules
+- `pid-reference.md` — P&ID ISA 5.1 conventions and native shape mapping
+
+### 2. Validator Scripts (Programmatic Enforcement)
+
+Create a Node.js module in `scripts/validators/` that exports a single function. The function receives the parsed diagram state and a `reportError` callback. It runs automatically at validation time via `validate.js`.
+
+**Signature:**
+```javascript
+module.exports = function({ cells, mxCells, doc, reportError, nodeIds }) {
+    // Inspect cells and edges, call reportError(type, cellId, message) for violations
+};
+```
+
+Register the validator in the `VALIDATOR_TYPE_MAP` inside `scripts/validate.js` to control which diagram types trigger it.
+
+**Bundled examples:**
+- `validators/aws.js` — 11+ AWS topology rules (bypass detection, DNS hallucination, reverse proxy, etc.)
+- `validators/pfd.js` — Hostile P&ID shape routing detection
+
+### 3. Topological Correction Functions (Auto-Fix)
+
+For domains where common mistakes can be automatically corrected (not just flagged), add correction logic to `_applyTopologicalCorrections()` in `scripts/diagram-builder.js`. These corrections run at `finalize()` time, fixing the diagram before validation.
+
+**Bundled example:** The AWS corrections engine (~1,000 lines) automatically linearizes ingress chains, deletes cross-AZ compute edges, rewires event flows to SQS, and fixes DNS hallucinations.
 
 ---
 
@@ -372,7 +408,9 @@ This plugin has been security-audited. Key protections:
 
 ## 🛠️ How It Works
 
-The plugin uses the [draw.io MCP server](https://github.com/jgraph/drawio-mcp) (`@drawio/mcp`) which exposes four tools:
+The plugin wraps the [draw.io MCP server](https://github.com/jgraph/drawio-mcp) (`@drawio/mcp`) with a proxy (`scripts/mcp-wrapper.js`) that injects 13 additional builder tools and a validation pipeline. The combined toolset exposes 17 MCP tools:
+
+**Upstream tools** (from `@drawio/mcp`):
 
 | Tool | Purpose |
 |------|---------|
@@ -380,6 +418,22 @@ The plugin uses the [draw.io MCP server](https://github.com/jgraph/drawio-mcp) (
 | `open_drawio_csv` | Opens draw.io editor with a CSV-generated diagram |
 | `open_drawio_mermaid` | Exists in MCP, but is **explicitly disabled** by the skill instructions to enforce native XML |
 | `search_shapes` | Searches draw.io's shape libraries for domain icons (AWS, GCP, Cisco, etc.) |
+
+**Builder tools** (injected by the wrapper):
+
+| Tool | Purpose |
+|------|---------|
+| `init_diagram` | Initialize a new diagram with title, type, and theme |
+| `add_container` | Add containers (region, VPC, AZ, subnet, lane, group) with auto-layout |
+| `add_node` | Place resource nodes (30+ types) with auto-positioning on grid |
+| `connect` / `disconnect` | Create or remove edges with style, color, and port overrides |
+| `connect_tiers` | Bulk-connect all nodes between two tiers |
+| `connect_ha_compute_to_data` | HA macro: compute → primary/replica DB + cache with replication |
+| `provision_ha_data_tier` | HA macro: wire two AZ compute nodes to a stateful data tier |
+| `get_state` | Inspect current diagram state as JSON |
+| `builder_validate` / `validate_file` | Run validation without opening the diagram |
+| `compile_json_spec` | Compile a declarative JSON spec into validated XML |
+| `finalize` | Apply topological corrections, validate, and open in draw.io |
 
 The SKILL.md teaches the AI:
 - **When to use XML vs CSV** (XML for everything except tabular org charts)

@@ -12,7 +12,7 @@
   },
   "keywords": [],
   "author": "",
-  "license": "Apache-2.0",
+  "license": "MIT",
   "type": "commonjs",
   "bugs": {
     "url": "https://github.com/jmo808/drawio_plugin/issues"
