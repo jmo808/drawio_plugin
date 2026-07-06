@@ -11,15 +11,15 @@ const path = require('path');
 // Style Template Registry
 // ---------------------------------------------------------------------------
 const CONTAINER_STYLES = {
-    region: 'swimlane;startSize=24;fillColor=#f5f5f5;strokeColor=#cccccc;html=1;fontSize=12;fontStyle=1;fontColor=light-dark(#000000,#000000);',
-    vpc: 'swimlane;startSize=24;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;fontSize=12;fontStyle=1;fontColor=light-dark(#000000,#000000);',
-    az: 'swimlane;startSize=24;fillColor=#fff2cc;strokeColor=#d6b656;html=1;fontSize=11;fontStyle=1;fontColor=light-dark(#000000,#000000);',
-    subnet: 'swimlane;startSize=24;fillColor=#e1d5e7;strokeColor=#9673a6;html=1;fontSize=11;fontStyle=1;dashed=1;fontColor=light-dark(#000000,#000000);',
-    subnet_web: 'swimlane;startSize=24;fillColor=#e1d5e7;strokeColor=#9673a6;html=1;fontSize=11;fontStyle=1;fontColor=light-dark(#000000,#000000);',
-    subnet_app: 'swimlane;startSize=24;fillColor=#d5e8d4;strokeColor=#82b366;html=1;fontSize=11;fontStyle=1;fontColor=light-dark(#000000,#000000);',
-    subnet_data: 'swimlane;startSize=24;fillColor=#f8cecc;strokeColor=#b85450;html=1;fontSize=11;fontStyle=1;fontColor=light-dark(#000000,#000000);',
+    region: 'swimlane;startSize=24;fillColor=light-dark(#f5f5f5,#1a1a1a);strokeColor=light-dark(#cccccc,#444444);html=1;whiteSpace=wrap;fontSize=12;fontStyle=1;fontColor=light-dark(#000000,#ffffff);',
+    vpc: 'swimlane;startSize=24;fillColor=light-dark(#dae8fc,#1e2a38);strokeColor=light-dark(#6c8ebf,#3c4f6b);html=1;whiteSpace=wrap;fontSize=12;fontStyle=1;fontColor=light-dark(#000000,#ffffff);',
+    az: 'swimlane;startSize=24;fillColor=light-dark(#fff2cc,#2b2618);strokeColor=light-dark(#d6b656,#8f742c);html=1;whiteSpace=wrap;fontSize=11;fontStyle=1;fontColor=light-dark(#000000,#ffffff);',
+    subnet: 'swimlane;startSize=24;fillColor=light-dark(#e1d5e7,#291e2e);strokeColor=light-dark(#9673a6,#634b6e);html=1;whiteSpace=wrap;fontSize=11;fontStyle=1;dashed=1;fontColor=light-dark(#000000,#ffffff);',
+    subnet_web: 'swimlane;startSize=24;fillColor=light-dark(#e1d5e7,#291e2e);strokeColor=light-dark(#9673a6,#634b6e);html=1;whiteSpace=wrap;fontSize=11;fontStyle=1;fontColor=light-dark(#000000,#ffffff);',
+    subnet_app: 'swimlane;startSize=24;fillColor=light-dark(#d5e8d4,#1e2d1e);strokeColor=light-dark(#82b366,#527a3f);html=1;whiteSpace=wrap;fontSize=11;fontStyle=1;fontColor=light-dark(#000000,#ffffff);',
+    subnet_data: 'swimlane;startSize=24;fillColor=light-dark(#f8cecc,#331c1b);strokeColor=light-dark(#b85450,#7c3735);html=1;whiteSpace=wrap;fontSize=11;fontStyle=1;fontColor=light-dark(#000000,#ffffff);',
     group: 'group;html=1;',
-    lane: 'swimlane;horizontal=0;startSize=110;fillColor=#f5f5f5;strokeColor=#666666;html=1;fontSize=12;fontStyle=1;fontColor=light-dark(#000000,#000000);',
+    lane: 'swimlane;horizontal=0;startSize=110;fillColor=light-dark(#f5f5f5,#222222);strokeColor=light-dark(#666666,#888888);html=1;whiteSpace=wrap;fontSize=12;fontStyle=1;fontColor=light-dark(#000000,#ffffff);',
 };
 
 const NODE_STYLES = {
@@ -697,7 +697,11 @@ class DiagramBuilder {
         // Serialize edges
         for (const [, edge] of this.edges) {
             const valueAttr = edge.label ? ` value="${this._esc(edge.label)}"` : '';
-            lines.push(`    <mxCell id="${this._esc(edge.id)}"${valueAttr} edge="1" parent="1" source="${this._esc(edge.sourceId)}" target="${this._esc(edge.targetId)}" style="${this._esc(edge.style)}">`);
+            let style = edge.style || '';
+            if (style.includes('labelBackgroundColor=#ffffff')) {
+                style = style.replace(/labelBackgroundColor=#ffffff/g, 'labelBackgroundColor=light-dark(#ffffff,#121212)');
+            }
+            lines.push(`    <mxCell id="${this._esc(edge.id)}"${valueAttr} edge="1" parent="1" source="${this._esc(edge.sourceId)}" target="${this._esc(edge.targetId)}" style="${this._esc(style)}">`);
             if (edge.points && edge.points.length > 0) {
                 lines.push('      <mxGeometry relative="1" as="geometry">');
                 lines.push('        <Array as="points">');
