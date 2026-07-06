@@ -75,7 +75,6 @@ prefer-retrieval-led-reasoning|read-file-before-using-APIs
 - references/pfd-engineering-expert.md:PFD-process-flow-rules|industrial-validation
 
 ## [Domain Expert Extensibility]
-three-pillars-to-add-new-domains(electrical,HVAC,UML,etc.):
 
 ### 1.Reference-Docs(AI-Knowledge)
 - create:`skills/drawio/references/<domain>-expert.md`→define:shapes|grid-rules|routing-restrictions|anti-patterns
