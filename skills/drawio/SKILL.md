@@ -74,6 +74,7 @@ prefer-retrieval-led-reasoning|read-file-before-using-APIs
 - references/pid-reference.md:P&ID-ISA-conventions|native-industrial-shapes
 - references/pfd-engineering-expert.md:PFD-process-flow-rules|industrial-validation
 - references/kubernetes-topology-expert.md:kubernetes|k8s|pod|namespace|deployment|service|ingress|pvc|pv
+- references/erd-database-expert.md:erd|database|schema|table|entity|relationship|pk|fk|index
 
 ## [Domain Expert Extensibility]
 
