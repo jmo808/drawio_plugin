@@ -8,61 +8,183 @@ description: >
 ---
 
 > [!CAUTION]
-> never:write-raw-xml-by-hand|write-raw-xml-to-file|call-open_drawio_xml-with-raw-xml-for-architecture-diagrams
+> never:write-raw-xml-by-hand|write-raw-xml-to-file|call-open_drawio_xml-with-raw-xml-for-new-diagrams
 > always-for-new-diagrams:use-compile_json_spec-with-spec-inline
 > bypass-compile_json_spec-for-new-diagrams→breaks-layout-physics|exceeds-max-turns-limit
 
 ## [Role]
 diagram-expert|gen-tech-diagrams|use-drawio-mcp|gen-diagrams-from-code|ensure-visual-quality
 
-## [Tools]
-always-use:
-- `@drawio/open_drawio_xml`:content(mxGraphModel-XML),dark(auto|true|false),lightbox(bool),routing(libavoid)
-  - architecture-diagrams→always-use-builder-tools
-  - other-diagrams(flowcharts,network,sequence,class)→open_drawio_xml-raw-xml
-- `@drawio/open_drawio_csv`:content(CSV),dark,lightbox
-  - org-charts|tabular-data→open_drawio_csv
-- `@drawio/search_shapes`:query,limit(default-10,max-50)
+## [Tools & Diagram Generation Guidelines]
+- `@drawio/compile_json_spec`: **MANDATORY** for generating all new diagrams. Do not write raw XML or use individual incremental tools to build a diagram from scratch. Pass the full, single-turn JSON spec containing all nodes, containers, and connections.
+- `@drawio/open_drawio_xml`: Only use for loading and rendering existing `.xml` or `.drawio` files from the workspace. Do NOT use to create new diagrams.
+- `@drawio/add_node`, `@drawio/add_container`, `@drawio/connect`: Only use for making small incremental modifications or adjustments to an existing, loaded diagram.
 
-## [Diagram Builder Tools]
-use-builder-for-architecture-diagrams→automates-coords,styles,containment
+## [Universal Diagram Catalog (JSON Spec Reference)]
 
-### Workflow
-1.init_diagram(title,theme,type)|2.add_container(id,lbl,type,parent,tier)|3.add_node(id,lbl,type,parent,variant)|4.connect(src,tgt,lbl,style,exit,entry)|5.finalize()→save-xml
+Use the following catalog of JSON configurations to formulate the `compile_json_spec` payloads:
 
-### Containers
-- `region`:width:1280|height:300|horizontal-layout-for-children
-- `vpc`:width:1200|height:300|100px-bottom-padding-for-routing
-- `az`:width:460|height:200|nested-in-vpc
-- `subnet`|`group`|`lane`|`pool`
+### 1. Cloud Architecture (AWS & GCP)
+- **Type**: `architecture`
+- **Theme**: `aws` or `gcp`
+- **Spec Structure**:
+```json
+{
+  "title": "Three-Tier AWS Web App",
+  "type": "architecture",
+  "theme": "aws",
+  "containers": [
+    { "id": "vpc_prod", "label": "Production VPC", "type": "vpc" },
+    { "id": "az_a", "label": "Availability Zone A", "type": "az", "parentId": "vpc_prod" },
+    { "id": "sub_web_a", "label": "Web Subnet", "type": "subnet", "parentId": "az_a", "tier": "web" },
+    { "id": "sub_app_a", "label": "App Subnet", "type": "subnet", "parentId": "az_a", "tier": "app" }
+  ],
+  "nodes": [
+    { "id": "cdn", "label": "CloudFront CDN", "type": "cloudfront" },
+    { "id": "alb", "label": "Application Load Balancer", "type": "alb", "parentId": "vpc_prod" },
+    { "id": "web_srv", "label": "Web Instance", "type": "ec2", "parentId": "sub_web_a" },
+    { "id": "app_srv", "label": "App Server", "type": "ecs", "parentId": "sub_app_a" }
+  ],
+  "edges": [
+    { "sourceId": "cdn", "targetId": "alb", "label": "HTTP/S" },
+    { "sourceId": "alb", "targetId": "web_srv", "label": "Forward" },
+    { "sourceId": "web_srv", "targetId": "app_srv", "label": "API Request" }
+  ]
+}
+```
 
-### Nodes
-- compute:ec2|ecs|lambda
-- data:rds|elasticache|dynamodb|s3
-- network:alb|nlb|cloudfront|apigateway|nat_gateway|endpoint
-- security:waf
-- messaging:sqs|sns
-- other:user|internet|rectangle|diamond|cylinder|circle
+### 2. Process Flow Diagram (PFD)
+- **Type**: `pfd`
+- **Theme**: `default`
+- **Spec Structure**:
+```json
+{
+  "title": "Distillation Column Subsystem",
+  "type": "pfd",
+  "nodes": [
+    { "id": "feed_pump", "label": "Feed Charge Pump", "type": "pump", "variant": "centrifugal" },
+    { "id": "dist_column", "label": "Tray Distillation Column", "type": "distillation_column", "variant": "tray" },
+    { "id": "btms_pump", "label": "Bottoms Transfer Pump", "type": "pump", "variant": "positive_displacement" }
+  ],
+  "edges": [
+    { "sourceId": "feed_pump", "targetId": "dist_column", "label": "Raw Feed Feedstream", "exitPort": "right", "entryPort": "left" },
+    { "sourceId": "dist_column", "targetId": "btms_pump", "label": "Column Bottoms Outflow", "exitPort": "bottom", "entryPort": "left" }
+  ]
+}
+```
 
-## [Batch Diagram Generation (Highly Recommended)]
-Compile the declarative JSON spec directly inline using `compile_json_spec(spec: object)`.
-- json-format: {title:str,theme:str,type:str,containers:[{id,label,type,parentId,tier}],nodes:[{id,label,type,parentId,variant}],edges:[{sourceId,targetId,label,style,exitPort,entryPort}]}
-- compile: always call `compile_json_spec(spec: object)` with the full diagram JSON structure directly.
-- benefit: 1-shot-generation|prevents-xml-hand-writing|runs-all-layout-physics-and-topological-corrections|prevents-user-approval-popups
+### 3. Kubernetes Topology
+- **Type**: `kubernetes`
+- **Theme**: `default`
+- **Spec Structure**:
+```json
+{
+  "title": "Microservices Cluster Layout",
+  "type": "kubernetes",
+  "containers": [
+    { "id": "ns_prod", "label": "Namespace: production", "type": "lane" },
+    { "id": "pod_api", "label": "Pod: api-gateway", "type": "group", "parentId": "ns_prod" }
+  ],
+  "nodes": [
+    { "id": "ing", "label": "Ingress: gateway", "type": "apigateway", "parentId": "ns_prod" },
+    { "id": "svc", "label": "Service: api-service", "type": "endpoint", "parentId": "ns_prod" },
+    { "id": "c_gate", "label": "Container: gateway-app", "type": "ecs", "parentId": "pod_api" },
+    { "id": "pvc_claim", "label": "Claim: data-pvc", "type": "dynamodb", "parentId": "ns_prod" },
+    { "id": "pv_volume", "label": "Volume: data-pv", "type": "s3", "parentId": "ns_prod" }
+  ],
+  "edges": [
+    { "sourceId": "ing", "targetId": "svc", "label": "Route" },
+    { "sourceId": "svc", "targetId": "c_gate", "label": "Target" },
+    { "sourceId": "pvc_claim", "targetId": "pv_volume", "label": "Binds" }
+  ]
+}
+```
 
-## [Visual Layout Rules]
-- regional-services:outside-vpc|placed-directly-under-region-or-1|horizontal-packed|gap:60
-- private-resources:nested-in-subnet-inside-az-inside-vpc
-- compute-nodes:app-subnet
-- data-stores:data-subnet
-- label-formatting:html=1|title:bold|subtitle:newline(<br>)
-- edge-style:orthogonal|rounded=1|exitX/exitY/entryX/entryY-override-for-geometric-intent-only
+### 4. Entity-Relationship Diagram (ERD)
+- **Type**: `erd`
+- **Theme**: `default`
+- **Spec Structure**:
+```json
+{
+  "title": "E-Commerce User Schema",
+  "type": "erd",
+  "nodes": [
+    {
+      "id": "t_users",
+      "label": "Users",
+      "type": "table",
+      "columns": [
+        { "name": "id", "type": "INT", "pk": true, "nullable": false },
+        { "name": "email", "type": "VARCHAR(255)", "nullable": false },
+        { "name": "created_at", "type": "TIMESTAMP", "nullable": true }
+      ]
+    },
+    {
+      "id": "t_orders",
+      "label": "Orders",
+      "type": "table",
+      "columns": [
+        { "name": "id", "type": "INT", "pk": true, "nullable": false },
+        { "name": "user_id", "type": "INT", "fk": true, "nullable": false },
+        { "name": "total", "type": "DECIMAL(10,2)", "nullable": false }
+      ]
+    }
+  ],
+  "edges": [
+    { "sourceId": "t_users", "targetId": "t_orders", "label": "user_id = id" }
+  ]
+}
+```
 
-## [Architectural Constraints]
-- Decoupling:web-compute→load-balancer→app-compute|never-route-compute-to-compute-directly
-- Messaging:sqs/sns/eventbridge→ecs/ec2/lambda-edges-must-be-dashed(Polls)
-- Cross-AZ Writes:ecs-worker-in-az-b→rds-primary-in-az-a(Read/Write,solid)
-- Cache Replication:redis-cache-in-az-a╍╍redis-cache-in-az-b(Async Replication,dashed)
+### 5. Network Topology
+- **Type**: `network`
+- **Theme**: `default`
+- **Spec Structure**:
+```json
+{
+  "title": "Corporate HQ WAN & LAN",
+  "type": "network",
+  "containers": [
+    { "id": "vlan10", "label": "VLAN 10 - Users", "type": "vlan" }
+  ],
+  "nodes": [
+    { "id": "internet", "label": "ISP WAN Gateway", "type": "wan" },
+    { "id": "fw", "label": "Edge Firewall", "type": "firewall" },
+    { "id": "core_sw", "label": "Core Switch 1", "type": "switch", "tier": "core" },
+    { "id": "dist_sw", "label": "Dist Switch 1", "type": "switch", "tier": "distribution" },
+    { "id": "user_pc", "label": "Accounting PC", "type": "workstation", "parentId": "vlan10" }
+  ],
+  "edges": [
+    { "sourceId": "internet", "targetId": "fw" },
+    { "sourceId": "fw", "targetId": "core_sw" },
+    { "sourceId": "core_sw", "targetId": "dist_sw" },
+    { "sourceId": "dist_sw", "targetId": "user_pc" }
+  ]
+}
+```
+
+### 6. General Flowchart
+- **Type**: `flowchart`
+- **Theme**: `default`
+- **Spec Structure**:
+```json
+{
+  "title": "User Onboarding Flow",
+  "type": "flowchart",
+  "nodes": [
+    { "id": "start", "label": "Start Registration", "type": "circle" },
+    { "id": "decision", "label": "Email Verified?", "type": "diamond" },
+    { "id": "success", "label": "Setup Profile", "type": "rectangle" },
+    { "id": "db_save", "label": "Save Profile Data", "type": "cylinder" }
+  ],
+  "edges": [
+    { "sourceId": "start", "targetId": "decision" },
+    { "sourceId": "decision", "targetId": "success", "label": "Yes" },
+    { "sourceId": "decision", "targetId": "start", "label": "No" },
+    { "sourceId": "success", "targetId": "db_save" }
+  ]
+}
+```
 
 ## [Docs Index]
 prefer-retrieval-led-reasoning|read-file-before-using-APIs
@@ -79,16 +201,13 @@ prefer-retrieval-led-reasoning|read-file-before-using-APIs
 
 ## [Domain Expert Extensibility]
 
-### 1.Reference-Docs(AI-Knowledge)
-- create:`skills/drawio/references/<domain>-expert.md`→define:shapes|grid-rules|routing-restrictions|anti-patterns
-- register-in:`SKILL.md`→`[Docs Index]`→add:`- references/<domain>-expert.md:<keywords>`→agent-discovers-at-prompt-time
-- without-registration→agent-will-not-discover-or-load-the-reference-doc
+### 1. Reference Docs (AI Knowledge)
+- create: `skills/drawio/references/<domain>-expert.md` → define: shapes, grid-rules, routing-restrictions, and anti-patterns.
+- register-in: `SKILL.md` → `[Docs Index]` → add: `- references/<domain>-expert.md:<keywords>`.
 
-### 2.Validator-Scripts(Programmatic-Enforcement)
-- create:`scripts/validators/<domain>.js`→exports-single-function({cells,mxCells,doc,reportError,nodeIds})
-- register-in:`scripts/validate.js`→VALIDATOR_TYPE_MAP→add:`'<domain>.js':['<diagramType>',null]`
-- bundled:validators/aws.js(architecture)|validators/pfd.js(pfd)
+### 2. Validator Scripts (Programmatic Enforcement)
+- create: `scripts/validators/<domain>.js` → exports single function `({cells, mxCells, doc, reportError, nodeIds})`.
+- register-in: `scripts/validate.js` → `VALIDATOR_TYPE_MAP` → add: `'<domain>.js':['<diagramType>',null]`.
 
-### 3.Topological-Corrections(Auto-Fix)
-- extend:`scripts/diagram-builder.js`→`_applyTopologicalCorrections()`→runs-at-finalize()
-- bundled:AWS-corrections(~1000-lines)|ingress-linearization|cross-AZ-edge-deletion|event-flow-rewiring
+### 3. Topological Corrections (Auto-Fix)
+- extend: `scripts/diagram-builder.js` → `_applyTopologicalCorrections()` → runs at finalize time to enforce structural rules.
