@@ -209,11 +209,21 @@ async function main() {
     if (!r.success) { record('Test 7: PFD Workflow', false, `init failed: ${r.error}`); throw new Error('stop'); }
 
     // Add nodes (equipment)
+    r = parseBuilderResult(await client.callTool({ name: 'add_node', arguments: { id: 'feed', label: 'Feed Tank', type: 'vessel', parent_id: '1' } }));
+    if (!r.success) { record('Test 7: PFD Workflow', false, `add feed failed: ${r.error}`); throw new Error('stop'); }
+
     r = parseBuilderResult(await client.callTool({ name: 'add_node', arguments: { id: 'sep', label: '3-Phase Separator', type: 'vessel', parent_id: '1' } }));
     if (!r.success) { record('Test 7: PFD Workflow', false, `add vessel failed: ${r.error}`); throw new Error('stop'); }
 
     r = parseBuilderResult(await client.callTool({ name: 'add_node', arguments: { id: 'pump', label: 'Oil Pump', type: 'pump', parent_id: '1' } }));
     if (!r.success) { record('Test 7: PFD Workflow', false, `add pump failed: ${r.error}`); throw new Error('stop'); }
+
+    r = parseBuilderResult(await client.callTool({ name: 'add_node', arguments: { id: 'prod', label: 'Product Tank', type: 'vessel', parent_id: '1' } }));
+    if (!r.success) { record('Test 7: PFD Workflow', false, `add prod failed: ${r.error}`); throw new Error('stop'); }
+
+    // Connect feed to separator
+    r = parseBuilderResult(await client.callTool({ name: 'connect', arguments: { source_id: 'feed', target_id: 'sep', label: 'Feed Stream' } }));
+    if (!r.success) { record('Test 7: PFD Workflow', false, `connect feed stream failed: ${r.error}`); throw new Error('stop'); }
 
     // Connect with nozzle overrides (exitPort, entryPort)
     r = parseBuilderResult(await client.callTool({
@@ -227,6 +237,10 @@ async function main() {
       }
     }));
     if (!r.success) { record('Test 7: PFD Workflow', false, `connect with nozzles failed: ${r.error}`); throw new Error('stop'); }
+
+    // Connect pump to product
+    r = parseBuilderResult(await client.callTool({ name: 'connect', arguments: { source_id: 'pump', target_id: 'prod', label: 'Product Stream' } }));
+    if (!r.success) { record('Test 7: PFD Workflow', false, `connect product stream failed: ${r.error}`); throw new Error('stop'); }
 
     // Finalize
     const pfdFinal = await client.callTool({ name: 'finalize', arguments: {} });
@@ -931,12 +945,14 @@ async function main() {
     // Test 27: PFD equipment shape and size variant resolution
     await client.callTool({ name: 'init_diagram', arguments: { title: 'PFD Equipment Test', type: 'pfd' } });
     await client.callTool({ name: 'add_node', arguments: { id: 'pump1', label: 'Centrifugal Pump', type: 'pump', parent_id: '1', variant: 'centrifugal' } });
-    await client.callTool({ name: 'add_node', arguments: { id: 'pump2', label: 'PD Pump', type: 'pump', parent_id: '1', variant: 'positive_displacement' } });
     await client.callTool({ name: 'add_node', arguments: { id: 'col1', label: 'Tray Column', type: 'distillation_column', parent_id: '1', variant: 'tray' } });
     await client.callTool({ name: 'add_node', arguments: { id: 'col2', label: 'Packed Column', type: 'distillation_column', parent_id: '1', variant: 'packed' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'pump2', label: 'PD Pump', type: 'pump', parent_id: '1', variant: 'positive_displacement' } });
     
     await client.callTool({ name: 'connect', arguments: { source_id: 'pump1', target_id: 'col1', label: 'Feed Stream' } });
     await client.callTool({ name: 'connect', arguments: { source_id: 'col1', target_id: 'pump2', label: 'Bottoms Discharge' } });
+    await client.callTool({ name: 'connect', arguments: { source_id: 'pump1', target_id: 'col2', label: 'Feed Stream 2' } });
+    await client.callTool({ name: 'connect', arguments: { source_id: 'col2', target_id: 'pump2', label: 'Bottoms Discharge 2' } });
 
     const finalizePfdRes = await client.callTool({ name: 'finalize', arguments: {} });
     const pfdXml = finalizePfdRes.xml || '';
@@ -968,7 +984,61 @@ async function main() {
       test27Ok,
       `PFD equipment resolved: ${pfdResolutionOk}. Feed stream nozzle Ok: ${feedStreamOk}. Bottoms stream nozzle Ok: ${bottomsStreamOk}.`
     );
+    // Test 28-33: PFD Validator Rules
+    const tempPfdInvalidFile = path.join(os.tmpdir(), `test-e2e-pfd-invalid-${Date.now()}.xml`);
+    const pfdInvalidXmlContent = `<mxGraphModel><root>
+      <mxCell id="0"/>
+      <mxCell id="1" parent="0"/>
+      
+      <!-- Distillation column at x=100, y=100, w=100, h=300 -->
+      <mxCell id="col" value="Fractionator" style="shape=mxgraph.pid.vessels.tray_column;" vertex="1" parent="1"><mxGeometry x="100" y="100" width="100" height="300" as="geometry"/></mxCell>
+      <!-- Pump at x=300, y=100, w=80, h=60 -->
+      <mxCell id="pump" value="Suction Pump" style="shape=mxgraph.pid.pumps.centrifugal_pump_1;" vertex="1" parent="1"><mxGeometry x="300" y="100" width="80" height="60" as="geometry"/></mxCell>
+      <!-- Vessel/Tank at x=500, y=100, w=100, h=100 -->
+      <mxCell id="vessel" value="Feed Tank" style="shape=mxgraph.pid.vessels.tank;" vertex="1" parent="1"><mxGeometry x="500" y="100" width="100" height="100" as="geometry"/></mxCell>
+      <!-- Dead End pump -->
+      <mxCell id="deadpump" value="Dead Pump" style="shape=mxgraph.pid.pumps.centrifugal_pump_1;" vertex="1" parent="1"><mxGeometry x="700" y="100" width="80" height="60" as="geometry"/></mxCell>
+      <!-- Compressor at x=800, y=100, w=100, h=80 -->
+      <mxCell id="comp" value="RecipCompressor" style="shape=mxgraph.pid.compressors.reciprocating_compressor;" vertex="1" parent="1"><mxGeometry x="800" y="100" width="100" height="80" as="geometry"/></mxCell>
+      <!-- Instrument controller -->
+      <mxCell id="ctrl" value="TIC" style="shape=mxgraph.pid.indicators.locally_mounted_instrument;" vertex="1" parent="1"><mxGeometry x="950" y="100" width="60" height="60" as="geometry"/></mxCell>
 
+      <!-- PHASE_PORT_VIOLATION 1: Vapor stream exiting from bottom of distillation column (exitY=1) -->
+      <mxCell id="e_phase1" value="Overhead Vapor" edge="1" source="col" target="pump" style="exitX=0.5;exitY=1;entryX=0;entryY=0.5;" parent="1"/>
+      <!-- PHASE_PORT_VIOLATION 2: Bottoms Liquid exiting from top of distillation column (exitY=0) -->
+      <mxCell id="e_phase2" value="Bottoms Liquid" edge="1" source="col" target="vessel" style="exitX=0.5;exitY=0;entryX=0;entryY=0.5;" parent="1"/>
+      
+      <!-- OPPOSING_FLOW: Process stream routing from right to left (vessel at 500 to pump at 300) without recycle/return in label -->
+      <mxCell id="e_oppose" value="Process Stream" edge="1" source="vessel" target="pump" style="edgeStyle=orthogonalEdgeStyle;strokeWidth=3;" parent="1"/>
+      
+      <!-- GRAVITY_VIOLATION: Liquid stream going uphill from col (y=100) to higher node (y=20, which is < 100) without pump/compressor -->
+      <mxCell id="high_node" value="High Node" style="shape=mxgraph.pid.vessels.tank;" vertex="1" parent="1"><mxGeometry x="100" y="20" width="100" height="50" as="geometry"/></mxCell>
+      <mxCell id="e_gravity" value="Liquid Stream" edge="1" source="col" target="high_node" style="edgeStyle=orthogonalEdgeStyle;" parent="1"/>
+      
+      <!-- INSTRUMENT_IN_PROCESS_LINE: Dotted/dashed instrument line using heavy process line style -->
+      <mxCell id="e_inst" value="Control Line" edge="1" source="col" target="ctrl" style="edgeStyle=orthogonalEdgeStyle;strokeWidth=3;" parent="1"/>
+
+      <!-- COMPRESSOR_INLET_AT_BOTTOM: Inlet stream enters compressor from side/top instead of bottom -->
+      <mxCell id="e_comp_in" value="Suction Stream" edge="1" source="vessel" target="comp" style="exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1"/>
+    </root></mxGraphModel>`;
+    
+    fs.writeFileSync(tempPfdInvalidFile, pfdInvalidXmlContent, 'utf8');
+    const pfdVal = parseBuilderResult(await client.callTool({ name: 'validate_file', arguments: { file_path: tempPfdInvalidFile } }));
+    fs.unlinkSync(tempPfdInvalidFile);
+
+    const hasPhasePortErr = pfdVal.errors && pfdVal.errors.some(e => e.includes('PHASE_PORT_VIOLATION'));
+    const hasDeadEndErr = pfdVal.errors && pfdVal.errors.some(e => e.includes('DEAD_END_STREAM'));
+    const hasOpposingFlowErr = pfdVal.errors && pfdVal.errors.some(e => e.includes('OPPOSING_FLOW'));
+    const hasGravityErr = pfdVal.errors && pfdVal.errors.some(e => e.includes('GRAVITY_VIOLATION'));
+    const hasInstErr = pfdVal.errors && pfdVal.errors.some(e => e.includes('INSTRUMENT_IN_PROCESS_LINE'));
+    const hasCompInletErr = pfdVal.errors && pfdVal.errors.some(e => e.includes('COMPRESSOR_INLET_AT_BOTTOM'));
+
+    record('Test 28: PHASE_PORT_VIOLATION rule', hasPhasePortErr, `Found PHASE_PORT_VIOLATION: ${hasPhasePortErr}`);
+    record('Test 29: DEAD_END_STREAM rule', hasDeadEndErr, `Found DEAD_END_STREAM: ${hasDeadEndErr}`);
+    record('Test 30: OPPOSING_FLOW rule', hasOpposingFlowErr, `Found OPPOSING_FLOW: ${hasOpposingFlowErr}`);
+    record('Test 31: GRAVITY_VIOLATION rule', hasGravityErr, `Found GRAVITY_VIOLATION: ${hasGravityErr}`);
+    record('Test 32: INSTRUMENT_IN_PROCESS_LINE rule', hasInstErr, `Found INSTRUMENT_IN_PROCESS_LINE: ${hasInstErr}`);
+    record('Test 33: COMPRESSOR_INLET_AT_BOTTOM rule', hasCompInletErr, `Found COMPRESSOR_INLET_AT_BOTTOM: ${hasCompInletErr}`);
   } catch (err) {
     if (err.message !== 'stop') {
       const testNum = results.length + 1;

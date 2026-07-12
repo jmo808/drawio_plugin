@@ -3,6 +3,13 @@ const { DOMParser } = require('@xmldom/xmldom');
 const path = require('path');
 
 function validateXml(xmlStr, diagramType = null) {
+    if (!diagramType) {
+        if (xmlStr.includes('mxgraph.pid') || xmlStr.includes('tray_column') || xmlStr.includes('centrifugal_pump') || xmlStr.includes('reciprocating_compressor')) {
+            diagramType = 'pfd';
+        } else if (xmlStr.includes('mxgraph.aws') || xmlStr.includes('cloudfront') || xmlStr.includes('apigateway')) {
+            diagramType = 'architecture';
+        }
+    }
     const doc = new DOMParser().parseFromString(xmlStr, 'text/xml');
     const mxCells = doc.getElementsByTagName('mxCell');
     const cells = {};
