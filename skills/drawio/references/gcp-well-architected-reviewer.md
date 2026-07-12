@@ -45,6 +45,10 @@ private-compute-internet-bypass|correction:insert-Cloud-NAT-between-Private-Subn
 unprotected-public-ingress|correction:attach-Cloud-Armor-node-to-Cloud-CDN-or-GCLB
 single-zone-load-balancer|correction:ensure-GCLB-routes-to-compute-targets-in-at-least-two-Zones
 direct-gcs-client-access|correction:route-Client→Cloud-CDN→GCS
+missing-dns|correction:insert-Cloud-DNS-to-resolve-domain-requests-from-public-client
+missing-nat|correction:insert-Cloud-NAT-for-private-subnets-to-pull-external-images-and-packages
+missing-registry|correction:insert-Artifact-Registry-to-store-container-images-for-GKE
+missing-observability|correction:insert-Cloud-Operations-Suite-for-observability-logging-and-monitoring
 
 ## [Sequential Execution Pairing (MANDATORY)]
 pairing:cross-zone-writes|trigger:draw-read-only-edge-to-Zone-B-replica|action:simultaneously-draw-write-edge-to-Zone-A-primary

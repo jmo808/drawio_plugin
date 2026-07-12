@@ -23,6 +23,9 @@ function getGcpNodeType(style, value) {
         else if (v.includes('cloud dns') || v.includes('dns')) type = 'cloud_dns';
         else if (v.includes('cloud cdn') || v.includes('cdn')) type = 'cloud_cdn';
         else if (v.includes('cloud armor') || v.includes('armor') || v.includes('waf')) type = 'cloud_armor';
+        else if (v.includes('artifact registry') || v.includes('container registry') || v.includes('registry')) type = 'artifact_registry';
+        else if (v.includes('nat') || v.includes('router') || v.includes('cloud router')) type = 'cloud_nat';
+        else if (v.includes('logging') || v.includes('monitoring') || v.includes('operations suite') || v.includes('ops suite') || v.includes('observability')) type = 'operations_suite';
         else if (v.includes('client') || v.includes('user')) type = 'user';
     }
     
@@ -37,6 +40,9 @@ function getGcpNodeType(style, value) {
     if (type && (type.includes('cloud_dns') || type.includes('dns'))) return 'cloud_dns';
     if (type && (type.includes('cloud_cdn') || type.includes('cdn'))) return 'cloud_cdn';
     if (type && (type.includes('cloud_armor') || type.includes('armor') || type.includes('waf'))) return 'cloud_armor';
+    if (type && (type.includes('artifact_registry') || type.includes('registry') || type.includes('artifact registry'))) return 'artifact_registry';
+    if (type && (type.includes('cloud_nat') || type.includes('nat') || type.includes('router'))) return 'cloud_nat';
+    if (type && (type.includes('operations_suite') || type.includes('logging') || type.includes('monitoring') || type.includes('ops_suite'))) return 'operations_suite';
     if (type && (type.includes('user') || type.includes('client'))) return 'user';
     
     return type;
@@ -66,6 +72,11 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
                 webTierNodes.push(id);
             }
         }
+    }
+
+    const hasGcpSpecificNodes = Object.values(gcpNodes).some(n => n.type !== 'user');
+    if (!hasGcpSpecificNodes) {
+        return; // Skip validation for non-GCP diagrams
     }
 
     // Check edges for topology rules
@@ -394,5 +405,66 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
                 reportError('TOPOLOGY_ERROR', cdnNode.id, `Cloud CDN must route backend requests to External HTTP Load Balancer (GCLB).`);
             }
         }
+    }
+
+    // Rule 12: Production Ingress requires Cloud DNS
+    if (clientNode) {
+        const hasDns = Object.values(gcpNodes).some(n => n.type === 'cloud_dns');
+        if (!hasDns) {
+            reportError('TOPOLOGY_ERROR', clientNode.id, `Production-grade GCP architectures must include Cloud DNS to resolve client requests.`);
+        }
+    }
+
+    // Rule 13: Private compute nodes require Cloud NAT
+    let hasPrivateCompute = false;
+    let privateComputeNodeId = null;
+    for (const nid in gcpNodes) {
+        const node = gcpNodes[nid];
+        if (statelessComputeTypes.includes(node.type)) {
+            const parentCell = cells[node.parent];
+            const pLbl = (parentCell && parentCell.value || '').toLowerCase();
+            if (!pLbl.includes('public') && !pLbl.includes('ingress') && !pLbl.includes('dmz')) {
+                hasPrivateCompute = true;
+                privateComputeNodeId = node.id;
+                break;
+            }
+        }
+    }
+    if (hasPrivateCompute) {
+        const hasCloudNat = Object.values(gcpNodes).some(n => n.type === 'cloud_nat');
+        if (!hasCloudNat) {
+            reportError('TOPOLOGY_ERROR', privateComputeNodeId, `Compute nodes in private subnets require Cloud NAT/Router in the VPC to fetch outbound updates/packages.`);
+        }
+    }
+
+    // Rule 14: GKE clusters require Artifact Registry
+    let hasGke = false;
+    let gkeNodeId = null;
+    for (const nid in gcpNodes) {
+        const node = gcpNodes[nid];
+        if (node.type === 'kubernetes_engine') {
+            hasGke = true;
+            gkeNodeId = node.id;
+            break;
+        }
+    }
+    if (hasGke) {
+        const hasRegistry = Object.values(gcpNodes).some(n => n.type === 'artifact_registry');
+        if (!hasRegistry) {
+            reportError('TOPOLOGY_ERROR', gkeNodeId, `GKE clusters require Artifact Registry in the project to store and pull container images.`);
+        }
+    }
+
+    // Rule 15: Observability requirements
+    const hasObservability = Object.values(gcpNodes).some(n => n.type === 'operations_suite');
+    if (!hasObservability) {
+        let obsTargetId = '1';
+        for (const nid in gcpNodes) {
+            if (statelessComputeTypes.includes(gcpNodes[nid].type)) {
+                obsTargetId = gcpNodes[nid].id;
+                break;
+            }
+        }
+        reportError('TOPOLOGY_ERROR', obsTargetId, `Production-grade GCP architectures must include Cloud Operations Suite (Cloud Logging/Monitoring) for observability.`);
     }
 };
