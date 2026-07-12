@@ -437,7 +437,13 @@ function handleBuilderTool(toolName, args, msgId) {
                 if (!compileRes.success) {
                     result = compileRes;
                 } else {
-                    result = { success: true, xml: builder.toXml() };
+                    const validation = builder.validate();
+                    result = { 
+                        success: true, 
+                        valid: validation.success,
+                        validation_errors: validation.success ? [] : (validation.details || [validation.error]),
+                        xml: builder.toXml()
+                    };
                     if (args.output_path) {
                         fs.writeFileSync(args.output_path, result.xml, 'utf8');
                     }
