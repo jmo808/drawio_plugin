@@ -6,6 +6,8 @@ function validateXml(xmlStr, diagramType = null) {
     if (!diagramType) {
         if (xmlStr.includes('mxgraph.pid') || xmlStr.includes('tray_column') || xmlStr.includes('centrifugal_pump') || xmlStr.includes('reciprocating_compressor')) {
             diagramType = 'pfd';
+        } else if (xmlStr.includes('mxgraph.kubernetes') || xmlStr.includes('kubernetes.type') || xmlStr.includes('k8s_cluster')) {
+            diagramType = 'kubernetes';
         } else if (xmlStr.includes('mxgraph.aws') || xmlStr.includes('cloudfront') || xmlStr.includes('apigateway')) {
             diagramType = 'architecture';
         }
@@ -216,6 +218,7 @@ function validateXml(xmlStr, diagramType = null) {
         'aws.js': ['architecture', null],
         'gcp.js': ['architecture', null],
         'pfd.js': ['pfd', null],
+        'kubernetes.js': ['kubernetes', null],
     };
     const validatorsDir = path.join(__dirname, 'validators');
     if (fs.existsSync(validatorsDir)) {

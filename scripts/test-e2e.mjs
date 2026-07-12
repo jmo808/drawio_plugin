@@ -1038,7 +1038,63 @@ async function main() {
     record('Test 30: OPPOSING_FLOW rule', hasOpposingFlowErr, `Found OPPOSING_FLOW: ${hasOpposingFlowErr}`);
     record('Test 31: GRAVITY_VIOLATION rule', hasGravityErr, `Found GRAVITY_VIOLATION: ${hasGravityErr}`);
     record('Test 32: INSTRUMENT_IN_PROCESS_LINE rule', hasInstErr, `Found INSTRUMENT_IN_PROCESS_LINE: ${hasInstErr}`);
-    record('Test 33: COMPRESSOR_INLET_AT_BOTTOM rule', hasCompInletErr, `Found COMPRESSOR_INLET_AT_BOTTOM: ${hasCompInletErr}`);
+        record('Test 33: COMPRESSOR_INLET_AT_BOTTOM rule', hasCompInletErr, `Found COMPRESSOR_INLET_AT_BOTTOM: ${hasCompInletErr}`);
+
+    // Test 34-38: Kubernetes Validator Rules
+    const tempK8sInvalidFile = path.join(os.tmpdir(), `test-e2e-k8s-invalid-${Date.now()}.xml`);
+    const k8sInvalidXmlContent = `<mxGraphModel><root>
+      <mxCell id="0"/>
+      <mxCell id="1" parent="0"/>
+      
+      <!-- Cluster container -->
+      <mxCell id="cluster" value="Cluster" style="swimlane;html=1;" vertex="1" parent="1"><mxGeometry x="100" y="100" width="800" height="500" as="geometry"/></mxCell>
+      
+      <!-- Namespace 1 -->
+      <mxCell id="ns1" value="Namespace 1" style="swimlane;html=1;" vertex="1" parent="cluster"><mxGeometry x="20" y="40" width="300" height="400" as="geometry"/></mxCell>
+      <!-- Namespace 2 -->
+      <mxCell id="ns2" value="Namespace 2" style="swimlane;html=1;" vertex="1" parent="cluster"><mxGeometry x="350" y="40" width="300" height="400" as="geometry"/></mxCell>
+      
+      <!-- Deployment 1 inside ns1 -->
+      <mxCell id="dep1" value="Deployment 1" style="swimlane;html=1;" vertex="1" parent="ns1"><mxGeometry x="20" y="40" width="200" height="200" as="geometry"/></mxCell>
+      
+      <!-- Pod 1 inside dep1 (Valid) -->
+      <mxCell id="pod1" value="Pod 1" style="mxgraph.kubernetes.icon;kubernetes.type=pod;" vertex="1" parent="dep1"><mxGeometry x="10" y="10" width="60" height="60" as="geometry"/></mxCell>
+      
+      <!-- ORPHAN_POD: Pod 2 outside any Deployment or Namespace (nested in root '1') -->
+      <mxCell id="pod2" value="Pod 2" style="mxgraph.kubernetes.icon;kubernetes.type=pod;" vertex="1" parent="1"><mxGeometry x="10" y="10" width="60" height="60" as="geometry"/></mxCell>
+      
+      <!-- SERVICE_WITHOUT_TARGET: Service 1 has no target pod/deployment -->
+      <mxCell id="svc1" value="Service 1" style="mxgraph.kubernetes.icon;kubernetes.type=service;" vertex="1" parent="ns1"><mxGeometry x="20" y="260" width="60" height="60" as="geometry"/></mxCell>
+      
+      <!-- INGRESS_BYPASS: Ingress 1 connects directly to Pod 1, bypassing any Service -->
+      <mxCell id="ing1" value="Ingress 1" style="mxgraph.kubernetes.icon;kubernetes.type=ingress;" vertex="1" parent="ns1"><mxGeometry x="20" y="340" width="60" height="60" as="geometry"/></mxCell>
+      <mxCell id="e_bypass" edge="1" source="ing1" target="pod1" parent="1"/>
+
+      <!-- PVC_WITHOUT_PV: PVC 1 exists but is not connected to a PV -->
+      <mxCell id="pvc1" value="PVC 1" style="mxgraph.kubernetes.icon;kubernetes.type=pvc;" vertex="1" parent="ns1"><mxGeometry x="100" y="260" width="60" height="60" as="geometry"/></mxCell>
+      
+      <!-- Pod 3 in ns2 -->
+      <mxCell id="pod3" value="Pod 3" style="mxgraph.kubernetes.icon;kubernetes.type=pod;" vertex="1" parent="ns2"><mxGeometry x="20" y="40" width="60" height="60" as="geometry"/></mxCell>
+      
+      <!-- NAMESPACE_LEAK: Direct cross-talk edge between pod1 (in ns1) and pod3 (in ns2) -->
+      <mxCell id="e_leak" edge="1" source="pod1" target="pod3" parent="1"/>
+    </root></mxGraphModel>`;
+
+    fs.writeFileSync(tempK8sInvalidFile, k8sInvalidXmlContent, 'utf8');
+    const k8sVal = parseBuilderResult(await client.callTool({ name: 'validate_file', arguments: { file_path: tempK8sInvalidFile } }));
+    fs.unlinkSync(tempK8sInvalidFile);
+
+    const hasOrphanErr = k8sVal.errors && k8sVal.errors.some(e => e.includes('ORPHAN_POD'));
+    const hasSvcTargetErr = k8sVal.errors && k8sVal.errors.some(e => e.includes('SERVICE_WITHOUT_TARGET'));
+    const hasIngressBypassErr = k8sVal.errors && k8sVal.errors.some(e => e.includes('INGRESS_BYPASS'));
+    const hasPvcWithoutPvErr = k8sVal.errors && k8sVal.errors.some(e => e.includes('PVC_WITHOUT_PV'));
+    const hasNamespaceLeakErr = k8sVal.errors && k8sVal.errors.some(e => e.includes('NAMESPACE_LEAK'));
+
+    record('Test 34: ORPHAN_POD rule', hasOrphanErr, `Found ORPHAN_POD: ${hasOrphanErr}`);
+    record('Test 35: SERVICE_WITHOUT_TARGET rule', hasSvcTargetErr, `Found SERVICE_WITHOUT_TARGET: ${hasSvcTargetErr}`);
+    record('Test 36: INGRESS_BYPASS rule', hasIngressBypassErr, `Found INGRESS_BYPASS: ${hasIngressBypassErr}`);
+    record('Test 37: PVC_WITHOUT_PV rule', hasPvcWithoutPvErr, `Found PVC_WITHOUT_PV: ${hasPvcWithoutPvErr}`);
+    record('Test 38: NAMESPACE_LEAK rule', hasNamespaceLeakErr, `Found NAMESPACE_LEAK: ${hasNamespaceLeakErr}`);
   } catch (err) {
     if (err.message !== 'stop') {
       const testNum = results.length + 1;
