@@ -928,6 +928,47 @@ async function main() {
     record('Test 25: Sequence Layout Strategy', sequenceOk, `Sequence Ok: ${sequenceOk}`);
     record('Test 26: Mind Map Layout Strategy', mindmapOk, `Mindmap Ok: ${mindmapOk}`);
 
+    // Test 27: PFD equipment shape and size variant resolution
+    await client.callTool({ name: 'init_diagram', arguments: { title: 'PFD Equipment Test', type: 'pfd' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'pump1', label: 'Centrifugal Pump', type: 'pump', parent_id: '1', variant: 'centrifugal' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'pump2', label: 'PD Pump', type: 'pump', parent_id: '1', variant: 'positive_displacement' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'col1', label: 'Tray Column', type: 'distillation_column', parent_id: '1', variant: 'tray' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'col2', label: 'Packed Column', type: 'distillation_column', parent_id: '1', variant: 'packed' } });
+    
+    await client.callTool({ name: 'connect', arguments: { source_id: 'pump1', target_id: 'col1', label: 'Feed Stream' } });
+    await client.callTool({ name: 'connect', arguments: { source_id: 'col1', target_id: 'pump2', label: 'Bottoms Discharge' } });
+
+    const finalizePfdRes = await client.callTool({ name: 'finalize', arguments: {} });
+    const pfdXml = finalizePfdRes.xml || '';
+    r = parseBuilderResult(await client.callTool({ name: 'get_state', arguments: {} }));
+
+    const p1Node = r.nodes ? r.nodes.find(n => n.id === 'pump1') : null;
+    const p2Node = r.nodes ? r.nodes.find(n => n.id === 'pump2') : null;
+    const col1Node = r.nodes ? r.nodes.find(n => n.id === 'col1') : null;
+    const col2Node = r.nodes ? r.nodes.find(n => n.id === 'col2') : null;
+
+    const pfdResolutionOk = !!(
+      p1Node && p1Node.variant === 'centrifugal' && p1Node.width === 100 && p1Node.height === 70 &&
+      p2Node && p2Node.variant === 'positive_displacement' && p2Node.width === 100 && p2Node.height === 70 &&
+      col1Node && col1Node.variant === 'tray' && col1Node.width === 100 && col1Node.height === 320 &&
+      col2Node && col2Node.variant === 'packed' && col2Node.width === 100 && col2Node.height === 320
+    );
+
+    const feedStreamOk = pfdXml.includes('source="pump1" target="col1"') &&
+                         pfdXml.includes('exitX=1') && pfdXml.includes('exitY=0.5') &&
+                         pfdXml.includes('entryX=0') && pfdXml.includes('entryY=0.5');
+                         
+    const bottomsStreamOk = pfdXml.includes('source="col1" target="pump2"') &&
+                            pfdXml.includes('exitX=0.5') && pfdXml.includes('exitY=1') &&
+                            pfdXml.includes('entryX=0') && pfdXml.includes('entryY=0.5');
+
+    const test27Ok = pfdResolutionOk && feedStreamOk && bottomsStreamOk;
+    record(
+      'Test 27: PFD equipment variant and auto-nozzle resolution',
+      test27Ok,
+      `PFD equipment resolved: ${pfdResolutionOk}. Feed stream nozzle Ok: ${feedStreamOk}. Bottoms stream nozzle Ok: ${bottomsStreamOk}.`
+    );
+
   } catch (err) {
     if (err.message !== 'stop') {
       const testNum = results.length + 1;

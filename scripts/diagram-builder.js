@@ -99,6 +99,26 @@ const NODE_STYLES = {
     vessel: 'shape=mxgraph.pid.vessels.vertical_vessel;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
     cyclone: 'shape=mxgraph.pid.misc.cyclone;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
     heat_exchanger: 'shape=mxgraph.pid.heat_exchangers.shell_and_tube_1;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+
+    // PFD Equipment Variants
+    'separator_2-phase': 'shape=mxgraph.pid.vessels.vertical_vessel;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    'separator_3-phase': 'shape=mxgraph.pid.vessels.horizontal_vessel;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    separator: 'shape=mxgraph.pid.vessels.vertical_vessel;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    'heat_exchanger_shell-and-tube': 'shape=mxgraph.pid.heat_exchangers.shell_and_tube_1;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    'heat_exchanger_plate': 'shape=mxgraph.pid.heat_exchangers.plate_heat_exchanger;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    'pump_centrifugal': 'shape=mxgraph.pid.pumps.centrifugal_pump_1;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    'pump_positive_displacement': 'shape=mxgraph.pid.pumps.rotary_pump;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    'compressor_centrifugal': 'shape=mxgraph.pid.compressors.centrifugal_compressor;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    'compressor_reciprocating': 'shape=mxgraph.pid.compressors.reciprocating_compressor;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    'reactor_CSTR': 'shape=mxgraph.pid.vessels.reactor;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    'reactor_PFR': 'shape=mxgraph.pid.vessels.vertical_vessel;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    reactor: 'shape=mxgraph.pid.vessels.reactor;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    'distillation_column_tray': 'shape=mxgraph.pid.vessels.tray_column;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    'distillation_column_packed': 'shape=mxgraph.pid.vessels.packed_column;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    distillation_column: 'shape=mxgraph.pid.vessels.tray_column;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    'vessel_storage': 'shape=mxgraph.pid.vessels.tank;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    'vessel_surge': 'shape=mxgraph.pid.vessels.vertical_vessel;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    'vessel_accumulator': 'shape=mxgraph.pid.vessels.horizontal_vessel;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
 };
 
 const EDGE_STYLES = {
@@ -178,6 +198,26 @@ const NODE_SIZES = {
     central: { width: 140, height: 70 },
     branch: { width: 120, height: 50 },
     leaf: { width: 100, height: 40 },
+
+    // PFD Equipment Variants
+    'separator_2-phase': { width: 100, height: 160 },
+    'separator_3-phase': { width: 160, height: 100 },
+    separator: { width: 100, height: 160 },
+    'heat_exchanger_shell-and-tube': { width: 120, height: 80 },
+    'heat_exchanger_plate': { width: 100, height: 80 },
+    'pump_centrifugal': { width: 100, height: 70 },
+    'pump_positive_displacement': { width: 100, height: 70 },
+    'compressor_centrifugal': { width: 100, height: 80 },
+    'compressor_reciprocating': { width: 110, height: 80 },
+    'reactor_CSTR': { width: 120, height: 160 },
+    'reactor_PFR': { width: 80, height: 200 },
+    reactor: { width: 120, height: 160 },
+    'distillation_column_tray': { width: 100, height: 320 },
+    'distillation_column_packed': { width: 100, height: 320 },
+    distillation_column: { width: 100, height: 320 },
+    'vessel_storage': { width: 160, height: 140 },
+    'vessel_surge': { width: 100, height: 180 },
+    'vessel_accumulator': { width: 180, height: 100 },
 };
 
 const NODE_SPACING = { x: 180, y: 140 };  // grid spacing within containers
@@ -275,8 +315,13 @@ class DiagramBuilder {
             parentId = '1';
         }
 
-        const nodeSize = NODE_SIZES[type] || NODE_SIZE;
-        const style = NODE_STYLES[type] || NODE_STYLES.rectangle;
+        let nodeSize = NODE_SIZES[type] || NODE_SIZE;
+        let style = NODE_STYLES[type] || NODE_STYLES.rectangle;
+        if (variant) {
+            const variantKey = `${type}_${variant}`;
+            if (NODE_SIZES[variantKey]) nodeSize = NODE_SIZES[variantKey];
+            if (NODE_STYLES[variantKey]) style = NODE_STYLES[variantKey];
+        }
         const parent = this.cells.get(parentId);
 
         let x, y;
@@ -478,6 +523,40 @@ class DiagramBuilder {
             };
             if ((isBroker(sourceNode) && isCompute(targetNode)) || (isCompute(sourceNode) && isBroker(targetNode))) {
                 style = 'dashed';
+            }
+        }
+
+        // 1c. PFD Auto-Nozzle Port Resolution
+        if (this.type === 'pfd' && sourceNode && targetNode) {
+            if (!exitPort) {
+                if (sourceNode.type === 'pump' || sourceNode.type === 'compressor') {
+                    exitPort = 'right';
+                } else if (sourceNode.type === 'distillation_column') {
+                    const labelLower = (label || '').toLowerCase();
+                    if (labelLower.includes('bottom')) exitPort = 'bottom';
+                    else if (labelLower.includes('overhead') || labelLower.includes('distillate') || labelLower.includes('vapor')) exitPort = 'top';
+                    else if (targetNode.y < sourceNode.y) exitPort = 'top';
+                    else if (targetNode.y > sourceNode.y + sourceNode.height - 40) exitPort = 'bottom';
+                    else exitPort = 'right';
+                } else if (sourceNode.type === 'heat_exchanger') {
+                    exitPort = (style === 'utility' || style === 'instrument') ? 'bottom' : 'right';
+                } else {
+                    exitPort = 'right';
+                }
+            }
+            if (!entryPort) {
+                if (targetNode.type === 'pump') {
+                    entryPort = 'left';
+                } else if (targetNode.type === 'compressor') {
+                    entryPort = 'bottom';
+                } else if (targetNode.type === 'distillation_column') {
+                    if (sourceNode.y > targetNode.y + targetNode.height - 40) entryPort = 'bottom';
+                    else entryPort = 'left';
+                } else if (targetNode.type === 'heat_exchanger') {
+                    entryPort = (style === 'utility' || style === 'instrument') ? 'top' : 'left';
+                } else {
+                    entryPort = 'left';
+                }
             }
         }
 
