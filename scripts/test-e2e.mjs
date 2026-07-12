@@ -1032,8 +1032,8 @@ async function main() {
       <!-- INSTRUMENT_IN_PROCESS_LINE: Dotted/dashed instrument line using heavy process line style -->
       <mxCell id="e_inst" value="Control Line" edge="1" source="col" target="ctrl" style="edgeStyle=orthogonalEdgeStyle;strokeWidth=3;" parent="1"/>
 
-      <!-- COMPRESSOR_INLET_AT_BOTTOM: Inlet stream enters compressor from side/top instead of bottom -->
-      <mxCell id="e_comp_in" value="Suction Stream" edge="1" source="vessel" target="comp" style="exitX=1;exitY=0.5;entryX=0;entryY=0.5;" parent="1"/>
+      <!-- COMPRESSOR_INLET_AT_BOTTOM: Inlet stream enters compressor from top instead of side/bottom -->
+      <mxCell id="e_comp_in" value="Suction Stream" edge="1" source="vessel" target="comp" style="exitX=1;exitY=0.5;entryX=0;entryY=0.2;" parent="1"/>
     </root></mxGraphModel>`;
     
     fs.writeFileSync(tempPfdInvalidFile, pfdInvalidXmlContent, 'utf8');

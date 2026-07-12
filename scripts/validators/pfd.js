@@ -4,7 +4,7 @@ module.exports = function({ cells, mxCells, doc, reportError, nodeIds }) {
         const cell = cells[id];
         if (!cell.isEdge) continue;
 
-        const el = doc.getElementById(id) || mxCells[Array.from(mxCells).findIndex(e => e.getAttribute('id') === id)];
+        const el = doc.getElementById(id) || Array.from(mxCells).find(e => e.getAttribute('id') === id);
         if (!el) continue;
 
         const sourceId = el.getAttribute('source');
@@ -104,8 +104,8 @@ module.exports = function({ cells, mxCells, doc, reportError, nodeIds }) {
                 let entryY = 0.5;
                 const entryYMatch = cellStyle.match(/entryY=([0-9.]+)/);
                 if (entryYMatch) entryY = parseFloat(entryYMatch[1]);
-                if (entryY < 0.8) {
-                    reportError('COMPRESSOR_INLET_AT_BOTTOM', id, `Suction inlet stream enters compressor ${targetId} on port entryY=${entryY}. Compressor inlets must enter from the bottom port (entryY=1) to prevent liquid accumulation and allow proper draining/knockout.`);
+                if (entryY < 0.3) {
+                    reportError('COMPRESSOR_INLET_AT_BOTTOM', id, `Suction inlet stream enters compressor ${targetId} from the top port (entryY=${entryY}). Gas compressor inlets should enter from the side (entryY≈0.5) or bottom (entryY≈1) to prevent liquid accumulation in the casing.`);
                 }
             }
         }
@@ -129,7 +129,7 @@ module.exports = function({ cells, mxCells, doc, reportError, nodeIds }) {
                     const edge = cells[edgeId];
                     if (!edge.isEdge) continue;
                     
-                    const el = doc.getElementById(edgeId) || mxCells[Array.from(mxCells).findIndex(e => e.getAttribute('id') === edgeId)];
+                    const el = doc.getElementById(edgeId) || Array.from(mxCells).find(e => e.getAttribute('id') === edgeId);
                     if (el) {
                         const s = el.getAttribute('source');
                         const t = el.getAttribute('target');

@@ -73,7 +73,7 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
         const cell = cells[id];
         if (!cell.isEdge) continue;
         
-        const el = doc.getElementById(id) || mxCells[Array.from(mxCells).findIndex(e => e.getAttribute('id') === id)];
+        const el = doc.getElementById(id) || Array.from(mxCells).find(e => e.getAttribute('id') === id);
         if (!el) continue;
         
         const sourceId = el.getAttribute('source');
@@ -162,7 +162,7 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
         for (const id in cells) {
             const cell = cells[id];
             if (!cell.isEdge) continue;
-            const el = doc.getElementById(id) || mxCells[Array.from(mxCells).findIndex(e => e.getAttribute('id') === id)];
+            const el = doc.getElementById(id) || Array.from(mxCells).find(e => e.getAttribute('id') === id);
             if (el) {
                 if (el.getAttribute('source') === webNodeId) hasOutboundEdge = true;
                 if (el.getAttribute('target') === webNodeId) hasInboundEdge = true;
@@ -216,7 +216,7 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
                         for (const eid in cells) {
                             const edge = cells[eid];
                             if (edge.isEdge) {
-                                const el = doc.getElementById(eid) || mxCells[Array.from(mxCells).findIndex(e => e.getAttribute('id') === eid)];
+                                const el = doc.getElementById(eid) || Array.from(mxCells).find(e => e.getAttribute('id') === eid);
                                 if (el && el.getAttribute('source') === id && el.getAttribute('target') === sqlPrimaryId) {
                                     hasEdgeToPrimary = true;
                                     break;
@@ -233,7 +233,7 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
                         for (const eid in cells) {
                             const edge = cells[eid];
                             if (edge.isEdge) {
-                                const el = doc.getElementById(eid) || mxCells[Array.from(mxCells).findIndex(e => e.getAttribute('id') === eid)];
+                                const el = doc.getElementById(eid) || Array.from(mxCells).find(e => e.getAttribute('id') === eid);
                                 if (el) {
                                     if (el.getAttribute('source') === id && el.getAttribute('target') === sqlPrimaryId) {
                                         hasEdgeToPrimary = true;

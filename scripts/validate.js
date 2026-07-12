@@ -185,7 +185,7 @@ function validateXml(xmlStr, diagramType = null) {
         const cell = cells[id];
         if (!cell.isEdge) continue;
 
-        const el = doc.getElementById(id) || mxCells[Array.from(mxCells).findIndex(e => e.getAttribute('id') === id)];
+        const el = doc.getElementById(id) || Array.from(mxCells).find(e => e.getAttribute('id') === id);
         if (!el) continue;
 
         const geom = el.getElementsByTagName('mxGeometry')[0];
@@ -224,12 +224,12 @@ function validateXml(xmlStr, diagramType = null) {
     //   aws.js → runs for 'architecture' diagrams (or when type is unknown)
     //   pfd.js → runs for 'pfd' diagrams (or when type is unknown)
     const VALIDATOR_TYPE_MAP = {
-        'aws.js': ['architecture', null],
-        'gcp.js': ['architecture', null],
-        'pfd.js': ['pfd', null],
-        'kubernetes.js': ['kubernetes', null],
-        'erd.js': ['erd', null],
-        'network.js': ['network', null],
+        'aws.js': ['architecture'],
+        'gcp.js': ['architecture'],
+        'pfd.js': ['pfd'],
+        'kubernetes.js': ['kubernetes'],
+        'erd.js': ['erd'],
+        'network.js': ['network'],
     };
     const validatorsDir = path.join(__dirname, 'validators');
     if (fs.existsSync(validatorsDir)) {

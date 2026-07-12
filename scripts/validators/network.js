@@ -1,6 +1,7 @@
 module.exports = function({ cells, mxCells, doc, reportError, nodeIds }) {
     // Helper to find parent VLAN container ID
     function getVlanId(nodeId) {
+        if (!cells[nodeId]) return null;
         let currId = cells[nodeId].parent;
         while (currId && cells[currId] && currId !== '1' && currId !== '0') {
             const p = cells[currId];
@@ -53,7 +54,7 @@ module.exports = function({ cells, mxCells, doc, reportError, nodeIds }) {
                 const edge = cells[edgeId];
                 if (!edge.isEdge) continue;
 
-                const el = doc.getElementById(edgeId) || mxCells[Array.from(mxCells).findIndex(e => e.getAttribute('id') === edgeId)];
+                const el = doc.getElementById(edgeId) || Array.from(mxCells).find(e => e.getAttribute('id') === edgeId);
                 if (el) {
                     const s = el.getAttribute('source');
                     const t = el.getAttribute('target');
@@ -78,7 +79,7 @@ module.exports = function({ cells, mxCells, doc, reportError, nodeIds }) {
         const cell = cells[id];
         if (!cell.isEdge) continue;
 
-        const el = doc.getElementById(id) || mxCells[Array.from(mxCells).findIndex(e => e.getAttribute('id') === id)];
+        const el = doc.getElementById(id) || Array.from(mxCells).find(e => e.getAttribute('id') === id);
         if (!el) continue;
 
         const sourceId = el.getAttribute('source');

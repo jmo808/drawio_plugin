@@ -51,7 +51,7 @@ module.exports = function({ cells, mxCells, doc, reportError, nodeIds }) {
                 const edge = cells[edgeId];
                 if (!edge.isEdge) continue;
 
-                const el = doc.getElementById(edgeId) || mxCells[Array.from(mxCells).findIndex(e => e.getAttribute('id') === edgeId)];
+                const el = doc.getElementById(edgeId) || Array.from(mxCells).find(e => e.getAttribute('id') === edgeId);
                 if (el) {
                     const s = el.getAttribute('source');
                     const t = el.getAttribute('target');
