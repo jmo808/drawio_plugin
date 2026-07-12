@@ -1095,6 +1095,42 @@ async function main() {
     record('Test 36: INGRESS_BYPASS rule', hasIngressBypassErr, `Found INGRESS_BYPASS: ${hasIngressBypassErr}`);
     record('Test 37: PVC_WITHOUT_PV rule', hasPvcWithoutPvErr, `Found PVC_WITHOUT_PV: ${hasPvcWithoutPvErr}`);
     record('Test 38: NAMESPACE_LEAK rule', hasNamespaceLeakErr, `Found NAMESPACE_LEAK: ${hasNamespaceLeakErr}`);
+
+    // Test 39-42: ERD Validator Rules
+    const tempErdInvalidFile = path.join(os.tmpdir(), `test-e2e-erd-invalid-${Date.now()}.xml`);
+    const erdInvalidXmlContent = `<mxGraphModel><root>
+      <mxCell id="0"/>
+      <mxCell id="1" parent="0"/>
+      
+      <!-- Table 1 (Valid table with PK) -->
+      <mxCell id="t1" value="&lt;b&gt;Users&lt;/b&gt;&#10;+ id: INT [PK]&#10;name: VARCHAR" style="shape=table;html=1;erd.type=table;" vertex="1" parent="1"><mxGeometry x="100" y="100" width="150" height="100" as="geometry"/></mxCell>
+      
+      <!-- Table 2 (FK_WITHOUT_TARGET: Table 2 has orders.user_id FK, but no connected edge to Users) -->
+      <mxCell id="t2" value="&lt;b&gt;Orders&lt;/b&gt;&#10;+ id: INT [PK]&#10;user_id: INT [FK]" style="shape=table;html=1;erd.type=table;" vertex="1" parent="1"><mxGeometry x="300" y="100" width="150" height="100" as="geometry"/></mxCell>
+      
+      <!-- Table 3 (ORPHAN_TABLE: Table 3 has no relationships or connected edges) -->
+      <mxCell id="t3" value="&lt;b&gt;Products&lt;/b&gt;&#10;+ id: INT [PK]" style="shape=table;html=1;erd.type=table;" vertex="1" parent="1"><mxGeometry x="500" y="100" width="150" height="100" as="geometry"/></mxCell>
+      
+      <!-- Table 4 (DUPLICATE_PK: Multiple primary key columns) -->
+      <mxCell id="t4" value="&lt;b&gt;Payments&lt;/b&gt;&#10;+ id: INT [PK]&#10;+ trans_id: INT [PK]" style="shape=table;html=1;erd.type=table;" vertex="1" parent="1"><mxGeometry x="100" y="300" width="150" height="100" as="geometry"/></mxCell>
+      
+      <!-- Table 5 (SELF_REFERENCE_MISSING: parent_id exists but no self-referencing edge) -->
+      <mxCell id="t5" value="&lt;b&gt;Categories&lt;/b&gt;&#10;+ id: INT [PK]&#10;parent_id: INT [FK]" style="shape=table;html=1;erd.type=table;" vertex="1" parent="1"><mxGeometry x="300" y="300" width="150" height="100" as="geometry"/></mxCell>
+    </root></mxGraphModel>`;
+
+    fs.writeFileSync(tempErdInvalidFile, erdInvalidXmlContent, 'utf8');
+    const erdVal = parseBuilderResult(await client.callTool({ name: 'validate_file', arguments: { file_path: tempErdInvalidFile } }));
+    fs.unlinkSync(tempErdInvalidFile);
+
+    const hasFkTargetErr = erdVal.errors && erdVal.errors.some(e => e.includes('FK_WITHOUT_TARGET'));
+    const hasOrphanTableErr = erdVal.warnings && erdVal.warnings.some(w => w.includes('ORPHAN_TABLE'));
+    const hasDupPkErr = erdVal.errors && erdVal.errors.some(e => e.includes('DUPLICATE_PK'));
+    const hasSelfRefMissingErr = erdVal.errors && erdVal.errors.some(e => e.includes('SELF_REFERENCE_MISSING'));
+
+    record('Test 39: FK_WITHOUT_TARGET rule', hasFkTargetErr, `Found FK_WITHOUT_TARGET: ${hasFkTargetErr}`);
+    record('Test 40: ORPHAN_TABLE rule', hasOrphanTableErr, `Found ORPHAN_TABLE: ${hasOrphanTableErr}`);
+    record('Test 41: DUPLICATE_PK rule', hasDupPkErr, `Found DUPLICATE_PK: ${hasDupPkErr}`);
+    record('Test 42: SELF_REFERENCE_MISSING rule', hasSelfRefMissingErr, `Found SELF_REFERENCE_MISSING: ${hasSelfRefMissingErr}`);
   } catch (err) {
     if (err.message !== 'stop') {
       const testNum = results.length + 1;

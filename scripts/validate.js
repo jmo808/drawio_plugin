@@ -8,6 +8,8 @@ function validateXml(xmlStr, diagramType = null) {
             diagramType = 'pfd';
         } else if (xmlStr.includes('mxgraph.kubernetes') || xmlStr.includes('kubernetes.type') || xmlStr.includes('k8s_cluster')) {
             diagramType = 'kubernetes';
+        } else if (xmlStr.includes('erd.type') || xmlStr.includes('shape=table') || xmlStr.includes('ERone') || xmlStr.includes('ERmany')) {
+            diagramType = 'erd';
         } else if (xmlStr.includes('mxgraph.aws') || xmlStr.includes('cloudfront') || xmlStr.includes('apigateway')) {
             diagramType = 'architecture';
         }
@@ -16,9 +18,14 @@ function validateXml(xmlStr, diagramType = null) {
     const mxCells = doc.getElementsByTagName('mxCell');
     const cells = {};
     const errors = [];
+    const warnings = [];
 
-    function reportError(type, cellId, message) {
-        errors.push(`[${type}] Node '${cellId}': ${message}`);
+    function reportError(type, cellId, message, severity = 'error') {
+        if (severity === 'warning') {
+            warnings.push(`[${type}] Node '${cellId}': ${message}`);
+        } else {
+            errors.push(`[${type}] Node '${cellId}': ${message}`);
+        }
     }
 
     // Parse all cells
@@ -219,6 +226,7 @@ function validateXml(xmlStr, diagramType = null) {
         'gcp.js': ['architecture', null],
         'pfd.js': ['pfd', null],
         'kubernetes.js': ['kubernetes', null],
+        'erd.js': ['erd', null],
     };
     const validatorsDir = path.join(__dirname, 'validators');
     if (fs.existsSync(validatorsDir)) {
@@ -241,7 +249,8 @@ function validateXml(xmlStr, diagramType = null) {
 
     return {
         success: errors.length === 0,
-        errors
+        errors,
+        warnings
     };
 }
 
