@@ -1189,6 +1189,65 @@ async function main() {
     );
 
     record('Test 43: ERD Table Rendering and Dynamic Sizing', erdRenderingOk, `ERD Rendering resolved: ${erdRenderingOk}`);
+
+    // Test 44-47: Network Validator Rules
+    const tempNetInvalidFile = path.join(os.tmpdir(), `test-e2e-net-invalid-${Date.now()}.xml`);
+    const netInvalidXmlContent = `<mxGraphModel><root>
+      <mxCell id="0"/>
+      <mxCell id="1" parent="0"/>
+      
+      <!-- Core Switch 1 -->
+      <mxCell id="core1" value="Core Switch 1" style="shape=mxgraph.cisco.switches.workgroup_switch;network.type=switch;network.tier=core;" vertex="1" parent="1"><mxGeometry x="100" y="100" width="80" height="60" as="geometry"/></mxCell>
+      
+      <!-- Core Switch 2 (redundant) -->
+      <mxCell id="core2" value="Core Switch 2" style="shape=mxgraph.cisco.switches.workgroup_switch;network.type=switch;network.tier=core;" vertex="1" parent="1"><mxGeometry x="220" y="100" width="80" height="60" as="geometry"/></mxCell>
+      
+      <!-- Distribution Switch 1 -->
+      <mxCell id="dist1" value="Dist Switch 1" style="shape=mxgraph.cisco.switches.workgroup_switch;network.type=switch;network.tier=distribution;" vertex="1" parent="1"><mxGeometry x="100" y="250" width="80" height="60" as="geometry"/></mxCell>
+      
+      <!-- REDUNDANCY_WARNING: Single edge between core1 and dist1 -->
+      <mxCell id="e_core_dist" edge="1" source="core1" target="dist1" parent="1"/>
+
+      <!-- ORPHAN_DEVICE: Standalone workstation with no edges -->
+      <mxCell id="pc1" value="Orphan PC" style="shape=mxgraph.cisco.computers_and_peripherals.pc;network.type=workstation;" vertex="1" parent="1"><mxGeometry x="500" y="100" width="80" height="60" as="geometry"/></mxCell>
+      
+      <!-- WAN Internet node -->
+      <mxCell id="wan" value="Internet" style="shape=mxgraph.cisco.misc.web_browser;network.type=wan;" vertex="1" parent="1"><mxGeometry x="100" y="10" width="80" height="60" as="geometry"/></mxCell>
+      
+      <!-- LAN server -->
+      <mxCell id="srv1" value="Intranet Server" style="shape=mxgraph.cisco.servers.standard_host;network.type=server;" vertex="1" parent="1"><mxGeometry x="300" y="250" width="80" height="60" as="geometry"/></mxCell>
+      
+      <!-- DIRECT_WAN_TO_LAN: Edge from wan to srv1 bypassing firewall -->
+      <mxCell id="e_bypass" edge="1" source="wan" target="srv1" parent="1"/>
+
+      <!-- VLAN 10 Container -->
+      <mxCell id="vlan10" value="VLAN 10" style="swimlane;html=1;network.type=vlan;" vertex="1" parent="1"><mxGeometry x="100" y="400" width="200" height="200" as="geometry"/></mxCell>
+      <!-- VLAN 20 Container -->
+      <mxCell id="vlan20" value="VLAN 20" style="swimlane;html=1;network.type=vlan;" vertex="1" parent="1"><mxGeometry x="350" y="400" width="200" height="200" as="geometry"/></mxCell>
+      
+      <!-- Workstation in VLAN 10 -->
+      <mxCell id="pc10" value="PC 10" style="shape=mxgraph.cisco.computers_and_peripherals.pc;network.type=workstation;" vertex="1" parent="vlan10"><mxGeometry x="20" y="40" width="80" height="60" as="geometry"/></mxCell>
+      
+      <!-- Workstation in VLAN 20 -->
+      <mxCell id="pc20" value="PC 20" style="shape=mxgraph.cisco.computers_and_peripherals.pc;network.type=workstation;" vertex="1" parent="vlan20"><mxGeometry x="20" y="40" width="80" height="60" as="geometry"/></mxCell>
+      
+      <!-- VLAN_LEAK: Direct cross-connect edge between pc10 and pc20 -->
+      <mxCell id="e_leak" edge="1" source="pc10" target="pc20" parent="1"/>
+    </root></mxGraphModel>`;
+
+    fs.writeFileSync(tempNetInvalidFile, netInvalidXmlContent, 'utf8');
+    const netVal = parseBuilderResult(await client.callTool({ name: 'validate_file', arguments: { file_path: tempNetInvalidFile } }));
+    fs.unlinkSync(tempNetInvalidFile);
+
+    const hasDirectWanErr = netVal.errors && netVal.errors.some(e => e.includes('DIRECT_WAN_TO_LAN'));
+    const hasOrphanDevErr = netVal.errors && netVal.errors.some(e => e.includes('ORPHAN_DEVICE'));
+    const hasVlanLeakErr = netVal.errors && netVal.errors.some(e => e.includes('VLAN_LEAK'));
+    const hasRedundancyWarn = netVal.warnings && netVal.warnings.some(w => w.includes('REDUNDANCY_WARNING'));
+
+    record('Test 44: DIRECT_WAN_TO_LAN rule', hasDirectWanErr, `Found DIRECT_WAN_TO_LAN: ${hasDirectWanErr}`);
+    record('Test 45: ORPHAN_DEVICE rule', hasOrphanDevErr, `Found ORPHAN_DEVICE: ${hasOrphanDevErr}`);
+    record('Test 46: VLAN_LEAK rule', hasVlanLeakErr, `Found VLAN_LEAK: ${hasVlanLeakErr}`);
+    record('Test 47: REDUNDANCY_WARNING rule', hasRedundancyWarn, `Found REDUNDANCY_WARNING: ${hasRedundancyWarn}`);
   } catch (err) {
     if (err.message !== 'stop') {
       const testNum = results.length + 1;

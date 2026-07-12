@@ -10,6 +10,8 @@ function validateXml(xmlStr, diagramType = null) {
             diagramType = 'kubernetes';
         } else if (xmlStr.includes('erd.type') || xmlStr.includes('shape=table') || xmlStr.includes('ERone') || xmlStr.includes('ERmany')) {
             diagramType = 'erd';
+        } else if (xmlStr.includes('network.type') || xmlStr.includes('shape=mxgraph.cisco') || xmlStr.includes('vlan')) {
+            diagramType = 'network';
         } else if (xmlStr.includes('mxgraph.aws') || xmlStr.includes('cloudfront') || xmlStr.includes('apigateway')) {
             diagramType = 'architecture';
         }
@@ -227,6 +229,7 @@ function validateXml(xmlStr, diagramType = null) {
         'pfd.js': ['pfd', null],
         'kubernetes.js': ['kubernetes', null],
         'erd.js': ['erd', null],
+        'network.js': ['network', null],
     };
     const validatorsDir = path.join(__dirname, 'validators');
     if (fs.existsSync(validatorsDir)) {
