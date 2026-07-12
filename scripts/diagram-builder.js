@@ -44,6 +44,49 @@ const NODE_STYLES = {
     eventbridge: 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.eventbridge;fillColor=#E7157B;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
     user: 'shape=mxgraph.aws4.user;fillColor=#5A6C86;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
     internet: 'shape=mxgraph.aws4.internet_alt2;fillColor=#232F3E;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
+    
+    // Flowchart
+    process: 'rounded=1;whiteSpace=wrap;html=1;',
+    decision: 'rhombus;whiteSpace=wrap;html=1;',
+    start: 'ellipse;whiteSpace=wrap;html=1;',
+    end: 'ellipse;whiteSpace=wrap;html=1;',
+    io: 'shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;',
+    subroutine: 'shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;',
+
+    // K8s
+    pod: 'shape=mxgraph.kubernetes.icon;prIcon=pod;fillColor=#326CE5;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
+    service: 'shape=mxgraph.kubernetes.icon;prIcon=svc;fillColor=#326CE5;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
+    ingress: 'shape=mxgraph.kubernetes.icon;prIcon=ing;fillColor=#326CE5;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
+    configmap: 'shape=mxgraph.kubernetes.icon;prIcon=cm;fillColor=#326CE5;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
+    secret: 'shape=mxgraph.kubernetes.icon;prIcon=secret;fillColor=#326CE5;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
+    pv: 'shape=mxgraph.kubernetes.icon;prIcon=pv;fillColor=#326CE5;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
+    pvc: 'shape=mxgraph.kubernetes.icon;prIcon=pvc;fillColor=#326CE5;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
+    hpa: 'shape=mxgraph.kubernetes.icon;prIcon=hpa;fillColor=#326CE5;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
+
+    // Network
+    router: 'shape=mxgraph.cisco.routers.router;fillColor=#005073;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
+    switch: 'shape=mxgraph.cisco.switches.workgroup_switch;fillColor=#005073;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
+    firewall: 'shape=mxgraph.cisco.security.firewall;fillColor=#a20025;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
+    server: 'shape=mxgraph.cisco.servers.standard_host;fillColor=#005073;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
+    workstation: 'shape=mxgraph.cisco.computers_and_peripherals.pc;fillColor=#005073;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
+    wireless_ap: 'shape=mxgraph.cisco.misc.wireless_access_point;fillColor=#005073;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
+    load_balancer: 'shape=mxgraph.cisco.switches.server_load_balancer;fillColor=#005073;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
+    storage: 'shape=mxgraph.cisco.storage.storage_array;fillColor=#005073;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
+
+    // ERD
+    table: 'shape=rectangle;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fillColor=#f5f5f5;strokeColor=#cccccc;fontStyle=0;',
+    view: 'shape=rectangle;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=0;',
+
+    // Sequence
+    participant: 'shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;size=40;',
+    activation: 'shape=rectangle;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;',
+    note: 'shape=note;whiteSpace=wrap;html=1;size=15;backgroundOutline=1;fillColor=#fff2cc;strokeColor=#d6b656;',
+
+    // Mind Map
+    central: 'ellipse;whiteSpace=wrap;html=1;align=center;fillColor=#f5f7fa;strokeColor=#475569;strokeWidth=2;fontStyle=1;',
+    branch: 'rounded=1;whiteSpace=wrap;html=1;align=center;fillColor=#e2e8f0;strokeColor=#64748b;',
+    leaf: 'rounded=1;whiteSpace=wrap;html=1;align=center;fillColor=#ffffff;strokeColor=#cbd5e1;',
+
     // Generic shapes
     rectangle: 'rounded=1;whiteSpace=wrap;html=1;',
     diamond: 'rhombus;whiteSpace=wrap;html=1;',
@@ -78,6 +121,48 @@ const NODE_SIZES = {
     valve: { width: 80, height: 50 },
     cyclone: { width: 80, height: 120 },
     heat_exchanger: { width: 120, height: 80 },
+    
+    // Flowchart
+    process: { width: 140, height: 60 },
+    decision: { width: 140, height: 80 },
+    start: { width: 120, height: 60 },
+    end: { width: 120, height: 60 },
+    io: { width: 140, height: 60 },
+    subroutine: { width: 140, height: 60 },
+    
+    // K8s
+    pod: { width: 60, height: 60 },
+    service: { width: 60, height: 60 },
+    ingress: { width: 60, height: 60 },
+    configmap: { width: 60, height: 60 },
+    secret: { width: 60, height: 60 },
+    pv: { width: 60, height: 60 },
+    pvc: { width: 60, height: 60 },
+    hpa: { width: 60, height: 60 },
+
+    // Network
+    router: { width: 80, height: 60 },
+    switch: { width: 80, height: 60 },
+    firewall: { width: 80, height: 60 },
+    server: { width: 80, height: 60 },
+    workstation: { width: 80, height: 60 },
+    wireless_ap: { width: 80, height: 60 },
+    load_balancer: { width: 80, height: 60 },
+    storage: { width: 80, height: 60 },
+
+    // ERD
+    table: { width: 160, height: 120 },
+    view: { width: 160, height: 120 },
+
+    // Sequence
+    participant: { width: 100, height: 300 },
+    activation: { width: 20, height: 80 },
+    note: { width: 120, height: 60 },
+
+    // Mind Map
+    central: { width: 140, height: 70 },
+    branch: { width: 120, height: 50 },
+    leaf: { width: 100, height: 40 },
 };
 
 const NODE_SPACING = { x: 180, y: 140 };  // grid spacing within containers

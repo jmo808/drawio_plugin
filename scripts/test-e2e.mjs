@@ -827,6 +827,47 @@ async function main() {
       `K8s layout Ok: ${k8sLayoutOk}. Network layout Ok: ${netLayoutOk}. Group layout Ok: ${groupLayoutOk}.`
     );
 
+    // Test 22: Node style mapping and sizes for new domains
+    await client.callTool({ name: 'init_diagram', arguments: { title: 'New Node Types Test', type: 'architecture' } });
+    
+    // Flowchart nodes
+    await client.callTool({ name: 'add_node', arguments: { id: 'fc_proc', label: 'Process', type: 'process', parent_id: '1' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'fc_dec', label: 'Decision', type: 'decision', parent_id: '1' } });
+    
+    // K8s nodes
+    await client.callTool({ name: 'add_node', arguments: { id: 'k8s_pod1', label: 'Pod 1', type: 'pod', parent_id: '1' } });
+    
+    // Network nodes
+    await client.callTool({ name: 'add_node', arguments: { id: 'net_rtr', label: 'Router 1', type: 'router', parent_id: '1' } });
+    
+    // Sequence nodes
+    await client.callTool({ name: 'add_node', arguments: { id: 'seq_note', label: 'Note 1', type: 'note', parent_id: '1' } });
+    
+    // Finalize
+    await client.callTool({ name: 'finalize', arguments: {} });
+    r = parseBuilderResult(await client.callTool({ name: 'get_state', arguments: {} }));
+
+    const procNode = r.nodes.find(n => n.id === 'fc_proc');
+    const decNode = r.nodes.find(n => n.id === 'fc_dec');
+    const podNode = r.nodes.find(n => n.id === 'k8s_pod1');
+    const rtrNode = r.nodes.find(n => n.id === 'net_rtr');
+    const noteNode = r.nodes.find(n => n.id === 'seq_note');
+
+    const nodeSizesOk = !!(
+      procNode && procNode.width === 140 && procNode.height === 60 &&
+      decNode && decNode.width === 140 && decNode.height === 80 &&
+      podNode && podNode.width === 60 && podNode.height === 60 &&
+      rtrNode && rtrNode.width === 80 && rtrNode.height === 60 &&
+      noteNode && noteNode.width === 120 && noteNode.height === 60
+    );
+
+    const test22Ok = r.success && nodeSizesOk;
+    record(
+      'Test 22: Node Style and Size mapping for new domains',
+      test22Ok,
+      `Node sizes matched: ${nodeSizesOk}.`
+    );
+
   } catch (err) {
     if (err.message !== 'stop') {
       const testNum = results.length + 1;
