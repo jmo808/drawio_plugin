@@ -504,19 +504,20 @@ process.stdin.on('data', chunk => {
                 const outcome = handleBuilderTool(toolName, args, msg.id);
 
                 if (outcome.finalize) {
-                    // Forward as open_drawio_xml to the downstream server
-                    console.error(`[BUILDER] Finalize: forwarding validated XML (${Buffer.byteLength(outcome.xml)} bytes) for type "${outcome.type}"`);
-                    const forwardArgs = { content: outcome.xml };
-                    if (outcome.type !== 'pfd') {
-                        forwardArgs.routing = 'libavoid';
-                    }
+                    // Forward as open_drawio_xml to the downstream server.
+                    // NOTE: We deliberately omit routing='libavoid' here because:
+                    //   1. libavoid runs a WASM module with a slow cold-start (~10-30s)
+                    //   2. The resulting XML is returned directly to the frontend via
+                    //      setGraphXml(), not opened in a browser — draw.io handles
+                    //      client-side edge routing on its own when the diagram renders.
+                    console.error(`[BUILDER] Finalize: forwarding validated XML (${Buffer.byteLength(outcome.xml)} bytes) for type "${outcome.type}" (no libavoid — headless path)`);
                     const forwardMsg = {
                         jsonrpc: '2.0',
                         id: msg.id,
                         method: 'tools/call',
                         params: {
                             name: 'open_drawio_xml',
-                            arguments: forwardArgs,
+                            arguments: { content: outcome.xml },
                         },
                     };
                     child.stdin.write(JSON.stringify(forwardMsg) + '\n');
