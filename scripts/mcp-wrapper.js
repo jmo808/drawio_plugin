@@ -284,6 +284,15 @@ child.stdout.on('data', chunk => {
         try {
             const msg = JSON.parse(lineStr);
 
+            // Replace any external diagrams.net or draw.io links with local relative path /draw/
+            if (msg.result && msg.result.content && Array.isArray(msg.result.content)) {
+                for (const item of msg.result.content) {
+                    if (item.type === 'text' && typeof item.text === 'string') {
+                        item.text = item.text.replace(/https?:\/\/(?:[a-z0-9-]+\.)?(?:diagrams\.net|draw\.io)\//gi, '/draw/');
+                    }
+                }
+            }
+
             // Check if this is a response to a finalize request
             if (msg.id !== undefined && pendingFinalize.has(msg.id)) {
                 const xml = pendingFinalize.get(msg.id);
