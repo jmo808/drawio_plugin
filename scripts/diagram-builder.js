@@ -281,7 +281,67 @@ class DiagramBuilder {
 
         let x, y;
 
-        if (parent && parent.type === 'lane') {
+        if (this.type === 'flowchart') {
+            const siblings = this._childrenOf(parentId).filter(c => !c.isContainer);
+            const idx = siblings.length;
+            const parentWidth = parent ? parent.width : 800;
+            x = (parentWidth - nodeSize.width) / 2;
+            y = (parent ? CONTAINER_PADDING.top : 20) + idx * 120;
+        } else if (this.type === 'pfd' || type === 'pump' || type === 'vessel' || type === 'compressor') {
+            const pfdNodes = this._childrenOf(parentId).filter(c => !c.isContainer);
+            const idx = pfdNodes.length;
+            x = 40 + idx * 220;
+            y = 150;
+        } else if (type === 'participant') {
+            const participants = this._childrenOf(parentId).filter(n => n.type === 'participant');
+            const idx = participants.length;
+            x = 40 + idx * 240;
+            y = 20;
+        } else if (type === 'activation') {
+            const activations = this._childrenOf(parentId).filter(n => n.type === 'activation');
+            const idx = activations.length;
+            x = 40; // centered on parent participant (width 100, activation width 20)
+            y = 60 + idx * 60;
+        } else if (type === 'central') {
+            x = 400;
+            y = 250;
+        } else if (type === 'branch') {
+            const siblings = this._childrenOf(parentId).filter(n => n.type === 'branch');
+            const idx = siblings.length;
+            const isRight = idx % 2 === 0;
+            x = isRight ? 600 : 80;
+            const sideIdx = Math.floor(idx / 2);
+            y = 130 + sideIdx * 160;
+        } else if (type === 'leaf') {
+            const siblings = this._childrenOf(parentId).filter(n => n.type === 'leaf');
+            const idx = siblings.length;
+            if (parent) {
+                const isRight = parent.x >= 400;
+                x = isRight ? parent.x + 160 : parent.x - 140;
+                y = parent.y - 30 + idx * 50;
+            } else {
+                x = 400;
+                y = 400;
+            }
+        } else if (type === 'table' || type === 'view') {
+            const erdNodes = this._childrenOf(parentId).filter(n => n.type === 'table' || n.type === 'view');
+            const idx = erdNodes.length;
+            const cols = 3;
+            const col = idx % cols;
+            const row = Math.floor(idx / cols);
+            x = 40 + col * 260;
+            y = 40 + row * 220;
+        } else if (parent && parent.type === 'deployment') {
+            const pods = this._childrenOf(parentId).filter(n => n.type === 'pod');
+            const idx = pods.length;
+            x = CONTAINER_PADDING.left + idx * 100;
+            y = (parent.height - nodeSize.height) / 2;
+        } else if (parent && parent.type === 'vlan') {
+            const vlanNodes = this._childrenOf(parentId).filter(c => !c.isContainer);
+            const idx = vlanNodes.length;
+            x = CONTAINER_PADDING.left + idx * 100;
+            y = (parent.height - nodeSize.height) / 2;
+        } else if (parent && parent.type === 'lane') {
             const existingNodes = this._childrenOf(parentId).filter(c => !c.isContainer);
             const slotIndex = existingNodes.length;
 
@@ -1086,6 +1146,9 @@ class DiagramBuilder {
     }
 
     _applyTopologicalCorrections() {
+        if (this.type !== 'architecture') {
+            return;
+        }
         const isCompute = (n) => {
             if (['apigateway', 'api_gateway', 'route53', 'waf', 'cloudfront', 'dynamodb', 'rds', 'elasticache', 'sqs', 'sns', 'eventbridge'].includes(n.type)) return false;
             if (['ecs', 'ec2', 'lambda'].includes(n.type)) return true;

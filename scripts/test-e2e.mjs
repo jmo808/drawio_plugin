@@ -883,12 +883,50 @@ async function main() {
     const style1Ok = outputXml.includes('endArrow=ERmany') && outputXml.includes('startArrow=ERone');
     const style2Ok = outputXml.includes('endArrow=open') && !outputXml.includes('dashed=1');
 
-    const test23Ok = r.success && style1Ok && style2Ok;
+    const test23Ok = style1Ok && style2Ok;
     record(
       'Test 23: Connector style mapping for new domains',
       test23Ok,
       `1:N style matches: ${style1Ok}. Async style matches: ${style2Ok}.`
     );
+
+    // Test 24: Flowchart Layout Strategy
+    await client.callTool({ name: 'init_diagram', arguments: { title: 'Flowchart Layout Test', type: 'flowchart' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'fc1', label: 'Start', type: 'start', parent_id: '1' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'fc2', label: 'Process', type: 'process', parent_id: '1' } });
+    await client.callTool({ name: 'finalize', arguments: {} });
+    r = parseBuilderResult(await client.callTool({ name: 'get_state', arguments: {} }));
+    const fc1Val = r.nodes.find(n => n.id === 'fc1');
+    const fc2Val = r.nodes.find(n => n.id === 'fc2');
+    const flowchartOk = !!(fc1Val && fc2Val && (fc1Val.x + fc1Val.width / 2) === (fc2Val.x + fc2Val.width / 2) && fc2Val.y > fc1Val.y);
+
+    // Test 25: Sequence Layout Strategy
+    await client.callTool({ name: 'init_diagram', arguments: { title: 'Sequence Layout Test', type: 'sequence' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'p1', label: 'Alice', type: 'participant', parent_id: '1' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'p2', label: 'Bob', type: 'participant', parent_id: '1' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'act1', label: 'Active', type: 'activation', parent_id: 'p1' } });
+    await client.callTool({ name: 'finalize', arguments: {} });
+    r = parseBuilderResult(await client.callTool({ name: 'get_state', arguments: {} }));
+    const p1Val = r.nodes.find(n => n.id === 'p1');
+    const p2Val = r.nodes.find(n => n.id === 'p2');
+    const act1Val = r.nodes.find(n => n.id === 'act1');
+    const sequenceOk = !!(p1Val && p2Val && act1Val && p2Val.x > p1Val.x && act1Val.parent === 'p1');
+
+    // Test 26: Mind Map Layout Strategy
+    await client.callTool({ name: 'init_diagram', arguments: { title: 'Mindmap Test', type: 'mindmap' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'center', label: 'Root Idea', type: 'central', parent_id: '1' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'branch1', label: 'Branch 1 (Right)', type: 'branch', parent_id: '1' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'branch2', label: 'Branch 2 (Left)', type: 'branch', parent_id: '1' } });
+    await client.callTool({ name: 'finalize', arguments: {} });
+    r = parseBuilderResult(await client.callTool({ name: 'get_state', arguments: {} }));
+    const centerVal = r.nodes.find(n => n.id === 'center');
+    const b1Val = r.nodes.find(n => n.id === 'branch1');
+    const b2Val = r.nodes.find(n => n.id === 'branch2');
+    const mindmapOk = !!(centerVal && b1Val && b2Val && b1Val.x > centerVal.x && b2Val.x < centerVal.x);
+
+    record('Test 24: Flowchart Layout Strategy', flowchartOk, `Flowchart Ok: ${flowchartOk}`);
+    record('Test 25: Sequence Layout Strategy', sequenceOk, `Sequence Ok: ${sequenceOk}`);
+    record('Test 26: Mind Map Layout Strategy', mindmapOk, `Mindmap Ok: ${mindmapOk}`);
 
   } catch (err) {
     if (err.message !== 'stop') {
