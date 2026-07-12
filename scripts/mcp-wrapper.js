@@ -113,9 +113,24 @@ const BUILDER_TOOLS = [
             properties: {
                 id: { type: 'string', description: 'Unique ID for this node' },
                 label: { type: 'string', description: 'Display label' },
-                type: { type: 'string', enum: ['ec2', 'ecs', 'lambda', 'rds', 'elasticache', 'dynamodb', 's3', 'alb', 'nlb', 'cloudfront', 'route53', 'apigateway', 'api_gateway', 'waf', 'nat_gateway', 'endpoint', 'sqs', 'sns', 'eventbridge', 'user', 'internet', 'rectangle', 'diamond', 'cylinder', 'circle', 'pump', 'compressor', 'valve', 'vessel', 'cyclone', 'heat_exchanger'], description: 'Node type — determines shape and style' },
+                type: { type: 'string', enum: ['ec2', 'ecs', 'lambda', 'rds', 'elasticache', 'dynamodb', 's3', 'alb', 'nlb', 'cloudfront', 'route53', 'apigateway', 'api_gateway', 'waf', 'nat_gateway', 'endpoint', 'sqs', 'sns', 'eventbridge', 'user', 'internet', 'rectangle', 'diamond', 'cylinder', 'circle', 'pump', 'compressor', 'valve', 'vessel', 'cyclone', 'heat_exchanger', 'table', 'view'], description: 'Node type — determines shape and style' },
                 parent_id: { type: 'string', description: 'Parent container ID' },
                 variant: { type: 'string', description: 'Optional variant label (e.g., "primary", "replica")' },
+                columns: {
+                    type: 'array',
+                    description: 'Optional columns definition array for database tables (e.g. [{name: "id", type: "INT", pk: true}])',
+                    items: {
+                        type: 'object',
+                        properties: {
+                            name: { type: 'string' },
+                            type: { type: 'string' },
+                            pk: { type: 'boolean' },
+                            fk: { type: 'boolean' },
+                            nullable: { type: 'boolean' }
+                        },
+                        required: ['name']
+                    }
+                }
             },
             required: ['id', 'label', 'type', 'parent_id'],
         },
@@ -331,7 +346,7 @@ function compileSpecToBuilder(builderInstance, config) {
     if (config.nodes && Array.isArray(config.nodes)) {
         for (const n of config.nodes) {
             const parentId = n.parentId || n.parent_id || '1';
-            const res = builderInstance.addNode(n.id, n.label, n.type, parentId, n.variant);
+            const res = builderInstance.addNode(n.id, n.label, n.type, parentId, n.variant, n.columns);
             if (!res.success) return res;
         }
     }
@@ -361,7 +376,7 @@ function handleBuilderTool(toolName, args, msgId) {
             result = builder.addContainer(args.id, args.label, args.type, args.parent_id || '1', args.tier);
             break;
         case 'add_node':
-            result = builder.addNode(args.id, args.label, args.type, args.parent_id, args.variant);
+            result = builder.addNode(args.id, args.label, args.type, args.parent_id, args.variant, args.columns);
             break;
         case 'connect':
             result = builder.connect(args.source_id, args.target_id, args.label, args.style, args.color, args.exit_port, args.entry_port);

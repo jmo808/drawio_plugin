@@ -1131,6 +1131,64 @@ async function main() {
     record('Test 40: ORPHAN_TABLE rule', hasOrphanTableErr, `Found ORPHAN_TABLE: ${hasOrphanTableErr}`);
     record('Test 41: DUPLICATE_PK rule', hasDupPkErr, `Found DUPLICATE_PK: ${hasDupPkErr}`);
     record('Test 42: SELF_REFERENCE_MISSING rule', hasSelfRefMissingErr, `Found SELF_REFERENCE_MISSING: ${hasSelfRefMissingErr}`);
+
+    // Test 43: ERD Table Rendering and Dynamic Sizing
+    await client.callTool({ name: 'init_diagram', arguments: { title: 'ERD Rendering Test', type: 'erd' } });
+    
+    // Table 1: 3 columns (height should be 120)
+    await client.callTool({
+      name: 'add_node',
+      arguments: {
+        id: 't_users',
+        label: 'Users',
+        type: 'table',
+        parent_id: '1',
+        columns: [
+          { name: 'id', type: 'INT', pk: true, nullable: false },
+          { name: 'email', type: 'VARCHAR(255)', nullable: false },
+          { name: 'created_at', type: 'TIMESTAMP', nullable: true }
+        ]
+      }
+    });
+
+    // Table 2: 6 columns (height should be 40 + 6 * 22 = 172)
+    await client.callTool({
+      name: 'add_node',
+      arguments: {
+        id: 't_orders',
+        label: 'Orders',
+        type: 'table',
+        parent_id: '1',
+        columns: [
+          { name: 'id', type: 'INT', pk: true, nullable: false },
+          { name: 'user_id', type: 'INT', fk: true, nullable: false },
+          { name: 'total', type: 'DECIMAL(10,2)', nullable: false },
+          { name: 'status', type: 'VARCHAR(50)', nullable: false },
+          { name: 'created_at', type: 'TIMESTAMP', nullable: false },
+          { name: 'updated_at', type: 'TIMESTAMP', nullable: true }
+        ]
+      }
+    });
+
+    r = parseBuilderResult(await client.callTool({ name: 'get_state', arguments: {} }));
+    const usersNode = r.nodes ? r.nodes.find(n => n.id === 't_users') : null;
+    const ordersNode = r.nodes ? r.nodes.find(n => n.id === 't_orders') : null;
+
+    const erdRenderingOk = !!(
+      usersNode && usersNode.label.includes('<b>Users</b>') &&
+      usersNode.label.includes('+ id: INT [PK] NOT NULL') &&
+      usersNode.label.includes('email: VARCHAR(255) NOT NULL') &&
+      usersNode.label.includes('created_at: TIMESTAMP NULL') &&
+      usersNode.width === 180 && usersNode.height === 120 &&
+      
+      ordersNode && ordersNode.label.includes('<b>Orders</b>') &&
+      ordersNode.label.includes('+ id: INT [PK] NOT NULL') &&
+      ordersNode.label.includes('user_id: INT [FK] NOT NULL') &&
+      ordersNode.label.includes('total: DECIMAL(10,2) NOT NULL') &&
+      ordersNode.width === 180 && ordersNode.height === 172
+    );
+
+    record('Test 43: ERD Table Rendering and Dynamic Sizing', erdRenderingOk, `ERD Rendering resolved: ${erdRenderingOk}`);
   } catch (err) {
     if (err.message !== 'stop') {
       const testNum = results.length + 1;

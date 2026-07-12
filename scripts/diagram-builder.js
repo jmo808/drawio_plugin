@@ -282,7 +282,7 @@ class DiagramBuilder {
     }
 
     // --- Add Node ---
-    addNode(id, label, type, parentId, variant = null) {
+    addNode(id, label, type, parentId, variant = null, columns = null) {
         if (!this.initialized) return { success: false, error: 'Call init_diagram first.' };
         if (this.cells.has(id)) return { success: false, error: `Cell "${id}" already exists.` };
         if (parentId !== '1' && !this.cells.has(parentId)) {
@@ -291,33 +291,59 @@ class DiagramBuilder {
 
         // Auto-correct generic types if label implies a specific AWS resource
         const lowerLabel = (label || '').toLowerCase();
-        if (lowerLabel.includes('api gateway') || lowerLabel.includes('api_gateway')) {
-            type = 'apigateway';
-        } else if (lowerLabel.includes('cloudfront') || lowerLabel.includes('cdn')) {
-            type = 'cloudfront';
-        } else if (lowerLabel.includes('task queue') || lowerLabel.includes('sqs')) {
-            type = 'sqs';
-        } else if (lowerLabel.includes('lambda') || lowerLabel.includes('api handler')) {
-            type = 'lambda';
-        } else if (lowerLabel.includes('ecs') || lowerLabel.includes('worker')) {
-            type = 'ecs';
-        } else if (lowerLabel.includes('rds') || lowerLabel.includes('database') || lowerLabel.includes(' db')) {
-            type = 'rds';
-        } else if (lowerLabel.includes('redis') || lowerLabel.includes('cache')) {
-            type = 'elasticache';
-        } else if (lowerLabel.includes('user') || lowerLabel.includes('client')) {
-            type = 'user';
-        } else if (lowerLabel.includes('dynamodb') || lowerLabel.includes('dynamo')) {
-            type = 'dynamodb';
-        }
+        if (type !== 'table' && type !== 'view') {
+            if (lowerLabel.includes('api gateway') || lowerLabel.includes('api_gateway')) {
+                type = 'apigateway';
+            } else if (lowerLabel.includes('cloudfront') || lowerLabel.includes('cdn')) {
+                type = 'cloudfront';
+            } else if (lowerLabel.includes('task queue') || lowerLabel.includes('sqs')) {
+                type = 'sqs';
+            } else if (lowerLabel.includes('lambda') || lowerLabel.includes('api handler')) {
+                type = 'lambda';
+            } else if (lowerLabel.includes('ecs') || lowerLabel.includes('worker')) {
+                type = 'ecs';
+            } else if (lowerLabel.includes('rds') || lowerLabel.includes('database') || lowerLabel.includes(' db')) {
+                type = 'rds';
+            } else if (lowerLabel.includes('redis') || lowerLabel.includes('cache')) {
+                type = 'elasticache';
+            } else if (lowerLabel.includes('user') || lowerLabel.includes('client')) {
+                type = 'user';
+            } else if (lowerLabel.includes('dynamodb') || lowerLabel.includes('dynamo')) {
+                type = 'dynamodb';
+            }
 
-        if (type === 'dynamodb') {
-            parentId = '1';
+            if (type === 'dynamodb') {
+                parentId = '1';
+            }
         }
 
         let nodeSize = NODE_SIZES[type] || NODE_SIZE;
         let style = NODE_STYLES[type] || NODE_STYLES.rectangle;
-        if (variant) {
+
+        if ((type === 'table' || type === 'view') && columns && Array.isArray(columns)) {
+            const header = `<b>${label}</b>`;
+            const colLines = columns.map(c => {
+                let indicator = '';
+                if (c.pk || c.is_pk || c.isPk) {
+                    indicator = '+ ';
+                }
+                let keySuffix = '';
+                if (c.pk || c.is_pk || c.isPk) {
+                    keySuffix = ' [PK]';
+                } else if (c.fk || c.is_fk || c.isFk) {
+                    keySuffix = ' [FK]';
+                }
+                const colName = c.name;
+                const colType = c.type ? `: ${c.type}` : '';
+                const nullableStr = c.nullable === false ? ' NOT NULL' : (c.nullable === true ? ' NULL' : '');
+                return `${indicator}${colName}${colType}${keySuffix}${nullableStr}`;
+            });
+            label = [header, ...colLines].join('\n');
+            nodeSize = {
+                width: 180,
+                height: Math.max(120, 40 + columns.length * 22)
+            };
+        } else if (variant) {
             const variantKey = `${type}_${variant}`;
             if (NODE_SIZES[variantKey]) nodeSize = NODE_SIZES[variantKey];
             if (NODE_STYLES[variantKey]) style = NODE_STYLES[variantKey];
