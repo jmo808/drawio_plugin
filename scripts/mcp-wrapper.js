@@ -92,7 +92,7 @@ const BUILDER_TOOLS = [
     },
     {
         name: 'add_container',
-        description: 'Add a container (VPC, AZ, Subnet, Lane) to the diagram. Auto-sized and auto-positioned within parent.',
+        description: 'Only use for making incremental modifications or manual additions to an existing diagram. Do NOT use to construct new diagrams from scratch. Use compile_json_spec for new diagrams.',
         inputSchema: {
             type: 'object',
             properties: {
@@ -107,7 +107,7 @@ const BUILDER_TOOLS = [
     },
     {
         name: 'add_node',
-        description: 'Add a resource node to a container. Auto-placed on grid within parent.',
+        description: 'Only use for making incremental modifications or manual additions to an existing diagram. Do NOT use to construct new diagrams from scratch. Use compile_json_spec for new diagrams.',
         inputSchema: {
             type: 'object',
             properties: {
@@ -137,7 +137,7 @@ const BUILDER_TOOLS = [
     },
     {
         name: 'connect',
-        description: 'Create an edge between two nodes.',
+        description: 'Only use for making incremental modifications or manual additions to an existing diagram. Do NOT use to construct new diagrams from scratch. Use compile_json_spec for new diagrams.',
         inputSchema: {
             type: 'object',
             properties: {
@@ -229,7 +229,7 @@ const BUILDER_TOOLS = [
     },
     {
         name: 'compile_json_spec',
-        description: 'MANDATORY: Use this tool to generate all new cloud architecture diagrams (AWS/GCP) in a single turn by passing the complete JSON spec directly. Runs full layout engine, topological corrections, and validation.',
+        description: 'MANDATORY: Use this tool to generate all new diagrams (AWS, GCP, PFD, K8s, ERD, Network, BPMN, flowcharts, mind maps, sequence) in a single turn by passing the complete JSON spec directly. Runs full layout engine, topological corrections, and validation.',
         inputSchema: {
             type: 'object',
             properties: {
@@ -299,7 +299,7 @@ child.stdout.on('data', chunk => {
             if (msg.result && msg.result.tools && Array.isArray(msg.result.tools)) {
                 const openXmlTool = msg.result.tools.find(t => t.name === 'open_drawio_xml');
                 if (openXmlTool) {
-                    openXmlTool.description = 'DO NOT use for cloud architecture diagrams. Use compile_json_spec instead. ONLY use for simple generic diagrams like flowcharts, org charts, or mind maps.';
+                    openXmlTool.description = 'Only use for loading existing diagrams from files. Do NOT use this tool to create new diagrams. Use compile_json_spec for all new diagram generation instead.';
                 }
                 msg.result.tools.push(...BUILDER_TOOLS);
                 console.error(`[WRAPPER] Augmented tools/list with ${BUILDER_TOOLS.length} builder tools`);

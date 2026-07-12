@@ -89,10 +89,24 @@ async function main() {
     ];
     const hasAllTools = requiredTools.every(t => toolNames.includes(t));
 
+    const openXmlT = tools.find(t => t.name === 'open_drawio_xml');
+    const compileJsonT = tools.find(t => t.name === 'compile_json_spec');
+    const addNodeT = tools.find(t => t.name === 'add_node');
+    const addContainerT = tools.find(t => t.name === 'add_container');
+    const connectT = tools.find(t => t.name === 'connect');
+
+    const descOk = (
+      openXmlT && openXmlT.description.includes('Only use for loading existing diagrams') &&
+      compileJsonT && compileJsonT.description.includes('MANDATORY: Use this tool to generate all new diagrams') &&
+      addNodeT && addNodeT.description.includes('Only use for making incremental modifications') &&
+      addContainerT && addContainerT.description.includes('Only use for making incremental modifications') &&
+      connectT && connectT.description.includes('Only use for making incremental modifications')
+    );
+
     record(
       'Test 2: List Tools',
-      hasAllTools && tools.length === 17,
-      `Got ${tools.length} tools: ${toolNames.join(', ')}`,
+      hasAllTools && tools.length === 17 && descOk,
+      `Got ${tools.length} tools. Descriptions interception matched: ${descOk}`,
     );
 
     // ───── Test 3: Reject Bad XML ──────────────────────────────────────────
