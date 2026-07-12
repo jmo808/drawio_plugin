@@ -224,7 +224,7 @@ const NODE_SPACING = { x: 180, y: 140 };  // grid spacing within containers
 const CONTAINER_PADDING = { top: 44, left: 30, right: 30, bottom: 30 };
 const CONTAINER_START_SIZE = 24; // swimlane header height
 const AZ_GAP = 220; // horizontal gap between AZ containers — room for ALBs + edge routing
-const ALB_TYPES = new Set(['alb', 'nlb']); // node types that get center-column placement
+const ALB_TYPES = new Set(['alb', 'nlb', 'gclb', 'load_balancer', 'loadbalancer']); // node types that get center-column placement
 
 // ---------------------------------------------------------------------------
 // DiagramBuilder Class
@@ -420,81 +420,9 @@ class DiagramBuilder {
             x = 120 + slotIndex * 180;
             // Center vertically within the 180px height
             y = (parent.height - nodeSize.height) / 2;
-        } else if (ALB_TYPES.has(type) && parent && parent.type === 'vpc') {
-            const azChildren = this._childrenOf(parentId).filter(c => c.type === 'az');
-            const albSiblings = this._childrenOf(parentId).filter(c => !c.isContainer && ALB_TYPES.has(c.type));
-            const albIndex = albSiblings.length;
-
-            // Center horizontally in the VPC
-            x = (parent.width - nodeSize.width) / 2;
-
-            if (azChildren.length > 0) {
-                // Position vertically based on ALB index:
-                // First ALB (External): above the AZs (y=44)
-                // Second ALB (Internal): between web and app tiers (~y=380)
-                // Additional ALBs: stack below
-                if (albIndex === 0) {
-                    y = 44; // above AZ containers
-                } else if (albIndex === 1) {
-                    // Between web subnet bottom and app subnet top
-                    y = 380;
-                } else {
-                    y = 44 + albIndex * 200;
-                }
-            } else {
-                y = CONTAINER_PADDING.top + albIndex * NODE_SPACING.y;
-            }
-        } else if (parentId === '1' || !parent || ['region', 'group'].includes(parent.type)) {
-            // Root-level or Region/Group level nodes (Users, CDN, API Gateway) — place in horizontal row at top
-            // Adjust label with variant
-            let fullLabel = label;
-            if (variant) {
-                fullLabel = `${label}&#xa;${variant.charAt(0).toUpperCase() + variant.slice(1)}`;
-            }
-
-            const startY = (parentId === '1' || !parent) ? 10 : CONTAINER_PADDING.top;
-
-            const cell = {
-                id, label: fullLabel, type, style, parentId, isContainer: false, isEdge: false,
-                x: 0, y: startY, width: nodeSize.width, height: nodeSize.height, variant,
-            };
-            this.cells.set(id, cell);
-
-            // Dynamically center all non-container sibling nodes
-            const siblingNodes = this._childrenOf(parentId).filter(c => !c.isContainer);
-            const siblingContainers = this._childrenOf(parentId).filter(c => c.isContainer);
-            
-            let centerX = 400;
-            if (parentId === '1' || !parent) {
-                const mainContainer = siblingContainers.find(c => c.type === 'vpc' || c.type === 'region');
-                centerX = mainContainer ? (mainContainer.x + mainContainer.width / 2) : 600;
-            } else {
-                centerX = parent.width / 2;
-            }
-
-            const totalWidth = siblingNodes.length * NODE_SPACING.x;
-            const startX = centerX - totalWidth / 2;
-
-            siblingNodes.forEach((n, idx) => {
-                const nSize = NODE_SIZES[n.type] || NODE_SIZE;
-                n.x = startX + idx * NODE_SPACING.x + (NODE_SPACING.x - nSize.width) / 2;
-                n.y = startY;
-            });
-
-            return { success: true, id, message: `Node "${label}" (${type}) placed horizontally in ${parentId}.` };
         } else {
-            // Standard grid placement within parent
-            const existingNodes = this._childrenOf(parentId).filter(c => !c.isContainer);
-            const slotIndex = existingNodes.length;
-
-            const maxCols = parent
-                ? Math.max(1, Math.floor((parent.width - CONTAINER_PADDING.left - CONTAINER_PADDING.right) / NODE_SPACING.x))
-                : 3;
-            const col = slotIndex % maxCols;
-            const row = Math.floor(slotIndex / maxCols);
-
-            x = CONTAINER_PADDING.left + col * NODE_SPACING.x + (NODE_SPACING.x - nodeSize.width) / 2;
-            y = CONTAINER_PADDING.top + row * NODE_SPACING.y + (NODE_SPACING.y - nodeSize.height) / 2;
+            x = 0;
+            y = 0;
         }
 
         // Adjust label with variant
@@ -509,6 +437,15 @@ class DiagramBuilder {
         };
 
         this.cells.set(id, cell);
+
+        const customDomains = ['flowchart', 'pfd', 'sequence', 'mindmap', 'erd', 'vlan', 'lane', 'deployment'];
+        const isCustomDomain = customDomains.includes(this.type) || 
+                               ['participant', 'activation', 'table', 'view', 'pump', 'vessel', 'compressor'].includes(type) ||
+                               (parent && ['vlan', 'lane', 'deployment'].includes(parent.type));
+
+        if (!isCustomDomain) {
+            this._layoutSiblingNodes(parentId);
+        }
 
         // Auto-expand parent if needed
         if (parent) this._autoExpand(parentId);
@@ -959,6 +896,80 @@ class DiagramBuilder {
         return children;
     }
 
+    _getAbsoluteCoords(cell) {
+        let x = 0;
+        let y = 0;
+        let curr = cell;
+        while (curr) {
+            x += curr.x || 0;
+            y += curr.y || 0;
+            if (!curr.parentId || curr.parentId === '1') break;
+            curr = this.cells.get(curr.parentId);
+        }
+        return { x, y };
+    }
+
+    _layoutSiblingNodes(parentId) {
+        const parent = this.cells.get(parentId);
+        const siblings = this._childrenOf(parentId).filter(c => !c.isContainer);
+
+        // 1. If root or region/group row:
+        if (parentId === '1' || !parent || ['region', 'group'].includes(parent.type)) {
+            const startY = (parentId === '1' || !parent) ? 10 : CONTAINER_PADDING.top;
+            const siblingContainers = this._childrenOf(parentId).filter(c => c.isContainer);
+            
+            let centerX = 400;
+            if (parentId === '1' || !parent) {
+                const mainContainer = siblingContainers.find(c => c.type === 'vpc' || c.type === 'region');
+                centerX = mainContainer ? (mainContainer.x + mainContainer.width / 2) : 600;
+            } else {
+                centerX = parent.width / 2;
+            }
+
+            const totalWidth = siblings.length * NODE_SPACING.x;
+            const startX = centerX - totalWidth / 2;
+
+            siblings.forEach((n, idx) => {
+                const nSize = NODE_SIZES[n.type] || NODE_SIZE;
+                n.x = startX + idx * NODE_SPACING.x + (NODE_SPACING.x - nSize.width) / 2;
+                n.y = startY;
+            });
+            return;
+        }
+
+        // 2. Otherwise (VPCs, Subnets, etc.):
+        const albs = siblings.filter(c => ALB_TYPES.has(c.type));
+        const regularNodes = siblings.filter(c => !ALB_TYPES.has(c.type));
+
+        // Position ALBs/Load Balancers at top center
+        albs.forEach((alb, idx) => {
+            const albSize = NODE_SIZES[alb.type] || NODE_SIZE;
+            alb.x = (parent.width - albSize.width) / 2;
+            
+            const azChildren = this._childrenOf(parentId).filter(c => c.type === 'az' || c.type === 'zone');
+            if (azChildren.length > 0) {
+                if (idx === 0) alb.y = 44;
+                else if (idx === 1) alb.y = 380;
+                else alb.y = 44 + idx * 200;
+            } else {
+                alb.y = 44 + idx * 100;
+            }
+        });
+
+        // Position regular nodes in a grid below ALBs
+        const maxCols = Math.max(1, Math.floor((parent.width - CONTAINER_PADDING.left - CONTAINER_PADDING.right) / NODE_SPACING.x));
+        const albOffsetRows = albs.length > 0 ? Math.ceil((albs.length * 100 + 20) / NODE_SPACING.y) : 0;
+
+        regularNodes.forEach((n, idx) => {
+            const nSize = NODE_SIZES[n.type] || NODE_SIZE;
+            const col = idx % maxCols;
+            const row = Math.floor(idx / maxCols) + albOffsetRows;
+
+            n.x = CONTAINER_PADDING.left + col * NODE_SPACING.x + (NODE_SPACING.x - nSize.width) / 2;
+            n.y = CONTAINER_PADDING.top + row * NODE_SPACING.y + (NODE_SPACING.y - nSize.height) / 2;
+        });
+    }
+
     _nodesByTier(tierQuery) {
         const q = tierQuery.toLowerCase();
         const results = [];
@@ -1279,19 +1290,7 @@ class DiagramBuilder {
             return null;
         };
 
-        const getAbsoluteCoords = (c) => {
-            let x = c.x || 0;
-            let y = c.y || 0;
-            let curr = c;
-            while (curr && curr.parentId && curr.parentId !== '1') {
-                curr = this.cells.get(curr.parentId);
-                if (curr) {
-                    x += curr.x || 0;
-                    y += curr.y || 0;
-                }
-            }
-            return { x, y };
-        };
+        const getAbsoluteCoords = (c) => this._getAbsoluteCoords(c);
 
         const hasEdge = (srcId, tgtId, bidirectional = false) => {
             for (const [, e] of this.edges) {
@@ -2073,19 +2072,7 @@ class DiagramBuilder {
             }
 
             // 7c. SQS port constraints to avoid crossing top-level rows
-            const getAbsoluteCoords = (c) => {
-                let x = c.x || 0;
-                let y = c.y || 0;
-                let curr = c;
-                while (curr && curr.parentId && curr.parentId !== '1') {
-                    curr = this.cells.get(curr.parentId);
-                    if (curr) {
-                        x += curr.x || 0;
-                        y += curr.y || 0;
-                    }
-                }
-                return { x, y };
-            };
+            const getAbsoluteCoords = (c) => this._getAbsoluteCoords(c);
 
             for (const [, edge] of this.edges) {
                 if (edge.sourceId === sqsNode.id || edge.targetId === sqsNode.id) {
