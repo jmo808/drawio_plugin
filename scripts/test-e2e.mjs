@@ -772,6 +772,61 @@ async function main() {
       `API Gateway to EventBridge purged: ${!hasApigwToEb}. Empty subnet purged: ${dataSubnetDeleted}. AZ-A worker connected to Primary: ${workerAToPrimary}. AZ-B worker connected to Replica/Primary: ${workerBToReplica}/${workerBToPrimaryCross}. DynamoDB flanking EB: ${flankedCorrectly}.`
     );
 
+    // Test 21: Container Layout mappings for new domains (K8s, Network, Flowchart Group)
+    await client.callTool({ name: 'init_diagram', arguments: { title: 'New Domains Layout Test', type: 'architecture' } });
+    
+    // K8s containers
+    await client.callTool({ name: 'add_container', arguments: { id: 'k8s_cluster', label: 'K8s Cluster', type: 'cluster' } });
+    await client.callTool({ name: 'add_container', arguments: { id: 'k8s_ns1', label: 'Namespace 1', type: 'namespace', parent_id: 'k8s_cluster' } });
+    await client.callTool({ name: 'add_container', arguments: { id: 'k8s_ns2', label: 'Namespace 2', type: 'namespace', parent_id: 'k8s_cluster' } });
+    await client.callTool({ name: 'add_container', arguments: { id: 'k8s_dep1', label: 'Deployment 1', type: 'deployment', parent_id: 'k8s_ns1' } });
+    
+    // Network containers
+    await client.callTool({ name: 'add_container', arguments: { id: 'net_wan', label: 'WAN', type: 'wan' } });
+    await client.callTool({ name: 'add_container', arguments: { id: 'net_dmz', label: 'DMZ', type: 'dmz' } });
+    await client.callTool({ name: 'add_container', arguments: { id: 'net_lan', label: 'LAN', type: 'lan' } });
+    await client.callTool({ name: 'add_container', arguments: { id: 'net_vlan1', label: 'VLAN 1', type: 'vlan', parent_id: 'net_lan' } });
+    await client.callTool({ name: 'add_container', arguments: { id: 'net_vlan2', label: 'VLAN 2', type: 'vlan', parent_id: 'net_lan' } });
+
+    // Flowchart group
+    await client.callTool({ name: 'add_container', arguments: { id: 'fc_group', label: 'Flowchart Group', type: 'group' } });
+    
+    // Finalize to run layout engine
+    await client.callTool({ name: 'finalize', arguments: {} });
+    r = parseBuilderResult(await client.callTool({ name: 'get_state', arguments: {} }));
+
+    const clusterVal = r.containers.find(c => c.id === 'k8s_cluster');
+    const ns1Val = r.containers.find(c => c.id === 'k8s_ns1');
+    const ns2Val = r.containers.find(c => c.id === 'k8s_ns2');
+    const dep1Val = r.containers.find(c => c.id === 'k8s_dep1');
+    
+    const wanVal = r.containers.find(c => c.id === 'net_wan');
+    const dmzVal = r.containers.find(c => c.id === 'net_dmz');
+    const lanVal = r.containers.find(c => c.id === 'net_lan');
+    const vlan1Val = r.containers.find(c => c.id === 'net_vlan1');
+    const vlan2Val = r.containers.find(c => c.id === 'net_vlan2');
+    
+    const groupVal = r.containers.find(c => c.id === 'fc_group');
+
+    // Assert that the container types mapped correctly to specific layout values
+    const k8sLayoutOk = !!(clusterVal && ns1Val && ns2Val && dep1Val &&
+                        ns1Val.width === 540 && ns2Val.width === 540 &&
+                        ns2Val.x > ns1Val.x && dep1Val.width === ns1Val.width - 40);
+                        
+    const netLayoutOk = !!(wanVal && dmzVal && lanVal && vlan1Val && vlan2Val &&
+                        dmzVal.y > wanVal.y && lanVal.y > dmzVal.y &&
+                        vlan2Val.x > vlan1Val.x && vlan1Val.width === 350);
+                        
+    const groupLayoutOk = !!(groupVal && groupVal.width === 560);
+
+    const test21Ok = r.success && k8sLayoutOk && netLayoutOk && groupLayoutOk;
+
+    record(
+      'Test 21: Container Layout mappings for new domains',
+      test21Ok,
+      `K8s layout Ok: ${k8sLayoutOk}. Network layout Ok: ${netLayoutOk}. Group layout Ok: ${groupLayoutOk}.`
+    );
+
   } catch (err) {
     if (err.message !== 'stop') {
       const testNum = results.length + 1;

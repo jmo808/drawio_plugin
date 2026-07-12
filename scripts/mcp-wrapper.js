@@ -214,14 +214,17 @@ const BUILDER_TOOLS = [
     },
     {
         name: 'compile_json_spec',
-        description: 'Compile a declarative JSON diagram spec into a draw.io XML file. Runs full layout engine, topological corrections, and validation. Saves to the output path without spawning shell subprocesses.',
+        description: 'MANDATORY: Use this tool to generate all new cloud architecture diagrams (AWS/GCP) in a single turn by passing the complete JSON spec directly. Runs full layout engine, topological corrections, and validation.',
         inputSchema: {
             type: 'object',
             properties: {
+                spec: {
+                    type: 'object',
+                    description: 'The declarative JSON diagram spec object containing title, theme, type, containers, nodes, and edges.'
+                },
                 spec_path: { type: 'string', description: 'Absolute path to the JSON spec file.' },
                 output_path: { type: 'string', description: 'Absolute path where the compiled .drawio XML file should be saved.' }
-            },
-            required: ['spec_path', 'output_path']
+            }
         },
     },
     {
@@ -245,6 +248,9 @@ if (useNpx) {
 
 child.stderr.on('data', chunk => process.stderr.write(chunk));
 
+// Keep track of pending finalize requests
+const pendingFinalize = new Map();
+
 // ---------------------------------------------------------------------------
 // Child stdout interception — augment tools/list responses
 // ---------------------------------------------------------------------------
@@ -263,8 +269,23 @@ child.stdout.on('data', chunk => {
         try {
             const msg = JSON.parse(lineStr);
 
+            // Check if this is a response to a finalize request
+            if (msg.id !== undefined && pendingFinalize.has(msg.id)) {
+                const xml = pendingFinalize.get(msg.id);
+                pendingFinalize.delete(msg.id);
+                if (msg.result) {
+                    msg.result.xml = xml;
+                }
+                process.stdout.write(JSON.stringify(msg) + '\n');
+                continue;
+            }
+
             // Augment tools/list response with builder tools
             if (msg.result && msg.result.tools && Array.isArray(msg.result.tools)) {
+                const openXmlTool = msg.result.tools.find(t => t.name === 'open_drawio_xml');
+                if (openXmlTool) {
+                    openXmlTool.description = 'DO NOT use for cloud architecture diagrams. Use compile_json_spec instead. ONLY use for simple generic diagrams like flowcharts, org charts, or mind maps.';
+                }
                 msg.result.tools.push(...BUILDER_TOOLS);
                 console.error(`[WRAPPER] Augmented tools/list with ${BUILDER_TOOLS.length} builder tools`);
                 process.stdout.write(JSON.stringify(msg) + '\n');
@@ -278,6 +299,53 @@ child.stdout.on('data', chunk => {
         process.stdout.write(lineStr + '\n');
     }
 });
+
+function compileSpecToBuilder(builderInstance, config) {
+    // 1. Initialize diagram
+    const initRes = builderInstance.init(config.title || 'Architecture', config.theme || 'light', config.type || 'architecture');
+    if (!initRes.success) return initRes;
+
+    // 2. Add containers
+    if (config.containers && Array.isArray(config.containers)) {
+        const added = new Set(['1']);
+        let pending = [...config.containers];
+        let loops = 0;
+        while (pending.length > 0 && loops < 100) {
+            const nextPending = [];
+            for (const c of pending) {
+                const parentId = c.parentId || c.parent_id || '1';
+                if (added.has(parentId)) {
+                    const res = builderInstance.addContainer(c.id, c.label, c.type, parentId, c.tier);
+                    if (!res.success) return res;
+                    added.add(c.id);
+                } else {
+                    nextPending.push(c);
+                }
+            }
+            pending = nextPending;
+            loops++;
+        }
+    }
+
+    // 3. Add nodes
+    if (config.nodes && Array.isArray(config.nodes)) {
+        for (const n of config.nodes) {
+            const parentId = n.parentId || n.parent_id || '1';
+            const res = builderInstance.addNode(n.id, n.label, n.type, parentId, n.variant);
+            if (!res.success) return res;
+        }
+    }
+
+    // 4. Add connections
+    if (config.edges && Array.isArray(config.edges)) {
+        for (const e of config.edges) {
+            const res = builderInstance.connect(e.sourceId || e.source_id, e.targetId || e.target_id, e.label, e.style, e.color, e.exitPort || e.exit_port, e.entryPort || e.entry_port);
+            if (!res.success) return res;
+        }
+    }
+
+    return { success: true };
+}
 
 // ---------------------------------------------------------------------------
 // Handle builder tool calls
@@ -340,7 +408,25 @@ function handleBuilderTool(toolName, args, msgId) {
             break;
         case 'compile_json_spec':
             try {
-                result = buildDiagram(args.spec_path, args.output_path);
+                let config;
+                if (args.spec) {
+                    config = args.spec;
+                } else {
+                    if (!args.spec_path || !fs.existsSync(args.spec_path)) {
+                        result = { success: false, error: `File not found: ${args.spec_path}` };
+                        break;
+                    }
+                    config = JSON.parse(fs.readFileSync(args.spec_path, 'utf8'));
+                }
+                const compileRes = compileSpecToBuilder(builder, config);
+                if (!compileRes.success) {
+                    result = compileRes;
+                } else {
+                    result = { success: true, xml: builder.toXml() };
+                    if (args.output_path) {
+                        fs.writeFileSync(args.output_path, result.xml, 'utf8');
+                    }
+                }
             } catch (e) {
                 result = { success: false, error: `Compilation crash: ${e.message}` };
             }
@@ -354,6 +440,7 @@ function handleBuilderTool(toolName, args, msgId) {
 
     // If finalize succeeded, we need to forward to the downstream MCP server
     if (toolName === 'finalize' && result.success) {
+        pendingFinalize.set(msgId, result.xml);
         return { finalize: true, xml: result.xml, type: result.type, msgId };
     }
 

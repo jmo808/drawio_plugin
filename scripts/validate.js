@@ -207,6 +207,7 @@ function validateXml(xmlStr, diagramType = null) {
     //   pfd.js → runs for 'pfd' diagrams (or when type is unknown)
     const VALIDATOR_TYPE_MAP = {
         'aws.js': ['architecture', null],
+        'gcp.js': ['architecture', null],
         'pfd.js': ['pfd', null],
     };
     const validatorsDir = path.join(__dirname, 'validators');

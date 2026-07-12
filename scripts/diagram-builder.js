@@ -235,8 +235,8 @@ class DiagramBuilder {
             
             let centerX = 400;
             if (parentId === '1' || !parent) {
-                const vpc = siblingContainers.find(c => c.type === 'vpc');
-                centerX = vpc ? (vpc.x + vpc.width / 2) : 600;
+                const mainContainer = siblingContainers.find(c => c.type === 'vpc' || c.type === 'region');
+                centerX = mainContainer ? (mainContainer.x + mainContainer.width / 2) : 600;
             } else {
                 centerX = parent.width / 2;
             }
@@ -716,11 +716,59 @@ class DiagramBuilder {
         const parent = this.cells.get(parentId);
 
         if (type === 'region') {
-            return { x: 20, y: 40, width: 1280, height: 300 };
+            return { x: 20, y: 150, width: 1280, height: 300 };
         }
 
         if (type === 'vpc') {
             return { x: 40, y: 180, width: 1200, height: 300 };
+        }
+
+        if (type === 'cluster') {
+            const clusterIndex = siblings.filter(s => s.type === 'cluster').length;
+            return { x: 40, y: 40 + clusterIndex * 540, width: 1200, height: 500 };
+        }
+
+        if (type === 'namespace') {
+            const nsIndex = siblings.filter(s => s.type === 'namespace').length;
+            const nsWidth = 540;
+            const x = 30 + nsIndex * (nsWidth + 40);
+            return { x, y: CONTAINER_PADDING.top, width: nsWidth, height: 400 };
+        }
+
+        if (type === 'deployment') {
+            const deploySiblings = siblings.filter(s => s.type === 'deployment');
+            let y = CONTAINER_PADDING.top;
+            for (const s of deploySiblings) {
+                y = Math.max(y, s.y + s.height + 24);
+            }
+            const parentWidth = parent ? parent.width : 540;
+            return { x: 20, y, width: parentWidth - 40, height: 160 };
+        }
+
+        if (type === 'wan' || type === 'dmz' || type === 'lan') {
+            const zoneSiblings = siblings.filter(s => s.type === 'wan' || s.type === 'dmz' || s.type === 'lan');
+            let y = 40;
+            for (const s of zoneSiblings) {
+                y = Math.max(y, s.y + s.height + 40);
+            }
+            return { x: 40, y, width: 1200, height: 300 };
+        }
+
+        if (type === 'vlan') {
+            const vlanIndex = siblings.filter(s => s.type === 'vlan').length;
+            const vlanWidth = 350;
+            const x = 20 + vlanIndex * (vlanWidth + 30);
+            return { x, y: CONTAINER_PADDING.top, width: vlanWidth, height: 220 };
+        }
+
+        if (type === 'group') {
+            const groupSiblings = siblings.filter(s => s.type === 'group');
+            let y = CONTAINER_PADDING.top;
+            for (const s of groupSiblings) {
+                y = Math.max(y, s.y + s.height + 24);
+            }
+            const parentWidth = parent ? parent.width : 600;
+            return { x: 20, y, width: parentWidth - 40, height: 200 };
         }
 
         if (type === 'az') {

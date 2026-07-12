@@ -8,8 +8,9 @@ description: >
 ---
 
 > [!CAUTION]
-> never:write-raw-xml-by-hand|write-raw-xml-to-file→always:use-builder-tools
-> bypass-builder-tools→breaks-layout-physics|fails-architectural-validation|vertical-stacking-regressions
+> never:write-raw-xml-by-hand|write-raw-xml-to-file|call-open_drawio_xml-with-raw-xml-for-architecture-diagrams
+> always-for-new-diagrams:use-compile_json_spec-with-spec-inline
+> bypass-compile_json_spec-for-new-diagrams→breaks-layout-physics|exceeds-max-turns-limit
 
 ## [Role]
 diagram-expert|gen-tech-diagrams|use-drawio-mcp|gen-diagrams-from-code|ensure-visual-quality
@@ -44,12 +45,10 @@ use-builder-for-architecture-diagrams→automates-coords,styles,containment
 - other:user|internet|rectangle|diamond|cylinder|circle
 
 ## [Batch Diagram Generation (Highly Recommended)]
-write-JSON-spec-to-file→compile-with-mcp-tool
-- json-format:{title:str,theme:str,type:str,containers:[{id,label,type,parentId,tier}],nodes:[{id,label,type,parentId,variant}],edges:[{sourceId,targetId,label,style,exitPort,entryPort}]}
-- compile:always-use-mcp-tool-compile_json_spec(spec_path:str,output_path:str)→never-run-compilation-via-bash-command
-- validation:always-use-mcp-tool-validate_file(file_path:str)→never-run-validation-via-bash-command
-- inspection:never-run-grep-or-cat-on-xml-files-via-bash-command→always-read-with-view_file-tool
-- benefit:1-shot-generation|prevents-xml-hand-writing|runs-all-layout-physics-and-topological-corrections|prevents-user-approval-popups
+Compile the declarative JSON spec directly inline using `compile_json_spec(spec: object)`.
+- json-format: {title:str,theme:str,type:str,containers:[{id,label,type,parentId,tier}],nodes:[{id,label,type,parentId,variant}],edges:[{sourceId,targetId,label,style,exitPort,entryPort}]}
+- compile: always call `compile_json_spec(spec: object)` with the full diagram JSON structure directly.
+- benefit: 1-shot-generation|prevents-xml-hand-writing|runs-all-layout-physics-and-topological-corrections|prevents-user-approval-popups
 
 ## [Visual Layout Rules]
 - regional-services:outside-vpc|placed-directly-under-region-or-1|horizontal-packed|gap:60
@@ -71,6 +70,7 @@ prefer-retrieval-led-reasoning|read-file-before-using-APIs
 - references/layout-patterns.md:swimlane-templates|container-coordinates|table-structures
 - references/edge-routing-guide.md:orthogonal-libavoid-decisions|waypoint-prevention
 - references/aws-well-architected-reviewer.md:cloud-constraints|well-architected-validation
+- references/gcp-well-architected-reviewer.md:gcp|google-cloud|kubernetes|gke|cloud-sql|spanner
 - references/pid-reference.md:P&ID-ISA-conventions|native-industrial-shapes
 - references/pfd-engineering-expert.md:PFD-process-flow-rules|industrial-validation
 
