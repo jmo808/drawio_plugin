@@ -868,6 +868,28 @@ async function main() {
       `Node sizes matched: ${nodeSizesOk}.`
     );
 
+    // Test 23: Connector style mapping for new domains
+    await client.callTool({ name: 'init_diagram', arguments: { title: 'New Edge Styles Test', type: 'architecture' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'n1', label: 'Node 1', type: 'rectangle', parent_id: '1' } });
+    await client.callTool({ name: 'add_node', arguments: { id: 'n2', label: 'Node 2', type: 'rectangle', parent_id: '1' } });
+    
+    await client.callTool({ name: 'connect', arguments: { source_id: 'n1', target_id: 'n2', label: '1:N Relation', style: '1:N' } });
+    await client.callTool({ name: 'connect', arguments: { source_id: 'n2', target_id: 'n1', label: 'Callback', style: 'async' } });
+    
+    // Finalize
+    const finalizeRes = await client.callTool({ name: 'finalize', arguments: {} });
+    const outputXml = finalizeRes.xml || '';
+
+    const style1Ok = outputXml.includes('endArrow=ERmany') && outputXml.includes('startArrow=ERone');
+    const style2Ok = outputXml.includes('endArrow=open') && !outputXml.includes('dashed=1');
+
+    const test23Ok = r.success && style1Ok && style2Ok;
+    record(
+      'Test 23: Connector style mapping for new domains',
+      test23Ok,
+      `1:N style matches: ${style1Ok}. Async style matches: ${style2Ok}.`
+    );
+
   } catch (err) {
     if (err.message !== 'stop') {
       const testNum = results.length + 1;

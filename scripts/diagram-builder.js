@@ -104,6 +104,21 @@ const NODE_STYLES = {
 const EDGE_STYLES = {
     solid: 'edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;sourcePerimeterSpacing=10;targetPerimeterSpacing=10;jumpStyle=arc;',
     dashed: 'edgeStyle=orthogonalEdgeStyle;rounded=1;orthogonalLoop=1;jettySize=auto;html=1;dashed=1;sourcePerimeterSpacing=10;targetPerimeterSpacing=10;jumpStyle=arc;',
+    
+    // ERD
+    '1:1': 'edgeStyle=orthogonalEdgeStyle;fontSize=12;html=1;endArrow=ERone;startArrow=ERone;endSize=8;startSize=8;',
+    '1:N': 'edgeStyle=orthogonalEdgeStyle;fontSize=12;html=1;endArrow=ERmany;startArrow=ERone;endSize=8;startSize=8;',
+    'N:M': 'edgeStyle=orthogonalEdgeStyle;fontSize=12;html=1;endArrow=ERmany;startArrow=ERmany;endSize=8;startSize=8;',
+
+    // Sequence
+    sync: 'edgeStyle=orthogonalEdgeStyle;html=1;endArrow=block;',
+    async: 'edgeStyle=orthogonalEdgeStyle;html=1;endArrow=open;',
+    return: 'edgeStyle=orthogonalEdgeStyle;html=1;endArrow=open;dashed=1;',
+
+    // PFD
+    process: 'edgeStyle=orthogonalEdgeStyle;html=1;strokeWidth=3;',
+    utility: 'edgeStyle=orthogonalEdgeStyle;html=1;dashed=1;strokeWidth=1.5;',
+    instrument: 'edgeStyle=orthogonalEdgeStyle;html=1;dashPattern=1 3;dashed=1;strokeWidth=1;',
 };
 
 // ---------------------------------------------------------------------------
