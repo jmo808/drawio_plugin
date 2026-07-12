@@ -255,4 +255,144 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
             }
         }
     }
+
+    // Rule 10: High Availability Load Balancing (Multi-Zone target routing)
+    let hasGclb = false;
+    let gclbId = null;
+    for (const nid in gcpNodes) {
+        const node = gcpNodes[nid];
+        if (node.type === 'load_balancing' && !isInternalLb(node.value)) {
+            hasGclb = true;
+            gclbId = node.id;
+            break;
+        }
+    }
+    if (hasGclb && gclbId) {
+        const targetZones = new Set();
+        for (const id in cells) {
+            const cell = cells[id];
+            if (cell.isEdge) {
+                const el = doc.getElementById(id) || Array.from(mxCells).find(e => e.getAttribute('id') === id);
+                if (el && el.getAttribute('source') === gclbId) {
+                    const targetNodeId = el.getAttribute('target');
+                    const targetNode = gcpNodes[targetNodeId];
+                    if (targetNode && statelessComputeTypes.includes(targetNode.type)) {
+                        let zoneId = null;
+                        let p = cells[targetNode.parent];
+                        while (p && p.id !== "1" && p.id !== "0") {
+                            if (p.value && (p.value.toLowerCase().includes('zone ') || p.value.toLowerCase().includes('az '))) { 
+                                zoneId = p.id; 
+                                break; 
+                            }
+                            p = cells[p.parent];
+                        }
+                        if (zoneId) {
+                            targetZones.add(zoneId);
+                        } else {
+                            const valLower = (targetNode.value || '').toLowerCase();
+                            if (valLower.includes('zone a') || valLower.includes('zone-a') || valLower.includes('zone_a')) {
+                                targetZones.add('zone_a');
+                            } else if (valLower.includes('zone b') || valLower.includes('zone-b') || valLower.includes('zone_b')) {
+                                targetZones.add('zone_b');
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        const allZones = new Set();
+        for (const nid in gcpNodes) {
+            const node = gcpNodes[nid];
+            if (statelessComputeTypes.includes(node.type)) {
+                let zoneId = null;
+                let p = cells[node.parent];
+                while (p && p.id !== "1" && p.id !== "0") {
+                    if (p.value && (p.value.toLowerCase().includes('zone ') || p.value.toLowerCase().includes('az '))) { 
+                        zoneId = p.id; 
+                        break; 
+                    }
+                    p = cells[p.parent];
+                }
+                if (zoneId) {
+                    allZones.add(zoneId);
+                } else {
+                    const valLower = (node.value || '').toLowerCase();
+                    if (valLower.includes('zone a') || valLower.includes('zone-a') || valLower.includes('zone_a')) {
+                        allZones.add('zone_a');
+                    } else if (valLower.includes('zone b') || valLower.includes('zone-b') || valLower.includes('zone_b')) {
+                        allZones.add('zone_b');
+                    }
+                }
+            }
+        }
+        
+        if (allZones.size >= 2 && targetZones.size < 2) {
+            reportError('TOPOLOGY_ERROR', gclbId, `GCLB must route to compute targets in at least two different Zones/Availability Zones for high availability.`);
+        }
+    }
+
+    // Rule 11: Linear public ingress chain (Client -> Armor -> CDN -> GCLB)
+    let armorNode = null;
+    let cdnNode = null;
+    let clientNode = null;
+    for (const nid in gcpNodes) {
+        const node = gcpNodes[nid];
+        if (node.type === 'cloud_armor') armorNode = node;
+        if (node.type === 'cloud_cdn') cdnNode = node;
+        if (node.type === 'user') clientNode = node;
+    }
+    
+    if (clientNode) {
+        if (armorNode) {
+            let clientToArmor = false;
+            for (const id in cells) {
+                const cell = cells[id];
+                if (cell.isEdge) {
+                    const el = doc.getElementById(id) || Array.from(mxCells).find(e => e.getAttribute('id') === id);
+                    if (el && el.getAttribute('source') === clientNode.id && el.getAttribute('target') === armorNode.id) {
+                        clientToArmor = true;
+                        break;
+                    }
+                }
+            }
+            if (!clientToArmor) {
+                reportError('TOPOLOGY_ERROR', clientNode.id, `Client must route to Cloud Armor (WAF) first for secure public ingress.`);
+            }
+        }
+        
+        if (armorNode && cdnNode) {
+            let armorToCdn = false;
+            for (const id in cells) {
+                const cell = cells[id];
+                if (cell.isEdge) {
+                    const el = doc.getElementById(id) || Array.from(mxCells).find(e => e.getAttribute('id') === id);
+                    if (el && el.getAttribute('source') === armorNode.id && el.getAttribute('target') === cdnNode.id) {
+                        armorToCdn = true;
+                        break;
+                    }
+                }
+            }
+            if (!armorToCdn) {
+                reportError('TOPOLOGY_ERROR', armorNode.id, `Cloud Armor must connect to Cloud CDN for caching inspected edge traffic.`);
+            }
+        }
+        
+        if (cdnNode && hasGclb && gclbId) {
+            let cdnToGclb = false;
+            for (const id in cells) {
+                const cell = cells[id];
+                if (cell.isEdge) {
+                    const el = doc.getElementById(id) || Array.from(mxCells).find(e => e.getAttribute('id') === id);
+                    if (el && el.getAttribute('source') === cdnNode.id && el.getAttribute('target') === gclbId) {
+                        cdnToGclb = true;
+                        break;
+                    }
+                }
+            }
+            if (!cdnToGclb) {
+                reportError('TOPOLOGY_ERROR', cdnNode.id, `Cloud CDN must route backend requests to External HTTP Load Balancer (GCLB).`);
+            }
+        }
+    }
 };

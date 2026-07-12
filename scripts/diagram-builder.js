@@ -1180,7 +1180,7 @@ class DiagramBuilder {
 
     _isPrimary(cell) {
         if (!cell) return false;
-        const DATA_TYPES = ['rds', 'elasticache', 'dynamodb'];
+        const DATA_TYPES = ['rds', 'elasticache', 'dynamodb', 'cloud_sql', 'cloud_spanner', 'memorystore', 'redis'];
         const v = (cell.variant || '').toLowerCase();
         const rawId = cell.id || '';
         const id = rawId.toLowerCase();
@@ -1194,7 +1194,9 @@ class DiagramBuilder {
         const getAz = (c) => {
             let curr = c;
             while (curr && curr.parentId && curr.parentId !== '1') {
-                if (curr.type === 'az') return curr;
+                if (curr.type === 'az' || curr.type === 'zone') return curr;
+                const cLbl = (curr.label || '').toLowerCase();
+                if (cLbl.includes('zone') || cLbl.includes('az')) return curr;
                 curr = this.cells.get(curr.parentId);
             }
             return null;
@@ -1216,7 +1218,7 @@ class DiagramBuilder {
 
     _isReplica(cell) {
         if (!cell) return false;
-        const DATA_TYPES = ['rds', 'elasticache', 'dynamodb'];
+        const DATA_TYPES = ['rds', 'elasticache', 'dynamodb', 'cloud_sql', 'cloud_spanner', 'memorystore', 'redis'];
         const v = (cell.variant || '').toLowerCase();
         const rawId = cell.id || '';
         const id = rawId.toLowerCase();
@@ -1230,7 +1232,9 @@ class DiagramBuilder {
         const getAz = (c) => {
             let curr = c;
             while (curr && curr.parentId && curr.parentId !== '1') {
-                if (curr.type === 'az') return curr;
+                if (curr.type === 'az' || curr.type === 'zone') return curr;
+                const cLbl = (curr.label || '').toLowerCase();
+                if (cLbl.includes('zone') || cLbl.includes('az')) return curr;
                 curr = this.cells.get(curr.parentId);
             }
             return null;
@@ -1255,8 +1259,9 @@ class DiagramBuilder {
             return;
         }
         const isCompute = (n) => {
-            if (['apigateway', 'api_gateway', 'route53', 'waf', 'cloudfront', 'dynamodb', 'rds', 'elasticache', 'sqs', 'sns', 'eventbridge'].includes(n.type)) return false;
-            if (['ecs', 'ec2', 'lambda'].includes(n.type)) return true;
+            if (['apigateway', 'api_gateway', 'route53', 'waf', 'cloudfront', 'dynamodb', 'rds', 'elasticache', 'sqs', 'sns', 'eventbridge',
+                 'cloud_sql', 'cloud_spanner', 'memorystore', 'redis', 'load_balancing', 'cloud_cdn', 'cloud_armor', 'cloud_storage'].includes(n.type)) return false;
+            if (['ecs', 'ec2', 'lambda', 'kubernetes_engine', 'compute_engine', 'cloud_run', 'cloud_functions'].includes(n.type)) return true;
             const labelLower = (n.label || '').toLowerCase();
             const idLower = (n.id || '').toLowerCase();
             return labelLower.includes('api') || labelLower.includes('worker') || idLower.includes('api') || idLower.includes('worker');
@@ -1266,7 +1271,9 @@ class DiagramBuilder {
         const getAz = (cell) => {
             let curr = cell;
             while (curr && curr.parentId && curr.parentId !== '1') {
-                if (curr.type === 'az') return curr;
+                if (curr.type === 'az' || curr.type === 'zone') return curr;
+                const cLbl = (curr.label || '').toLowerCase();
+                if (cLbl.includes('zone') || cLbl.includes('az')) return curr;
                 curr = this.cells.get(curr.parentId);
             }
             return null;
@@ -1392,7 +1399,7 @@ class DiagramBuilder {
         let primaryDb = null;
         let replicaDb = null;
         for (const [, cell] of this.cells) {
-            if (cell.type === 'rds' || cell.type === 'dynamodb') {
+            if (cell.type === 'rds' || cell.type === 'dynamodb' || cell.type === 'cloud_sql' || cell.type === 'cloud_spanner') {
                 if (this._isPrimary(cell)) primaryDb = cell;
                 if (this._isReplica(cell)) replicaDb = cell;
             }
@@ -1403,7 +1410,7 @@ class DiagramBuilder {
             const existingDbEdges = [];
             for (const [edgeId, edge] of this.edges) {
                 const tgt = this.cells.get(edge.targetId);
-                if (tgt && (tgt.type === 'rds' || tgt.type === 'dynamodb')) {
+                if (tgt && (tgt.type === 'rds' || tgt.type === 'dynamodb' || tgt.type === 'cloud_sql' || tgt.type === 'cloud_spanner')) {
                     existingDbEdges.push(edgeId);
                 }
             }
@@ -1450,7 +1457,7 @@ class DiagramBuilder {
                         // 2. Cross-AZ Read/Write / Write Cross-AZ to Primary DB in AZ-A
                         const writeLbl = primaryDb.type === 'dynamodb' ? 'Write Cross-AZ' : 'Read/Write';
                         let writeStyle = EDGE_STYLES.solid + 'labelBackgroundColor=#ffffff;';
-                        if (primaryDb.type === 'rds') {
+                        if (primaryDb.type === 'rds' || primaryDb.type === 'cloud_sql' || primaryDb.type === 'cloud_spanner') {
                             const isWeb = cell.id.toLowerCase().includes('web') || (cell.label || '').toLowerCase().includes('web');
                             const entryY = isWeb ? 0.35 : 0.65;
                             writeStyle += `exitX=0;exitY=0.5;exitPerimeter=0;entryX=1;entryY=${entryY};entryPerimeter=0;`;
@@ -1462,7 +1469,12 @@ class DiagramBuilder {
                                 if (createdEdge) {
                                     const srcCoords = getAbsoluteCoords(cell);
                                     const tgtCoords = getAbsoluteCoords(primaryDb);
-                                    const routeY = isWeb ? 760 : 840;
+                                    const computeBottom = srcCoords.y + (cell.height || 68);
+                                    const dbTop = tgtCoords.y;
+                                    let routeY = isWeb ? 760 : 840;
+                                    if (dbTop > computeBottom) {
+                                        routeY = computeBottom + (dbTop - computeBottom) * (isWeb ? 0.45 : 0.7);
+                                    }
                                     createdEdge.points = [
                                         { x: srcCoords.x, y: routeY },
                                         { x: tgtCoords.x + (primaryDb.width || 78), y: routeY }
@@ -1512,14 +1524,15 @@ class DiagramBuilder {
 
             // D. Connect DB replication: Primary DB -> Replica DB (Async Replication, dashed)
             const dbRepRes = this.connect(primaryDb.id, replicaDb.id, 'Async Replication', EDGE_STYLES.dashed + 'labelBackgroundColor=#ffffff;');
-            if (dbRepRes.success && primaryDb.type === 'rds') {
+            if (dbRepRes.success && (primaryDb.type === 'rds' || primaryDb.type === 'cloud_sql' || primaryDb.type === 'cloud_spanner')) {
                 const createdEdge = this.edges.get(dbRepRes.id);
                 if (createdEdge) {
                     const srcCoords = getAbsoluteCoords(primaryDb);
                     const tgtCoords = getAbsoluteCoords(replicaDb);
+                    const dbBottom = srcCoords.y + (primaryDb.height || 78);
                     createdEdge.points = [
-                        { x: srcCoords.x + (primaryDb.width || 78) / 2, y: 1000 },
-                        { x: tgtCoords.x + (replicaDb.width || 78) / 2, y: 1000 }
+                        { x: srcCoords.x + (primaryDb.width || 78) / 2, y: dbBottom + 25 },
+                        { x: tgtCoords.x + (replicaDb.width || 78) / 2, y: dbBottom + 25 }
                     ];
                 }
             }
@@ -1528,7 +1541,7 @@ class DiagramBuilder {
             let primaryCache = null;
             let replicaCache = null;
             for (const [, cell] of this.cells) {
-                if (cell.type === 'elasticache') {
+                if (cell.type === 'elasticache' || cell.type === 'redis' || cell.type === 'memorystore') {
                     if (this._isPrimary(cell)) primaryCache = cell;
                     if (this._isReplica(cell)) replicaCache = cell;
                 }
@@ -1540,9 +1553,10 @@ class DiagramBuilder {
                     if (createdEdge) {
                         const srcCoords = getAbsoluteCoords(primaryCache);
                         const tgtCoords = getAbsoluteCoords(replicaCache);
+                        const cacheBottom = srcCoords.y + (primaryCache.height || 78);
                         createdEdge.points = [
-                            { x: srcCoords.x + (primaryCache.width || 78) / 2, y: 835 },
-                            { x: tgtCoords.x + (replicaCache.width || 78) / 2, y: 835 }
+                            { x: srcCoords.x + (primaryCache.width || 78) / 2, y: cacheBottom + 25 },
+                            { x: tgtCoords.x + (replicaCache.width || 78) / 2, y: cacheBottom + 25 }
                         ];
                     }
                 }

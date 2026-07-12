@@ -9,10 +9,12 @@ plugin-src:{src/gcp-validator.ts,src/auto-layout.ts,src/boundary-parser.ts}
 *always-read-well-architected-framework-before-validating-graph*
 
 ## [Domain Rules + Patterns]
-boundary-physics:GCP-Project>Region>VPC>Subnet
+boundary-physics:GCP-Project>Region>VPC>Subnet>Zone
 regional-services:Cloud-CDN|Cloud-Armor|Cloud-DNS|Cloud-Storage(GCS)|BigQuery|PubSub|Secret-Manager→prevent:placing-inside-VPCs-or-Subnets|enforce:place-in-GCP-Project/Region-container-outside-VPC
-vpc-services:GCLB|Internal-LB|GCE-VM|GKE-Cluster|Cloud-SQL|Spanner→enforce:place-inside-VPC-Subnets
-web-flow:Client→WAF(Cloud-Armor)→CDN(Cloud-CDN)→Ingress(GCLB)→Compute(GKE/GCE)→Broker(PubSub)→Compute(Worker/GCF)→Data(DB)
+vpc-services:Internal-LB|GCE-VM|GKE-Cluster|Cloud-SQL|Spanner→enforce:place-inside-VPC-Subnets
+gclb-placement:GCLB(External-HTTP-Load-Balancer)→place-at-VPC-level-outside-private-subnets-to-allow-public-ingress
+web-flow:Client→WAF(Cloud-Armor)→CDN(Cloud-CDN)→Ingress(GCLB)→Compute(GKE/GCE-in-Zone-A-AND-Zone-B)→Data(Cloud-SQL/Spanner)
+gke-zones:compute-nodes-MUST-reside-inside-Zone-containers(e.g.,-us-central1-a,-us-central1-b)-nested-inside-regional-subnets-to-ensure-proper-layout-physics-and-prevent-overlap
 async-physics:Broker=decoupler|publishers:push/publish→broker|consumers:poll/pull(PubSub)→compute|prevent:GCLB-polling
 ingress-physics:inbound-proxy-only|prevent:direct-access-to-VPC-data(Cloud-SQL/Spanner)→must-route-through-Compute(GKE/GCE/GCF)
 state-physics:compute-is-stateless(GKE,Cloud-Run,GCF)→prevent:replication|data-is-stateful(Cloud-SQL,Spanner,GCS)→require:cross-zone-or-multi-region-replication
@@ -21,10 +23,11 @@ network-physics:private-subnets-have-no-internet-access→require:Cloud-NAT-or-V
 security-physics:public-ingress-requires-Cloud-Armor|gcs-requires-iam-workload-identity
 
 ## [Project Conventions]
-topology:Client:top|Global/Regional-Services:above-or-beside-VPC|VPC:central-boundary|Zones:parallel-vertical-columns
+topology:Client:top|Global/Regional-Services:above-VPC|GCLB:vpc-top-level|Subnets:horizontal-stacked-bands|Zones:parallel-vertical-columns-inside-subnets
 routing:lines-terminate-at-resource-icon-boundary|flow:top→down+left→right
 arrows:strict-flow-indication(request/event-path)
 lines:solid=synchronous(HTTP/gRPC)|dashed=asynchronous(Poll/Publish/Event/Replication)|prevent:floating-lines
+routing-overlap-prevention:never-route-lines-directly-through-nodes|use-dynamic-waypoints-or-orthogonalEdgeStyle-ports
 
 ## [Anti-Patterns]
 regional-service-in-subnet|correction:move-PubSub/GCS/Cloud-CDN/Cloud-Armor-outside-VPC-to-Project/Region-level-container
