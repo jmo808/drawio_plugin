@@ -800,7 +800,47 @@ async function main() {
       `API Gateway to EventBridge purged: ${!hasApigwToEb}. Empty subnet purged: ${dataSubnetDeleted}. AZ-A worker connected to Primary: ${workerAToPrimary}. AZ-B worker connected to Replica/Primary: ${workerBToReplica}/${workerBToPrimaryCross}. DynamoDB flanking EB: ${flankedCorrectly}.`
     );
 
-    // Test 21: Container Layout mappings for new domains (K8s, Network, Flowchart Group)
+    // ───── Test 21: PFD Layout Wraparound & Font Color ───────────────────────
+    // Init diagram with type 'pfd'
+    r = parseBuilderResult(await client.callTool({ name: 'init_diagram', arguments: { title: 'PFD Wraparound Test', type: 'pfd' } }));
+    if (!r.success) { record('Test 21: PFD Layout Wraparound & Font Color', false, `init failed: ${r.error}`); throw new Error('stop'); }
+
+    // Add 3 AZ containers
+    r = parseBuilderResult(await client.callTool({ name: 'add_container', arguments: { id: 'az1', label: '120 Grinding', type: 'az' } }));
+    if (!r.success) { record('Test 21: PFD Layout Wraparound & Font Color', false, `add az1 failed: ${r.error}`); throw new Error('stop'); }
+
+    r = parseBuilderResult(await client.callTool({ name: 'add_container', arguments: { id: 'az2', label: '130 Milling Screen', type: 'az' } }));
+    if (!r.success) { record('Test 21: PFD Layout Wraparound & Font Color', false, `add az2 failed: ${r.error}`); throw new Error('stop'); }
+
+    r = parseBuilderResult(await client.callTool({ name: 'add_container', arguments: { id: 'az3', label: '210 Ore Separation', type: 'az' } }));
+    if (!r.success) { record('Test 21: PFD Layout Wraparound & Font Color', false, `add az3 failed: ${r.error}`); throw new Error('stop'); }
+
+    // Add a node into each to force autoExpand and check parent shifting
+    r = parseBuilderResult(await client.callTool({ name: 'add_node', arguments: { id: 'node1', label: 'Mill 1', type: 'vessel', parent_id: 'az1' } }));
+    r = parseBuilderResult(await client.callTool({ name: 'add_node', arguments: { id: 'node2', label: 'Screen 1', type: 'pump', parent_id: 'az2' } }));
+    r = parseBuilderResult(await client.callTool({ name: 'add_node', arguments: { id: 'node3', label: 'Float 1', type: 'cyclone', parent_id: 'az3' } }));
+
+    // Get final state
+    r = parseBuilderResult(await client.callTool({ name: 'get_state', arguments: {} }));
+
+    const az1Obj = r.containers.find(c => c.id === 'az1');
+    const az2Obj = r.containers.find(c => c.id === 'az2');
+    const az3Obj = r.containers.find(c => c.id === 'az3');
+
+    // az1 and az2 should be on row 0 (y=160), az3 should be on row 1 (y >= 500)
+    const row0Ok = az1Obj && az2Obj && az1Obj.y === 160 && az2Obj.y === 160;
+    const row1Ok = az3Obj && az3Obj.y >= 500;
+    const fontColorOk = az1Obj?.style?.includes('fontColor=light-dark') && az1Obj.style.includes('#000000');
+
+    const test21Ok = r.success && row0Ok && row1Ok && fontColorOk;
+
+    record(
+      'Test 21: PFD Layout Wraparound & Font Color',
+      test21Ok,
+      `Row 0 AZs aligned (y=160): ${row0Ok}. Row 1 AZ wrapped (y>=500): ${row1Ok}. Font color correct: ${fontColorOk}.`
+    );
+
+    // Test 22: Container Layout mappings for new domains (K8s, Network, Flowchart Group)
     await client.callTool({ name: 'init_diagram', arguments: { title: 'New Domains Layout Test', type: 'architecture' } });
     
     // K8s containers
@@ -847,15 +887,15 @@ async function main() {
                         
     const groupLayoutOk = !!(groupVal && groupVal.width === 560);
 
-    const test21Ok = r.success && k8sLayoutOk && netLayoutOk && groupLayoutOk;
+    const test22Ok = r.success && k8sLayoutOk && netLayoutOk && groupLayoutOk;
 
     record(
-      'Test 21: Container Layout mappings for new domains',
-      test21Ok,
+      'Test 22: Container Layout mappings for new domains',
+      test22Ok,
       `K8s layout Ok: ${k8sLayoutOk}. Network layout Ok: ${netLayoutOk}. Group layout Ok: ${groupLayoutOk}.`
     );
 
-    // Test 22: Node style mapping and sizes for new domains
+    // Test 23: Node style mapping and sizes for new domains
     await client.callTool({ name: 'init_diagram', arguments: { title: 'New Node Types Test', type: 'architecture' } });
     
     // Flowchart nodes
@@ -889,14 +929,14 @@ async function main() {
       noteNode && noteNode.width === 120 && noteNode.height === 60
     );
 
-    const test22Ok = r.success && nodeSizesOk;
+    const test23Ok = r.success && nodeSizesOk;
     record(
-      'Test 22: Node Style and Size mapping for new domains',
-      test22Ok,
+      'Test 23: Node Style and Size mapping for new domains',
+      test23Ok,
       `Node sizes matched: ${nodeSizesOk}.`
     );
 
-    // Test 23: Connector style mapping for new domains
+    // Test 24: Connector style mapping for new domains
     await client.callTool({ name: 'init_diagram', arguments: { title: 'New Edge Styles Test', type: 'architecture' } });
     await client.callTool({ name: 'add_node', arguments: { id: 'n1', label: 'Node 1', type: 'rectangle', parent_id: '1' } });
     await client.callTool({ name: 'add_node', arguments: { id: 'n2', label: 'Node 2', type: 'rectangle', parent_id: '1' } });
@@ -911,14 +951,14 @@ async function main() {
     const style1Ok = outputXml.includes('endArrow=ERmany') && outputXml.includes('startArrow=ERone');
     const style2Ok = outputXml.includes('endArrow=open') && !outputXml.includes('dashed=1');
 
-    const test23Ok = style1Ok && style2Ok;
+    const test24Ok = style1Ok && style2Ok;
     record(
-      'Test 23: Connector style mapping for new domains',
-      test23Ok,
+      'Test 24: Connector style mapping for new domains',
+      test24Ok,
       `1:N style matches: ${style1Ok}. Async style matches: ${style2Ok}.`
     );
 
-    // Test 24: Flowchart Layout Strategy
+    // Test 25: Flowchart Layout Strategy
     await client.callTool({ name: 'init_diagram', arguments: { title: 'Flowchart Layout Test', type: 'flowchart' } });
     await client.callTool({ name: 'add_node', arguments: { id: 'fc1', label: 'Start', type: 'start', parent_id: '1' } });
     await client.callTool({ name: 'add_node', arguments: { id: 'fc2', label: 'Process', type: 'process', parent_id: '1' } });
@@ -928,7 +968,7 @@ async function main() {
     const fc2Val = r.nodes.find(n => n.id === 'fc2');
     const flowchartOk = !!(fc1Val && fc2Val && (fc1Val.x + fc1Val.width / 2) === (fc2Val.x + fc2Val.width / 2) && fc2Val.y > fc1Val.y);
 
-    // Test 25: Sequence Layout Strategy
+    // Test 26: Sequence Layout Strategy
     await client.callTool({ name: 'init_diagram', arguments: { title: 'Sequence Layout Test', type: 'sequence' } });
     await client.callTool({ name: 'add_node', arguments: { id: 'p1', label: 'Alice', type: 'participant', parent_id: '1' } });
     await client.callTool({ name: 'add_node', arguments: { id: 'p2', label: 'Bob', type: 'participant', parent_id: '1' } });
@@ -940,7 +980,7 @@ async function main() {
     const act1Val = r.nodes.find(n => n.id === 'act1');
     const sequenceOk = !!(p1Val && p2Val && act1Val && p2Val.x > p1Val.x && act1Val.parent === 'p1');
 
-    // Test 26: Mind Map Layout Strategy
+    // Test 27: Mind Map Layout Strategy
     await client.callTool({ name: 'init_diagram', arguments: { title: 'Mindmap Test', type: 'mindmap' } });
     await client.callTool({ name: 'add_node', arguments: { id: 'center', label: 'Root Idea', type: 'central', parent_id: '1' } });
     await client.callTool({ name: 'add_node', arguments: { id: 'branch1', label: 'Branch 1 (Right)', type: 'branch', parent_id: '1' } });
@@ -952,11 +992,11 @@ async function main() {
     const b2Val = r.nodes.find(n => n.id === 'branch2');
     const mindmapOk = !!(centerVal && b1Val && b2Val && b1Val.x > centerVal.x && b2Val.x < centerVal.x);
 
-    record('Test 24: Flowchart Layout Strategy', flowchartOk, `Flowchart Ok: ${flowchartOk}`);
-    record('Test 25: Sequence Layout Strategy', sequenceOk, `Sequence Ok: ${sequenceOk}`);
-    record('Test 26: Mind Map Layout Strategy', mindmapOk, `Mindmap Ok: ${mindmapOk}`);
+    record('Test 25: Flowchart Layout Strategy', flowchartOk, `Flowchart Ok: ${flowchartOk}`);
+    record('Test 26: Sequence Layout Strategy', sequenceOk, `Sequence Ok: ${sequenceOk}`);
+    record('Test 27: Mind Map Layout Strategy', mindmapOk, `Mindmap Ok: ${mindmapOk}`);
 
-    // Test 27: PFD equipment shape and size variant resolution
+    // Test 28: PFD equipment shape and size variant resolution
     await client.callTool({ name: 'init_diagram', arguments: { title: 'PFD Equipment Test', type: 'pfd' } });
     await client.callTool({ name: 'add_node', arguments: { id: 'pump1', label: 'Centrifugal Pump', type: 'pump', parent_id: '1', variant: 'centrifugal' } });
     await client.callTool({ name: 'add_node', arguments: { id: 'col1', label: 'Tray Column', type: 'distillation_column', parent_id: '1', variant: 'tray' } });
@@ -992,13 +1032,13 @@ async function main() {
                             pfdXml.includes('exitX=0.5') && pfdXml.includes('exitY=1') &&
                             pfdXml.includes('entryX=0') && pfdXml.includes('entryY=0.5');
 
-    const test27Ok = pfdResolutionOk && feedStreamOk && bottomsStreamOk;
+    const test28Ok = pfdResolutionOk && feedStreamOk && bottomsStreamOk;
     record(
-      'Test 27: PFD equipment variant and auto-nozzle resolution',
-      test27Ok,
+      'Test 28: PFD equipment variant and auto-nozzle resolution',
+      test28Ok,
       `PFD equipment resolved: ${pfdResolutionOk}. Feed stream nozzle Ok: ${feedStreamOk}. Bottoms stream nozzle Ok: ${bottomsStreamOk}.`
     );
-    // Test 28-33: PFD Validator Rules
+    // Test 29-34: PFD Validator Rules
     const tempPfdInvalidFile = path.join(os.tmpdir(), `test-e2e-pfd-invalid-${Date.now()}.xml`);
     const pfdInvalidXmlContent = `<mxGraphModel><root>
       <mxCell id="0"/>
@@ -1047,14 +1087,14 @@ async function main() {
     const hasInstErr = pfdVal.errors && pfdVal.errors.some(e => e.includes('INSTRUMENT_IN_PROCESS_LINE'));
     const hasCompInletErr = pfdVal.errors && pfdVal.errors.some(e => e.includes('COMPRESSOR_INLET_AT_BOTTOM'));
 
-    record('Test 28: PHASE_PORT_VIOLATION rule', hasPhasePortErr, `Found PHASE_PORT_VIOLATION: ${hasPhasePortErr}`);
-    record('Test 29: DEAD_END_STREAM rule', hasDeadEndErr, `Found DEAD_END_STREAM: ${hasDeadEndErr}`);
-    record('Test 30: OPPOSING_FLOW rule', hasOpposingFlowErr, `Found OPPOSING_FLOW: ${hasOpposingFlowErr}`);
-    record('Test 31: GRAVITY_VIOLATION rule', hasGravityErr, `Found GRAVITY_VIOLATION: ${hasGravityErr}`);
-    record('Test 32: INSTRUMENT_IN_PROCESS_LINE rule', hasInstErr, `Found INSTRUMENT_IN_PROCESS_LINE: ${hasInstErr}`);
-        record('Test 33: COMPRESSOR_INLET_AT_BOTTOM rule', hasCompInletErr, `Found COMPRESSOR_INLET_AT_BOTTOM: ${hasCompInletErr}`);
+    record('Test 29: PHASE_PORT_VIOLATION rule', hasPhasePortErr, `Found PHASE_PORT_VIOLATION: ${hasPhasePortErr}`);
+    record('Test 30: DEAD_END_STREAM rule', hasDeadEndErr, `Found DEAD_END_STREAM: ${hasDeadEndErr}`);
+    record('Test 31: OPPOSING_FLOW rule', hasOpposingFlowErr, `Found OPPOSING_FLOW: ${hasOpposingFlowErr}`);
+    record('Test 32: GRAVITY_VIOLATION rule', hasGravityErr, `Found GRAVITY_VIOLATION: ${hasGravityErr}`);
+    record('Test 33: INSTRUMENT_IN_PROCESS_LINE rule', hasInstErr, `Found INSTRUMENT_IN_PROCESS_LINE: ${hasInstErr}`);
+    record('Test 34: COMPRESSOR_INLET_AT_BOTTOM rule', hasCompInletErr, `Found COMPRESSOR_INLET_AT_BOTTOM: ${hasCompInletErr}`);
 
-    // Test 34-38: Kubernetes Validator Rules
+    // Test 35-39: Kubernetes Validator Rules
     const tempK8sInvalidFile = path.join(os.tmpdir(), `test-e2e-k8s-invalid-${Date.now()}.xml`);
     const k8sInvalidXmlContent = `<mxGraphModel><root>
       <mxCell id="0"/>
@@ -1104,13 +1144,13 @@ async function main() {
     const hasPvcWithoutPvErr = k8sVal.errors && k8sVal.errors.some(e => e.includes('PVC_WITHOUT_PV'));
     const hasNamespaceLeakErr = k8sVal.errors && k8sVal.errors.some(e => e.includes('NAMESPACE_LEAK'));
 
-    record('Test 34: ORPHAN_POD rule', hasOrphanErr, `Found ORPHAN_POD: ${hasOrphanErr}`);
-    record('Test 35: SERVICE_WITHOUT_TARGET rule', hasSvcTargetErr, `Found SERVICE_WITHOUT_TARGET: ${hasSvcTargetErr}`);
-    record('Test 36: INGRESS_BYPASS rule', hasIngressBypassErr, `Found INGRESS_BYPASS: ${hasIngressBypassErr}`);
-    record('Test 37: PVC_WITHOUT_PV rule', hasPvcWithoutPvErr, `Found PVC_WITHOUT_PV: ${hasPvcWithoutPvErr}`);
-    record('Test 38: NAMESPACE_LEAK rule', hasNamespaceLeakErr, `Found NAMESPACE_LEAK: ${hasNamespaceLeakErr}`);
+    record('Test 35: ORPHAN_POD rule', hasOrphanErr, `Found ORPHAN_POD: ${hasOrphanErr}`);
+    record('Test 36: SERVICE_WITHOUT_TARGET rule', hasSvcTargetErr, `Found SERVICE_WITHOUT_TARGET: ${hasSvcTargetErr}`);
+    record('Test 37: INGRESS_BYPASS rule', hasIngressBypassErr, `Found INGRESS_BYPASS: ${hasIngressBypassErr}`);
+    record('Test 38: PVC_WITHOUT_PV rule', hasPvcWithoutPvErr, `Found PVC_WITHOUT_PV: ${hasPvcWithoutPvErr}`);
+    record('Test 39: NAMESPACE_LEAK rule', hasNamespaceLeakErr, `Found NAMESPACE_LEAK: ${hasNamespaceLeakErr}`);
 
-    // Test 39-42: ERD Validator Rules
+    // Test 40-43: ERD Validator Rules
     const tempErdInvalidFile = path.join(os.tmpdir(), `test-e2e-erd-invalid-${Date.now()}.xml`);
     const erdInvalidXmlContent = `<mxGraphModel><root>
       <mxCell id="0"/>
@@ -1141,12 +1181,12 @@ async function main() {
     const hasDupPkErr = erdVal.errors && erdVal.errors.some(e => e.includes('DUPLICATE_PK'));
     const hasSelfRefMissingErr = erdVal.errors && erdVal.errors.some(e => e.includes('SELF_REFERENCE_MISSING'));
 
-    record('Test 39: FK_WITHOUT_TARGET rule', hasFkTargetErr, `Found FK_WITHOUT_TARGET: ${hasFkTargetErr}`);
-    record('Test 40: ORPHAN_TABLE rule', hasOrphanTableErr, `Found ORPHAN_TABLE: ${hasOrphanTableErr}`);
-    record('Test 41: DUPLICATE_PK rule', hasDupPkErr, `Found DUPLICATE_PK: ${hasDupPkErr}`);
-    record('Test 42: SELF_REFERENCE_MISSING rule', hasSelfRefMissingErr, `Found SELF_REFERENCE_MISSING: ${hasSelfRefMissingErr}`);
+    record('Test 40: FK_WITHOUT_TARGET rule', hasFkTargetErr, `Found FK_WITHOUT_TARGET: ${hasFkTargetErr}`);
+    record('Test 41: ORPHAN_TABLE rule', hasOrphanTableErr, `Found ORPHAN_TABLE: ${hasOrphanTableErr}`);
+    record('Test 42: DUPLICATE_PK rule', hasDupPkErr, `Found DUPLICATE_PK: ${hasDupPkErr}`);
+    record('Test 43: SELF_REFERENCE_MISSING rule', hasSelfRefMissingErr, `Found SELF_REFERENCE_MISSING: ${hasSelfRefMissingErr}`);
 
-    // Test 43: ERD Table Rendering and Dynamic Sizing
+    // Test 44: ERD Table Rendering and Dynamic Sizing
     await client.callTool({ name: 'init_diagram', arguments: { title: 'ERD Rendering Test', type: 'erd' } });
     
     // Table 1: 3 columns (height should be 120)
@@ -1202,9 +1242,9 @@ async function main() {
       ordersNode.width === 180 && ordersNode.height === 172
     );
 
-    record('Test 43: ERD Table Rendering and Dynamic Sizing', erdRenderingOk, `ERD Rendering resolved: ${erdRenderingOk}`);
+    record('Test 44: ERD Table Rendering and Dynamic Sizing', erdRenderingOk, `ERD Rendering resolved: ${erdRenderingOk}`);
 
-    // Test 44-47: Network Validator Rules
+    // Test 45-48: Network Validator Rules
     const tempNetInvalidFile = path.join(os.tmpdir(), `test-e2e-net-invalid-${Date.now()}.xml`);
     const netInvalidXmlContent = `<mxGraphModel><root>
       <mxCell id="0"/>
@@ -1258,10 +1298,10 @@ async function main() {
     const hasVlanLeakErr = netVal.errors && netVal.errors.some(e => e.includes('VLAN_LEAK'));
     const hasRedundancyWarn = netVal.warnings && netVal.warnings.some(w => w.includes('REDUNDANCY_WARNING'));
 
-    record('Test 44: DIRECT_WAN_TO_LAN rule', hasDirectWanErr, `Found DIRECT_WAN_TO_LAN: ${hasDirectWanErr}`);
-    record('Test 45: ORPHAN_DEVICE rule', hasOrphanDevErr, `Found ORPHAN_DEVICE: ${hasOrphanDevErr}`);
-    record('Test 46: VLAN_LEAK rule', hasVlanLeakErr, `Found VLAN_LEAK: ${hasVlanLeakErr}`);
-    record('Test 47: REDUNDANCY_WARNING rule', hasRedundancyWarn, `Found REDUNDANCY_WARNING: ${hasRedundancyWarn}`);
+    record('Test 45: DIRECT_WAN_TO_LAN rule', hasDirectWanErr, `Found DIRECT_WAN_TO_LAN: ${hasDirectWanErr}`);
+    record('Test 46: ORPHAN_DEVICE rule', hasOrphanDevErr, `Found ORPHAN_DEVICE: ${hasOrphanDevErr}`);
+    record('Test 47: VLAN_LEAK rule', hasVlanLeakErr, `Found VLAN_LEAK: ${hasVlanLeakErr}`);
+    record('Test 48: REDUNDANCY_WARNING rule', hasRedundancyWarn, `Found REDUNDANCY_WARNING: ${hasRedundancyWarn}`);
   } catch (err) {
     if (err.message !== 'stop') {
       const testNum = results.length + 1;

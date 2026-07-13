@@ -11,15 +11,15 @@ const path = require('path');
 // Style Template Registry
 // ---------------------------------------------------------------------------
 const CONTAINER_STYLES = {
-    region: 'swimlane;startSize=24;fillColor=#f5f5f5;strokeColor=#cccccc;html=1;fontSize=12;fontStyle=1;',
-    vpc: 'swimlane;startSize=24;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;fontSize=12;fontStyle=1;',
-    az: 'swimlane;startSize=24;fillColor=#fff2cc;strokeColor=#d6b656;html=1;fontSize=11;fontStyle=1;',
-    subnet: 'swimlane;startSize=24;fillColor=#e1d5e7;strokeColor=#9673a6;html=1;fontSize=11;fontStyle=1;dashed=1;',
-    subnet_web: 'swimlane;startSize=24;fillColor=#e1d5e7;strokeColor=#9673a6;html=1;fontSize=11;fontStyle=1;',
-    subnet_app: 'swimlane;startSize=24;fillColor=#d5e8d4;strokeColor=#82b366;html=1;fontSize=11;fontStyle=1;',
-    subnet_data: 'swimlane;startSize=24;fillColor=#f8cecc;strokeColor=#b85450;html=1;fontSize=11;fontStyle=1;',
+    region: 'swimlane;startSize=24;fillColor=light-dark(#f5f5f5,#1a1a1a);strokeColor=light-dark(#cccccc,#444444);html=1;whiteSpace=wrap;fontSize=12;fontStyle=1;fontColor=light-dark(#000000,#ffffff);',
+    vpc: 'swimlane;startSize=24;fillColor=light-dark(#dae8fc,#1e2a38);strokeColor=light-dark(#6c8ebf,#3c4f6b);html=1;whiteSpace=wrap;fontSize=12;fontStyle=1;fontColor=light-dark(#000000,#ffffff);',
+    az: 'swimlane;startSize=24;fillColor=light-dark(#fff2cc,#2b2618);strokeColor=light-dark(#d6b656,#8f742c);html=1;whiteSpace=wrap;fontSize=11;fontStyle=1;fontColor=light-dark(#000000,#ffffff);',
+    subnet: 'swimlane;startSize=24;fillColor=light-dark(#e1d5e7,#291e2e);strokeColor=light-dark(#9673a6,#634b6e);html=1;whiteSpace=wrap;fontSize=11;fontStyle=1;dashed=1;fontColor=light-dark(#000000,#ffffff);',
+    subnet_web: 'swimlane;startSize=24;fillColor=light-dark(#e1d5e7,#291e2e);strokeColor=light-dark(#9673a6,#634b6e);html=1;whiteSpace=wrap;fontSize=11;fontStyle=1;fontColor=light-dark(#000000,#ffffff);',
+    subnet_app: 'swimlane;startSize=24;fillColor=light-dark(#d5e8d4,#1e2d1e);strokeColor=light-dark(#82b366,#527a3f);html=1;whiteSpace=wrap;fontSize=11;fontStyle=1;fontColor=light-dark(#000000,#ffffff);',
+    subnet_data: 'swimlane;startSize=24;fillColor=light-dark(#f8cecc,#331c1b);strokeColor=light-dark(#b85450,#7c3735);html=1;whiteSpace=wrap;fontSize=11;fontStyle=1;fontColor=light-dark(#000000,#ffffff);',
     group: 'group;html=1;',
-    lane: 'swimlane;horizontal=0;startSize=110;fillColor=#f5f5f5;strokeColor=#666666;html=1;fontSize=12;fontStyle=1;',
+    lane: 'swimlane;horizontal=0;startSize=110;fillColor=light-dark(#f5f5f5,#222222);strokeColor=light-dark(#666666,#888888);html=1;whiteSpace=wrap;fontSize=12;fontStyle=1;fontColor=light-dark(#000000,#ffffff);',
 };
 
 const NODE_STYLES = {
@@ -33,7 +33,6 @@ const NODE_STYLES = {
     diamond: 'rhombus;whiteSpace=wrap;html=1;',
     cylinder: 'shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;',
     circle: 'ellipse;whiteSpace=wrap;html=1;aspect=fixed;',
-    
     // Flowchart
     process: 'rounded=1;whiteSpace=wrap;html=1;',
     decision: 'rhombus;whiteSpace=wrap;html=1;',
@@ -41,6 +40,21 @@ const NODE_STYLES = {
     end: 'ellipse;whiteSpace=wrap;html=1;',
     io: 'shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;',
     subroutine: 'shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;',
+
+    // PFD / P&ID Shapes
+    pump: 'shape=mxgraph.pid.pumps.centrifugal_pump_1;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    compressor: 'shape=mxgraph.pid.compressors.centrifugal_compressor;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    valve: 'shape=mxgraph.pid2valves.gate_valve;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    vessel: 'shape=rectangle;rounded=1;arcSize=50;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    tank: 'shape=rectangle;rounded=0;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    cyclone: 'shape=mxgraph.pid.misc.cyclone;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    heat_exchanger: 'shape=mxgraph.pid.heat_exchangers.shell_and_tube_1;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    crusher: 'shape=mxgraph.pid.crushers_grinding.crusher;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    conveyor: 'shape=mxgraph.pid.misc.conveyor_(belt);perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    mill: 'shape=mxgraph.pid.crushers_grinding.mill,_pulverizer;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    screen: 'shape=mxgraph.pid.separators.separator,_sifter2;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    silo: 'shape=mxgraph.pid.misc.bin;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
+    loadout: 'shape=mxgraph.pid.misc.loading_arm;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;'
 };
 
 const EDGE_STYLES = {
@@ -72,7 +86,6 @@ const NODE_SIZES = {
     diamond: { width: 140, height: 80 },
     cylinder: { width: 100, height: 70 },
     circle: { width: 60, height: 60 },
-    
     // Flowchart
     process: { width: 140, height: 60 },
     decision: { width: 140, height: 80 },
@@ -90,6 +103,21 @@ const NODE_SIZES = {
     central: { width: 140, height: 70 },
     branch: { width: 120, height: 50 },
     leaf: { width: 100, height: 40 },
+
+    // PFD / P&ID Shapes
+    vessel: { width: 120, height: 180 },
+    tank: { width: 120, height: 180 },
+    pump: { width: 100, height: 70 },
+    compressor: { width: 100, height: 80 },
+    valve: { width: 80, height: 50 },
+    cyclone: { width: 80, height: 120 },
+    heat_exchanger: { width: 120, height: 80 },
+    crusher: { width: 100, height: 80 },
+    conveyor: { width: 120, height: 40 },
+    mill: { width: 100, height: 70 },
+    screen: { width: 100, height: 80 },
+    silo: { width: 100, height: 120 },
+    loadout: { width: 100, height: 80 }
 };
 
 const NODE_SPACING = { x: 140, y: 120 };  // grid spacing within containers — tighter grid
@@ -155,10 +183,25 @@ class DiagramBuilder {
         this.edges.clear();
         this.nextEdgeId = 1;
         this.title = title;
-        this.type = type;
+        
+        let resolvedType = type;
+        const lowerTitle = (title || '').toLowerCase();
+        if (type !== 'pfd' && (
+            lowerTitle.includes('pfd') || 
+            lowerTitle.includes('process flow') || 
+            lowerTitle.includes('flotation') || 
+            lowerTitle.includes('compression') || 
+            lowerTitle.includes('grinding') ||
+            lowerTitle.includes('separation') ||
+            lowerTitle.includes('wellhead')
+        )) {
+            resolvedType = 'pfd';
+        }
+        
+        this.type = resolvedType;
         this.initialized = true;
         // Root cells 0 and 1 are implicit in serialization
-        return { success: true, message: `Diagram "${title}" initialized with type "${type}".` };
+        return { success: true, message: `Diagram "${title}" initialized with type "${resolvedType}".` };
     }
 
     // --- Add Container ---
@@ -167,6 +210,22 @@ class DiagramBuilder {
         if (this.cells.has(id)) return { success: false, error: `Cell "${id}" already exists.` };
         if (parentId !== '1' && !this.cells.has(parentId)) {
             return { success: false, error: `Parent "${parentId}" not found.` };
+        }
+
+        // Auto-detect PFD based on container label/type
+        if (this.type !== 'pfd') {
+            const lowerLabel = (label || '').toLowerCase();
+            if (
+                lowerLabel.includes('grinding') || 
+                lowerLabel.includes('milling') || 
+                lowerLabel.includes('separation') || 
+                lowerLabel.includes('flotation') || 
+                lowerLabel.includes('scrubber') || 
+                lowerLabel.includes('compressor') ||
+                lowerLabel.includes('wellhead')
+            ) {
+                this.type = 'pfd';
+            }
         }
 
         // Resolve style
@@ -271,6 +330,47 @@ class DiagramBuilder {
                 if (type === 'dynamodb') {
                     parentId = '1';
                 }
+            }
+        }
+
+        // Auto-correct generic types if label implies a specific PFD/P&ID shape
+        if (this.type === 'pfd') {
+            if (lowerLabel.includes('crusher')) {
+                type = 'crusher';
+            } else if (lowerLabel.includes('conveyor')) {
+                type = 'conveyor';
+            } else if (lowerLabel.includes('scrubber') || lowerLabel.includes('conditioner') || lowerLabel.includes('float') || lowerLabel.includes('thickener') || lowerLabel.includes('tank')) {
+                if (type !== 'vessel_storage' && type !== 'vessel_surge' && type !== 'vessel_accumulator') {
+                    type = 'tank';
+                }
+            } else if (lowerLabel.includes('separator') || lowerLabel.includes('fractionator') || lowerLabel.includes('column') || lowerLabel.includes('vessel')) {
+                if (type !== 'distillation_column' && type !== 'reactor' && !type.startsWith('separator_') && type !== 'distillation_column_tray' && type !== 'distillation_column_packed') {
+                    type = 'vessel';
+                }
+            } else if (lowerLabel.includes('pump')) {
+                if (type !== 'pump_centrifugal' && type !== 'pump_positive_displacement') {
+                    type = 'pump';
+                }
+            } else if (lowerLabel.includes('compressor')) {
+                if (type !== 'compressor_centrifugal' && type !== 'compressor_reciprocating') {
+                    type = 'compressor';
+                }
+            } else if (lowerLabel.includes('valve')) {
+                type = 'valve';
+            } else if (lowerLabel.includes('cyclone')) {
+                type = 'cyclone';
+            } else if (lowerLabel.includes('exchanger')) {
+                if (type !== 'heat_exchanger_shell-and-tube' && type !== 'heat_exchanger_plate') {
+                    type = 'heat_exchanger';
+                }
+            } else if (lowerLabel.includes('mill')) {
+                type = 'mill';
+            } else if (lowerLabel.includes('screen') || lowerLabel.includes('sifter')) {
+                type = 'screen';
+            } else if (lowerLabel.includes('silo') || lowerLabel.includes('bin') || lowerLabel.includes('hopper')) {
+                type = 'silo';
+            } else if (lowerLabel.includes('loadout') || lowerLabel.includes('loading')) {
+                type = 'loadout';
             }
         }
 
@@ -701,6 +801,7 @@ class DiagramBuilder {
                     y: cell.y,
                     width: cell.width,
                     height: cell.height,
+                    style: cell.style,
                     children: this._childrenOf(cell.id).map(c => c.id),
                 });
             } else {
@@ -713,6 +814,7 @@ class DiagramBuilder {
                     y: cell.y,
                     width: cell.width,
                     height: cell.height,
+                    style: cell.style,
                     variant: cell.variant || null,
                 });
             }
@@ -774,7 +876,7 @@ class DiagramBuilder {
     // --- Serialize to XML ---
     toXml() {
         const lines = [];
-        lines.push('<mxGraphModel>');
+        lines.push('<mxGraphModel adaptiveColors="auto">');
         lines.push('  <root>');
         lines.push('    <mxCell id="0"/>');
         lines.push('    <mxCell id="1" parent="0"/>');
@@ -796,7 +898,11 @@ class DiagramBuilder {
         // Serialize edges
         for (const [, edge] of this.edges) {
             const valueAttr = edge.label ? ` value="${this._esc(edge.label)}"` : '';
-            lines.push(`    <mxCell id="${this._esc(edge.id)}"${valueAttr} edge="1" parent="1" source="${this._esc(edge.sourceId)}" target="${this._esc(edge.targetId)}" style="${this._esc(edge.style)}">`);
+            let style = edge.style || '';
+            if (style.includes('labelBackgroundColor=')) {
+                style = style.replace(/labelBackgroundColor=[^;]+/g, 'labelBackgroundColor=none');
+            }
+            lines.push(`    <mxCell id="${this._esc(edge.id)}"${valueAttr} edge="1" parent="1" source="${this._esc(edge.sourceId)}" target="${this._esc(edge.targetId)}" style="${this._esc(style)}">`);
             if (edge.points && edge.points.length > 0) {
                 lines.push('      <mxGeometry relative="1" as="geometry">');
                 lines.push('        <Array as="points">');
@@ -994,10 +1100,21 @@ class DiagramBuilder {
 
         if (type === 'az') {
             const azIndex = siblings.filter(s => s.type === 'az').length;
-            const azWidth = 400;
-            // First AZ at x=20, second AZ at x=20+400+AZ_GAP
-            const x = 20 + azIndex * (azWidth + AZ_GAP);
-            return { x, y: 160, width: azWidth, height: 180 };
+            if (this.type === 'pfd') {
+                const azWidth = 460;
+                // Employ a "page sized wraparound" for PFD diagrams
+                const colsPerRow = 2;
+                const col = azIndex % colsPerRow;
+                const row = Math.floor(azIndex / colsPerRow);
+                const x = 20 + col * (azWidth + AZ_GAP);
+                const y = 160 + row * 340;
+                return { x, y, width: azWidth, height: 200 };
+            } else {
+                const azWidth = 400;
+                // First AZ at x=20, second AZ at x=20+400+AZ_GAP
+                const x = 20 + azIndex * (azWidth + AZ_GAP);
+                return { x, y: 160, width: azWidth, height: 180 };
+            }
         }
 
         if (type === 'subnet' || type.startsWith('subnet_')) {
@@ -1080,7 +1197,7 @@ class DiagramBuilder {
         }
 
         // If parent height changed, shift siblings below it (if they exist)
-        if (heightChanged && parent.parentId && parent.parentId !== '1') {
+        if (heightChanged && parent.parentId) {
             this._shiftSiblingsBelow(parent.parentId, parent.id, oldHeight, parent.height);
         }
 
