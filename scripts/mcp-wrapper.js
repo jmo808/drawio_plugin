@@ -446,11 +446,16 @@ function handleBuilderTool(toolName, args, msgId) {
                 if (!compileRes.success) {
                     result = compileRes;
                 } else {
+                    // Apply topological corrections before validation (mirrors finalize() flow)
+                    if (typeof builder._applyTopologicalCorrections === 'function') {
+                        builder._applyTopologicalCorrections();
+                    }
                     const validation = builder.validate();
                     result = { 
                         success: true, 
                         valid: validation.success,
-                        validation_errors: validation.success ? [] : (validation.details || [validation.error]),
+                        validation_errors: validation.success ? [] : (validation.errors || [validation.error]),
+                        validation_warnings: validation.warnings || [],
                         xml: builder.toXml()
                     };
                     if (args.output_path) {
@@ -554,15 +559,22 @@ process.stdin.on('data', chunk => {
                 try {
                     const result = validateXml(xmlContent);
                     if (result.success) {
-                        console.error('[WRAPPER] Validation PASSED — forwarding to server');
+                        const warnText = (result.warnings && result.warnings.length) 
+                            ? `\nWarnings:\n${result.warnings.join('\n')}` : '';
+                        console.error(`[WRAPPER] Validation PASSED${warnText ? ' (with warnings)' : ''} — forwarding to server`);
+                        if (result.warnings && result.warnings.length) {
+                            console.error(`[WRAPPER] ${result.warnings.length} warnings: ${result.warnings.join('; ')}`);
+                        }
                         child.stdin.write(lineBuf);
                     } else {
                         console.error(`[WRAPPER] Validation FAILED — returning ${result.errors.length} errors to agent`);
+                        const warnText = (result.warnings && result.warnings.length)
+                            ? '\nWarnings:\n' + result.warnings.join('\n') : '';
                         const response = {
                             jsonrpc: '2.0',
                             id: msg.id,
                             result: {
-                                content: [{ type: 'text', text: 'Validation failed!\n' + result.errors.join('\n') }],
+                                content: [{ type: 'text', text: 'Validation failed!\n' + result.errors.join('\n') + warnText }],
                                 isError: true,
                             },
                         };

@@ -88,9 +88,9 @@ Use the following catalog of JSON configurations to formulate the `compile_json_
   "nodes": [
     { "id": "ing", "label": "Ingress: gateway", "type": "apigateway", "parentId": "ns_prod" },
     { "id": "svc", "label": "Service: api-service", "type": "endpoint", "parentId": "ns_prod" },
-    { "id": "c_gate", "label": "Container: gateway-app", "type": "ecs", "parentId": "pod_api" },
-    { "id": "pvc_claim", "label": "Claim: data-pvc", "type": "dynamodb", "parentId": "ns_prod" },
-    { "id": "pv_volume", "label": "Volume: data-pv", "type": "s3", "parentId": "ns_prod" }
+    { "id": "c_gate", "label": "Container: gateway-app", "type": "pod", "parentId": "pod_api" },
+    { "id": "pvc_claim", "label": "Claim: data-pvc", "type": "pvc", "parentId": "ns_prod" },
+    { "id": "pv_volume", "label": "Volume: data-pv", "type": "pv", "parentId": "ns_prod" }
   ],
   "edges": [
     { "sourceId": "ing", "targetId": "svc", "label": "Route" },

@@ -1,0 +1,23 @@
+{
+  "name": "network",
+  "styles": {
+    "router": "shape=mxgraph.cisco.routers.router;fillColor=#005073;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;",
+    "switch": "shape=mxgraph.cisco.switches.workgroup_switch;fillColor=#005073;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;",
+    "firewall": "shape=mxgraph.cisco.security.firewall;fillColor=#a20025;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;",
+    "server": "shape=mxgraph.cisco.servers.standard_host;fillColor=#005073;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;",
+    "workstation": "shape=mxgraph.cisco.computers_and_peripherals.pc;fillColor=#005073;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;",
+    "wireless_ap": "shape=mxgraph.cisco.misc.wireless_access_point;fillColor=#005073;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;",
+    "load_balancer": "shape=mxgraph.cisco.switches.server_load_balancer;fillColor=#005073;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;",
+    "storage": "shape=mxgraph.cisco.storage.storage_array;fillColor=#005073;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;"
+  },
+  "sizes": {
+    "router": { "width": 80, "height": 60 },
+    "switch": { "width": 80, "height": 60 },
+    "firewall": { "width": 80, "height": 60 },
+    "server": { "width": 80, "height": 60 },
+    "workstation": { "width": 80, "height": 60 },
+    "wireless_ap": { "width": 80, "height": 60 },
+    "load_balancer": { "width": 80, "height": 60 },
+    "storage": { "width": 80, "height": 60 }
+  }
+}

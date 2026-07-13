@@ -230,12 +230,13 @@ function validateXml(xmlStr, diagramType = null) {
         'kubernetes.js': ['kubernetes'],
         'erd.js': ['erd'],
         'network.js': ['network'],
+        'design-quality.js': null,  // null = runs for ALL diagram types
     };
     const validatorsDir = path.join(__dirname, 'validators');
     if (fs.existsSync(validatorsDir)) {
         const files = fs.readdirSync(validatorsDir);
         for (const file of files) {
-            if (file.endsWith('.js')) {
+            if (file.endsWith('.js') && file !== 'validator-utils.js') {
                 const allowedTypes = VALIDATOR_TYPE_MAP[file];
                 if (allowedTypes && diagramType && !allowedTypes.includes(diagramType)) {
                     continue; // Skip validator that doesn't match diagram type

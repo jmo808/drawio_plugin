@@ -1,3 +1,5 @@
+const { findElement, getEdgesForNode, getZoneOrAZ, isInternalLb } = require('./validator-utils');
+
 // Helper to get AWS node type from style string or value label
 function getAwsNodeType(style, value) {
     const s = (style || '').toLowerCase();
@@ -22,6 +24,13 @@ function getAwsNodeType(style, value) {
         else if (v.includes('apigateway') || v.includes('api gateway') || v.includes('endpoint') || v.includes('api')) type = 'apigateway';
         else if (v.includes('waf') || v.includes('shield')) type = 'waf';
         else if (v.includes('client') || v.includes('user')) type = 'user';
+        else if (v.includes('dynamodb') || v.includes('dynamo db')) type = 'dynamodb';
+        else if (v.includes('elasticache') || v.includes('redis') || v.includes('cache')) type = 'elasticache';
+        else if (v.includes('sqs') || v.includes('queue')) type = 'sqs';
+        else if (v.includes('sns') || v.includes('notification')) type = 'sns';
+        else if (v.includes('eventbridge') || v.includes('event bridge')) type = 'eventbridge';
+        else if (v.includes('s3') || v.includes('bucket') || v.includes('storage')) type = 's3';
+        else if (v.includes('nat') || v.includes('nat gateway')) type = 'nat_gateway';
     }
     
     if (type === 'application_load_balancer' || type === 'alb') return 'application_load_balancer';
@@ -33,14 +42,17 @@ function getAwsNodeType(style, value) {
     if (type && (type.includes('route53') || type.includes('route_53'))) return 'route53';
     if (type && type.includes('waf')) return 'waf';
     if (type && (type.includes('user') || type.includes('client'))) return 'user';
+    if (type && (type.includes('dynamodb') || type.includes('dynamo'))) return 'dynamodb';
+    if (type && (type.includes('elasticache') || type.includes('redis') || type.includes('cache'))) return 'elasticache';
+    if (type && (type.includes('sqs') || type.includes('queue'))) return 'sqs';
+    if (type && type.includes('sns')) return 'sns';
+    if (type && (type.includes('eventbridge') || type.includes('event_bridge'))) return 'eventbridge';
+    if (type && (type.includes('s3') || type.includes('bucket'))) return 's3';
+    if (type && (type.includes('nat') || type.includes('nat_gateway'))) return 'nat_gateway';
     
     return type;
 }
 
-// Helper to determine if an ALB is internal or external based on its value/label
-function isInternalAlb(value) {
-    return value && value.toLowerCase().includes('internal');
-}
 
 module.exports = function({ cells, mxCells, doc, reportError }) {
     const statelessComputeTypes = ['ec2', 'ecs', 'lambda'];
@@ -61,12 +73,16 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
         }
     }
 
+    // Early return if no AWS-specific nodes found (avoid false positives on non-AWS diagrams)
+    const hasAwsSpecificNodes = Object.values(awsNodes).some(n => n.type !== 'user');
+    if (!hasAwsSpecificNodes) return;
+
     // Check edges for topology rules
     for (const id in cells) {
         const cell = cells[id];
         if (!cell.isEdge) continue;
         
-        const el = doc.getElementById(id) || Array.from(mxCells).find(e => e.getAttribute('id') === id);
+        const el = findElement(id, doc, mxCells);
         if (!el) continue;
         
         const sourceId = el.getAttribute('source');
@@ -78,13 +94,13 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
         const target = awsNodes[targetId];
         
         // Rule 1: The Grand Bypass
-        if (source.type === 'application_load_balancer' && !isInternalAlb(source.value) && 
-            target.type === 'application_load_balancer' && isInternalAlb(target.value)) {
+        if (source.type === 'application_load_balancer' && !isInternalLb(source.value) && 
+            target.type === 'application_load_balancer' && isInternalLb(target.value)) {
             reportError('TOPOLOGY_ERROR', id, `External ALB cannot bypass Web Tier and route directly to Internal ALB.`);
         }
 
         // Rule 4: Client -> ALB bypass (The Grand Ingress Bypass)
-        if (source.type === 'user' && target.type === 'application_load_balancer' && !isInternalAlb(target.value)) {
+        if (source.type === 'user' && target.type === 'application_load_balancer' && !isInternalLb(target.value)) {
             reportError('TOPOLOGY_ERROR', id, `Direct client connections bypassing CDN/WAF to External ALB are forbidden.`);
         }
 
@@ -137,19 +153,8 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
         
         // Rule 3: Stateless Horizontal Routing
         if (statelessComputeTypes.includes(source.type) && statelessComputeTypes.includes(target.type)) {
-            let sourceAz = null;
-            let p1 = cells[source.parent];
-            while (p1 && p1.id !== "1" && p1.id !== "0") {
-                if (p1.value && p1.value.toLowerCase().includes('az ')) { sourceAz = p1.id; break; }
-                p1 = cells[p1.parent];
-            }
-            
-            let targetAz = null;
-            let p2 = cells[target.parent];
-            while (p2 && p2.id !== "1" && p2.id !== "0") {
-                if (p2.value && p2.value.toLowerCase().includes('az ')) { targetAz = p2.id; break; }
-                p2 = cells[p2.parent];
-            }
+            const sourceAz = getZoneOrAZ(source.id, cells);
+            const targetAz = getZoneOrAZ(target.id, cells);
             
             if (sourceAz && targetAz && sourceAz !== targetAz) {
                 reportError('TOPOLOGY_ERROR', id, `Stateless compute nodes (${source.type} -> ${target.type}) cannot route horizontally across different AZs.`);
@@ -164,7 +169,7 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
         for (const id in cells) {
             const cell = cells[id];
             if (!cell.isEdge) continue;
-            const el = doc.getElementById(id) || Array.from(mxCells).find(e => e.getAttribute('id') === id);
+            const el = findElement(id, doc, mxCells);
             if (el) {
                 if (el.getAttribute('source') === webNodeId) hasOutboundEdge = true;
                 if (el.getAttribute('target') === webNodeId) hasInboundEdge = true;
@@ -200,16 +205,7 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
             
             const valLower = cell.value.toLowerCase();
             if (valLower.includes('api') || valLower.includes('worker')) {
-                // Find if it is in an AZ
-                let azId = null;
-                let p = cells[cell.parent];
-                while (p && p.id !== "1" && p.id !== "0") {
-                    if (p.value && p.value.toLowerCase().includes('az ')) { 
-                        azId = p.id; 
-                        break; 
-                    }
-                    p = cells[p.parent];
-                }
+                const azId = getZoneOrAZ(id, cells);
                 
                 if (azId) {
                     const isAzB = azId.endsWith('b') || azId.endsWith('2') || /[\s\-\/]b\b|[\s\-\/]2\b/i.test(cells[azId].value || '');
@@ -219,7 +215,7 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
                         for (const eid in cells) {
                             const edge = cells[eid];
                             if (edge.isEdge) {
-                                const el = doc.getElementById(eid) || Array.from(mxCells).find(e => e.getAttribute('id') === eid);
+                                const el = findElement(eid, doc, mxCells);
                                 if (el && el.getAttribute('source') === id && el.getAttribute('target') === dynamoPrimaryId) {
                                     hasEdgeToPrimary = true;
                                     break;
@@ -236,7 +232,7 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
                         for (const eid in cells) {
                             const edge = cells[eid];
                             if (edge.isEdge) {
-                                const el = doc.getElementById(eid) || Array.from(mxCells).find(e => e.getAttribute('id') === eid);
+                                const el = findElement(eid, doc, mxCells);
                                 if (el) {
                                     if (el.getAttribute('source') === id && el.getAttribute('target') === dynamoPrimaryId) {
                                         hasEdgeToPrimary = true;

@@ -23,27 +23,16 @@ const CONTAINER_STYLES = {
 };
 
 const NODE_STYLES = {
-    ec2: 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.ec2;fillColor=#ED7100;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
-    ecs: 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.ecs;fillColor=#ED7100;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
-    lambda: 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.lambda;fillColor=#ED7100;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
-    rds: 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.rds;fillColor=#C925D1;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
-    elasticache: 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.elasticache;fillColor=#C925D1;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
-    alb: 'shape=mxgraph.aws4.application_load_balancer;fillColor=#8C4FFF;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;pointerEvents=1;html=1;',
-    nlb: 'shape=mxgraph.aws4.network_load_balancer;fillColor=#8C4FFF;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;pointerEvents=1;html=1;',
-    s3: 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.s3;fillColor=#3F8624;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
-    cloudfront: 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.cloudfront;fillColor=#8C4FFF;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
-    route53: 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.route_53;fillColor=#8C4FFF;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
-    apigateway: 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.api_gateway;fillColor=#8C4FFF;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
-    api_gateway: 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.api_gateway;fillColor=#8C4FFF;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
-    waf: 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.waf;fillColor=#C925D1;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
-    nat_gateway: 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.nat_gateway;fillColor=#8C4FFF;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
-    endpoint: 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.endpoints;fillColor=#8C4FFF;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
-    dynamodb: 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.dynamodb;fillColor=#C925D1;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
-    sqs: 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.sqs;fillColor=#E7157B;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
-    sns: 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.sns;fillColor=#E7157B;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
-    eventbridge: 'shape=mxgraph.aws4.resourceIcon;resIcon=mxgraph.aws4.eventbridge;fillColor=#E7157B;strokeColor=#ffffff;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
-    user: 'shape=mxgraph.aws4.user;fillColor=#5A6C86;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
-    internet: 'shape=mxgraph.aws4.internet_alt2;fillColor=#232F3E;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
+    // Sequence
+    participant: 'shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;size=40;',
+    activation: 'shape=rectangle;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;',
+    note: 'shape=note;whiteSpace=wrap;html=1;size=15;backgroundOutline=1;fillColor=#fff2cc;strokeColor=#d6b656;',
+
+    // Generic shapes
+    rectangle: 'rounded=1;whiteSpace=wrap;html=1;',
+    diamond: 'rhombus;whiteSpace=wrap;html=1;',
+    cylinder: 'shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;',
+    circle: 'ellipse;whiteSpace=wrap;html=1;aspect=fixed;',
     
     // Flowchart
     process: 'rounded=1;whiteSpace=wrap;html=1;',
@@ -52,73 +41,6 @@ const NODE_STYLES = {
     end: 'ellipse;whiteSpace=wrap;html=1;',
     io: 'shape=parallelogram;perimeter=parallelogramPerimeter;whiteSpace=wrap;html=1;fixedSize=1;',
     subroutine: 'shape=process;whiteSpace=wrap;html=1;backgroundOutline=1;',
-
-    // K8s
-    pod: 'shape=mxgraph.kubernetes.icon;prIcon=pod;fillColor=#326CE5;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
-    service: 'shape=mxgraph.kubernetes.icon;prIcon=svc;fillColor=#326CE5;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
-    ingress: 'shape=mxgraph.kubernetes.icon;prIcon=ing;fillColor=#326CE5;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
-    configmap: 'shape=mxgraph.kubernetes.icon;prIcon=cm;fillColor=#326CE5;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
-    secret: 'shape=mxgraph.kubernetes.icon;prIcon=secret;fillColor=#326CE5;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
-    pv: 'shape=mxgraph.kubernetes.icon;prIcon=pv;fillColor=#326CE5;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
-    pvc: 'shape=mxgraph.kubernetes.icon;prIcon=pvc;fillColor=#326CE5;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
-    hpa: 'shape=mxgraph.kubernetes.icon;prIcon=hpa;fillColor=#326CE5;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
-
-    // Network
-    router: 'shape=mxgraph.cisco.routers.router;fillColor=#005073;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
-    switch: 'shape=mxgraph.cisco.switches.workgroup_switch;fillColor=#005073;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
-    firewall: 'shape=mxgraph.cisco.security.firewall;fillColor=#a20025;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
-    server: 'shape=mxgraph.cisco.servers.standard_host;fillColor=#005073;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
-    workstation: 'shape=mxgraph.cisco.computers_and_peripherals.pc;fillColor=#005073;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
-    wireless_ap: 'shape=mxgraph.cisco.misc.wireless_access_point;fillColor=#005073;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
-    load_balancer: 'shape=mxgraph.cisco.switches.server_load_balancer;fillColor=#005073;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
-    storage: 'shape=mxgraph.cisco.storage.storage_array;fillColor=#005073;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;',
-
-    // ERD
-    table: 'shape=rectangle;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fillColor=#f5f5f5;strokeColor=#cccccc;fontStyle=0;',
-    view: 'shape=rectangle;whiteSpace=wrap;html=1;align=left;verticalAlign=top;fillColor=#fff2cc;strokeColor=#d6b656;fontStyle=0;',
-
-    // Sequence
-    participant: 'shape=umlLifeline;perimeter=lifelinePerimeter;whiteSpace=wrap;html=1;container=1;collapsible=0;recursiveResize=0;outlineConnect=0;size=40;',
-    activation: 'shape=rectangle;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;',
-    note: 'shape=note;whiteSpace=wrap;html=1;size=15;backgroundOutline=1;fillColor=#fff2cc;strokeColor=#d6b656;',
-
-    // Mind Map
-    central: 'ellipse;whiteSpace=wrap;html=1;align=center;fillColor=#f5f7fa;strokeColor=#475569;strokeWidth=2;fontStyle=1;',
-    branch: 'rounded=1;whiteSpace=wrap;html=1;align=center;fillColor=#e2e8f0;strokeColor=#64748b;',
-    leaf: 'rounded=1;whiteSpace=wrap;html=1;align=center;fillColor=#ffffff;strokeColor=#cbd5e1;',
-
-    // Generic shapes
-    rectangle: 'rounded=1;whiteSpace=wrap;html=1;',
-    diamond: 'rhombus;whiteSpace=wrap;html=1;',
-    cylinder: 'shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;',
-    circle: 'ellipse;whiteSpace=wrap;html=1;aspect=fixed;',
-    // PFD / P&ID Shapes
-    pump: 'shape=mxgraph.pid.pumps.centrifugal_pump_1;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
-    compressor: 'shape=mxgraph.pid.compressors.centrifugal_compressor;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
-    valve: 'shape=mxgraph.pid2valves.gate_valve;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
-    vessel: 'shape=mxgraph.pid.vessels.vertical_vessel;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
-    cyclone: 'shape=mxgraph.pid.misc.cyclone;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
-    heat_exchanger: 'shape=mxgraph.pid.heat_exchangers.shell_and_tube_1;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
-
-    // PFD Equipment Variants
-    'separator_2-phase': 'shape=mxgraph.pid.vessels.vertical_vessel;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
-    'separator_3-phase': 'shape=mxgraph.pid.vessels.horizontal_vessel;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
-    separator: 'shape=mxgraph.pid.vessels.vertical_vessel;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
-    'heat_exchanger_shell-and-tube': 'shape=mxgraph.pid.heat_exchangers.shell_and_tube_1;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
-    'heat_exchanger_plate': 'shape=mxgraph.pid.heat_exchangers.plate_heat_exchanger;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
-    'pump_centrifugal': 'shape=mxgraph.pid.pumps.centrifugal_pump_1;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
-    'pump_positive_displacement': 'shape=mxgraph.pid.pumps.rotary_pump;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
-    'compressor_centrifugal': 'shape=mxgraph.pid.compressors.centrifugal_compressor;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
-    'compressor_reciprocating': 'shape=mxgraph.pid.compressors.reciprocating_compressor;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
-    'reactor_CSTR': 'shape=mxgraph.pid.vessels.reactor;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
-    'reactor_PFR': 'shape=mxgraph.pid.vessels.vertical_vessel;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
-    reactor: 'shape=mxgraph.pid.vessels.reactor;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
-    'distillation_column_tray': 'shape=mxgraph.pid.vessels.tray_column;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
-    'distillation_column_packed': 'shape=mxgraph.pid.vessels.packed_column;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
-    distillation_column: 'shape=mxgraph.pid.vessels.tray_column;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
-    'vessel_storage': 'shape=mxgraph.pid.vessels.tank;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
-    'vessel_surge': 'shape=mxgraph.pid.vessels.vertical_vessel;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
-    'vessel_accumulator': 'shape=mxgraph.pid.vessels.horizontal_vessel;perimeter=rectanglePerimeter;fillColor=#dae8fc;strokeColor=#6c8ebf;html=1;align=center;verticalLabelPosition=bottom;verticalAlign=top;',
 };
 
 const EDGE_STYLES = {
@@ -150,12 +72,6 @@ const NODE_SIZES = {
     diamond: { width: 140, height: 80 },
     cylinder: { width: 100, height: 70 },
     circle: { width: 60, height: 60 },
-    vessel: { width: 120, height: 180 },
-    pump: { width: 100, height: 70 },
-    compressor: { width: 100, height: 80 },
-    valve: { width: 80, height: 50 },
-    cyclone: { width: 80, height: 120 },
-    heat_exchanger: { width: 120, height: 80 },
     
     // Flowchart
     process: { width: 140, height: 60 },
@@ -165,30 +81,6 @@ const NODE_SIZES = {
     io: { width: 140, height: 60 },
     subroutine: { width: 140, height: 60 },
     
-    // K8s
-    pod: { width: 60, height: 60 },
-    service: { width: 60, height: 60 },
-    ingress: { width: 60, height: 60 },
-    configmap: { width: 60, height: 60 },
-    secret: { width: 60, height: 60 },
-    pv: { width: 60, height: 60 },
-    pvc: { width: 60, height: 60 },
-    hpa: { width: 60, height: 60 },
-
-    // Network
-    router: { width: 80, height: 60 },
-    switch: { width: 80, height: 60 },
-    firewall: { width: 80, height: 60 },
-    server: { width: 80, height: 60 },
-    workstation: { width: 80, height: 60 },
-    wireless_ap: { width: 80, height: 60 },
-    load_balancer: { width: 80, height: 60 },
-    storage: { width: 80, height: 60 },
-
-    // ERD
-    table: { width: 160, height: 120 },
-    view: { width: 160, height: 120 },
-
     // Sequence
     participant: { width: 100, height: 300 },
     activation: { width: 20, height: 80 },
@@ -198,33 +90,13 @@ const NODE_SIZES = {
     central: { width: 140, height: 70 },
     branch: { width: 120, height: 50 },
     leaf: { width: 100, height: 40 },
-
-    // PFD Equipment Variants
-    'separator_2-phase': { width: 100, height: 160 },
-    'separator_3-phase': { width: 160, height: 100 },
-    separator: { width: 100, height: 160 },
-    'heat_exchanger_shell-and-tube': { width: 120, height: 80 },
-    'heat_exchanger_plate': { width: 100, height: 80 },
-    'pump_centrifugal': { width: 100, height: 70 },
-    'pump_positive_displacement': { width: 100, height: 70 },
-    'compressor_centrifugal': { width: 100, height: 80 },
-    'compressor_reciprocating': { width: 110, height: 80 },
-    'reactor_CSTR': { width: 120, height: 160 },
-    'reactor_PFR': { width: 80, height: 200 },
-    reactor: { width: 120, height: 160 },
-    'distillation_column_tray': { width: 100, height: 320 },
-    'distillation_column_packed': { width: 100, height: 320 },
-    distillation_column: { width: 100, height: 320 },
-    'vessel_storage': { width: 160, height: 140 },
-    'vessel_surge': { width: 100, height: 180 },
-    'vessel_accumulator': { width: 180, height: 100 },
 };
 
-const NODE_SPACING = { x: 180, y: 140 };  // grid spacing within containers
-const CONTAINER_PADDING = { top: 44, left: 30, right: 30, bottom: 30 };
-const CONTAINER_START_SIZE = 24; // swimlane header height
-const AZ_GAP = 220; // horizontal gap between AZ containers — room for ALBs + edge routing
-const ALB_TYPES = new Set(['alb', 'nlb', 'gclb', 'load_balancer', 'loadbalancer']); // node types that get center-column placement
+const NODE_SPACING = { x: 140, y: 120 };  // grid spacing within containers — tighter grid
+const CONTAINER_PADDING = { top: 40, left: 24, right: 24, bottom: 24 };
+const CONTAINER_START_SIZE = 22; // swimlane header height
+const AZ_GAP = 140; // horizontal gap between AZ containers — ALBs now inside subnets, don't need extra gap
+const ALB_TYPES = new Set(['alb', 'nlb', 'gclb', 'load_balancer', 'loadbalancer', 'load_balancing']); // node types that get center-column placement
 
 // ---------------------------------------------------------------------------
 // DiagramBuilder Class
@@ -237,6 +109,44 @@ class DiagramBuilder {
         this.initialized = false;
         this.title = '';
         this.type = 'architecture';
+        this.correctors = [];
+
+        // Dynamic domain profiles and correctors loading
+        try {
+            const { DomainRegistry } = require('./domains/registry');
+            const registry = new DomainRegistry();
+            registry.loadDomains(this);
+        } catch (err) {
+            console.error('[DIAGRAM-BUILDER] Failed to load domain correctors:', err);
+        }
+    }
+
+    registerStyle(type, style) {
+        NODE_STYLES[type] = style;
+    }
+
+    registerSize(type, size) {
+        NODE_SIZES[type] = size;
+    }
+
+    registerLoadBalancer(type) {
+        ALB_TYPES.add(type);
+    }
+
+    registerCorrector(corrector) {
+        this.correctors.push(corrector);
+    }
+
+    _executeHooks(hookName, ...args) {
+        for (const corrector of this.correctors) {
+            if (typeof corrector[hookName] === 'function') {
+                try {
+                    corrector[hookName](this, ...args);
+                } catch (err) {
+                    console.error(`[CORRECTOR] Error running hook "${hookName}":`, err);
+                }
+            }
+        }
     }
 
     // --- Init ---
@@ -289,31 +199,78 @@ class DiagramBuilder {
             return { success: false, error: `Parent "${parentId}" not found.` };
         }
 
-        // Auto-correct generic types if label implies a specific AWS resource
+        // Platform-aware auto-correction
         const lowerLabel = (label || '').toLowerCase();
-        if (type !== 'table' && type !== 'view') {
-            if (lowerLabel.includes('api gateway') || lowerLabel.includes('api_gateway')) {
-                type = 'apigateway';
-            } else if (lowerLabel.includes('cloudfront') || lowerLabel.includes('cdn')) {
-                type = 'cloudfront';
-            } else if (lowerLabel.includes('task queue') || lowerLabel.includes('sqs')) {
-                type = 'sqs';
-            } else if (lowerLabel.includes('lambda') || lowerLabel.includes('api handler')) {
-                type = 'lambda';
-            } else if (lowerLabel.includes('ecs') || lowerLabel.includes('worker')) {
-                type = 'ecs';
-            } else if (lowerLabel.includes('rds') || lowerLabel.includes('database') || lowerLabel.includes(' db')) {
-                type = 'rds';
-            } else if (lowerLabel.includes('redis') || lowerLabel.includes('cache')) {
-                type = 'elasticache';
-            } else if (lowerLabel.includes('user') || lowerLabel.includes('client')) {
-                type = 'user';
-            } else if (lowerLabel.includes('dynamodb') || lowerLabel.includes('dynamo')) {
-                type = 'dynamodb';
-            }
+        const isGcp = this.isGcpMode() || lowerLabel.includes('gcp') || lowerLabel.includes('google') ||
+                       lowerLabel.includes('gke') || lowerLabel.includes('gcs') || lowerLabel.includes('cloud sql') ||
+                       lowerLabel.includes('spanner') || lowerLabel.includes('operations suite') ||
+                       lowerLabel.includes('cloud storage') || lowerLabel.includes('cloud dns') || lowerLabel.includes('cloud nat');
 
-            if (type === 'dynamodb') {
-                parentId = '1';
+        if (type !== 'table' && type !== 'view') {
+            if (isGcp) {
+                // Map generic and AWS terms to GCP types
+                if (lowerLabel.includes('api gateway') || lowerLabel.includes('api_gateway') || type === 'apigateway' || type === 'api_gateway') {
+                    type = 'apigateway';
+                } else if (lowerLabel.includes('cdn') || lowerLabel.includes('cloud cdn') || type === 'cloudfront') {
+                    type = 'cloud_cdn';
+                } else if (lowerLabel.includes('dns') || lowerLabel.includes('cloud dns') || type === 'route53') {
+                    type = 'cloud_dns';
+                } else if (lowerLabel.includes('nat') || lowerLabel.includes('cloud nat') || type === 'nat_gateway') {
+                    type = 'cloud_nat';
+                } else if (lowerLabel.includes('armor') || lowerLabel.includes('waf') || lowerLabel.includes('cloud armor') || type === 'waf') {
+                    type = 'cloud_armor';
+                } else if (lowerLabel.includes('registry') || lowerLabel.includes('artifact') || type === 'artifact_registry') {
+                    type = 'artifact_registry';
+                } else if (lowerLabel.includes('gke') || lowerLabel.includes('kubernetes') || lowerLabel.includes('k8s') || type === 'ecs') {
+                    type = 'kubernetes_engine';
+                } else if (lowerLabel.includes('compute engine') || lowerLabel.includes('gce') || lowerLabel.includes('vm') || lowerLabel.includes('virtual machine') || type === 'ec2') {
+                    type = 'compute_engine';
+                } else if (lowerLabel.includes('cloud run') || lowerLabel.includes('cloudrun')) {
+                    type = 'cloud_run';
+                } else if (lowerLabel.includes('functions') || lowerLabel.includes('gcf') || type === 'lambda') {
+                    type = 'cloud_functions';
+                } else if (lowerLabel.includes('sql') || lowerLabel.includes('database') || lowerLabel.includes(' db') || lowerLabel.includes('postgres') || lowerLabel.includes('mysql') || type === 'rds') {
+                    type = 'cloud_sql';
+                } else if (lowerLabel.includes('spanner') || type === 'cloud_spanner') {
+                    type = 'cloud_spanner';
+                } else if (lowerLabel.includes('redis') || lowerLabel.includes('memorystore') || lowerLabel.includes('cache') || type === 'elasticache') {
+                    type = 'memorystore';
+                } else if (lowerLabel.includes('storage') || lowerLabel.includes('bucket') || lowerLabel.includes('gcs') || type === 's3') {
+                    type = 'cloud_storage';
+                } else if (lowerLabel.includes('pubsub') || lowerLabel.includes('pub/sub') || lowerLabel.includes('queue') || lowerLabel.includes('topic') || type === 'sqs' || type === 'sns') {
+                    type = 'pubsub';
+                } else if (lowerLabel.includes('operations') || lowerLabel.includes('monitoring') || lowerLabel.includes('logging') || lowerLabel.includes('stackdriver') || lowerLabel.includes('observability') || type === 'operations_suite') {
+                    type = 'operations_suite';
+                } else if (lowerLabel.includes('load balancer') || lowerLabel.includes('load_balancer') || lowerLabel.includes('loadbalancing') || lowerLabel.includes('load balancing') || lowerLabel.includes('gclb') || type === 'alb' || type === 'nlb' || type === 'load_balancing') {
+                    type = 'load_balancing';
+                } else if (lowerLabel.includes('user') || lowerLabel.includes('client')) {
+                    type = 'user';
+                }
+            } else {
+                // Map to AWS types
+                if (lowerLabel.includes('api gateway') || lowerLabel.includes('api_gateway')) {
+                    type = 'apigateway';
+                } else if (lowerLabel.includes('cloudfront') || lowerLabel.includes('cdn')) {
+                    type = 'cloudfront';
+                } else if (lowerLabel.includes('task queue') || lowerLabel.includes('sqs')) {
+                    type = 'sqs';
+                } else if (lowerLabel.includes('lambda') || lowerLabel.includes('api handler')) {
+                    type = 'lambda';
+                } else if (lowerLabel.includes('ecs') || lowerLabel.includes('worker')) {
+                    type = 'ecs';
+                } else if (lowerLabel.includes('rds') || lowerLabel.includes('database') || lowerLabel.includes(' db')) {
+                    type = 'rds';
+                } else if (lowerLabel.includes('redis') || lowerLabel.includes('cache')) {
+                    type = 'elasticache';
+                } else if (lowerLabel.includes('user') || lowerLabel.includes('client')) {
+                    type = 'user';
+                } else if (lowerLabel.includes('dynamodb') || lowerLabel.includes('dynamo')) {
+                    type = 'dynamodb';
+                }
+
+                if (type === 'dynamodb') {
+                    parentId = '1';
+                }
             }
         }
 
@@ -466,60 +423,33 @@ class DiagramBuilder {
         const sourceNode = this.cells.get(sourceId);
         const targetNode = this.cells.get(targetId);
 
+        const edgeOpts = { label, style, exitPort, entryPort };
+        this._executeHooks('beforeConnect', sourceNode, targetNode, edgeOpts);
+        label = edgeOpts.label;
+        style = edgeOpts.style;
+        exitPort = edgeOpts.exitPort;
+        entryPort = edgeOpts.entryPort;
+
         // 1. Hard Block: Load balancers cannot publish to asynchronous queues or brokers
         if (sourceNode && targetNode) {
-            const isBroker = (n) => ['sqs', 'sns', 'eventbridge'].includes(n.type);
-            if ((sourceNode.type === 'alb' || sourceNode.type === 'nlb') && isBroker(targetNode)) {
-                return { success: false, error: `Load balancers (${sourceNode.label}) cannot publish to brokers/queues (${targetNode.label}). Outbound ALB traffic must only route to compute instances.` };
+            const isBroker = (n) => ['sqs', 'sns', 'eventbridge', 'pubsub'].includes(n.type);
+            if (ALB_TYPES.has(sourceNode.type) && isBroker(targetNode)) {
+                return { success: false, error: `Load balancers (${sourceNode.label}) cannot publish to brokers/queues (${targetNode.label}). Outbound load balancer traffic must only route to compute instances.` };
             }
         }
 
         // 1b. Automatic Async Polling/Messaging Styles
         if (sourceNode && targetNode) {
-            const isBroker = (n) => ['sqs', 'sns', 'eventbridge'].includes(n.type);
+            const isBroker = (n) => ['sqs', 'sns', 'eventbridge', 'pubsub'].includes(n.type);
             const isCompute = (n) => {
-                if (['apigateway', 'api_gateway', 'route53', 'waf', 'cloudfront', 'dynamodb', 'rds', 'elasticache', 'sqs', 'sns', 'eventbridge'].includes(n.type)) return false;
-                if (['ecs', 'ec2', 'lambda'].includes(n.type)) return true;
+                if (['apigateway', 'api_gateway', 'route53', 'waf', 'cloudfront', 'dynamodb', 'rds', 'elasticache', 'sqs', 'sns', 'eventbridge', 'cloud_sql', 'cloud_spanner', 'memorystore', 'redis', 'load_balancing', 'cloud_cdn', 'cloud_armor', 'cloud_storage', 'cloud_dns', 'cloud_nat', 'artifact_registry', 'pubsub', 'operations_suite'].includes(n.type)) return false;
+                if (['ecs', 'ec2', 'lambda', 'kubernetes_engine', 'compute_engine', 'cloud_run', 'cloud_functions'].includes(n.type)) return true;
                 const labelLower = (n.label || '').toLowerCase();
                 const idLower = (n.id || '').toLowerCase();
                 return labelLower.includes('api') || labelLower.includes('worker') || idLower.includes('api') || idLower.includes('worker');
             };
             if ((isBroker(sourceNode) && isCompute(targetNode)) || (isCompute(sourceNode) && isBroker(targetNode))) {
                 style = 'dashed';
-            }
-        }
-
-        // 1c. PFD Auto-Nozzle Port Resolution
-        if (this.type === 'pfd' && sourceNode && targetNode) {
-            if (!exitPort) {
-                if (sourceNode.type === 'pump' || sourceNode.type === 'compressor') {
-                    exitPort = 'right';
-                } else if (sourceNode.type === 'distillation_column') {
-                    const labelLower = (label || '').toLowerCase();
-                    if (labelLower.includes('bottom')) exitPort = 'bottom';
-                    else if (labelLower.includes('overhead') || labelLower.includes('distillate') || labelLower.includes('vapor')) exitPort = 'top';
-                    else if (targetNode.y < sourceNode.y) exitPort = 'top';
-                    else if (targetNode.y > sourceNode.y + sourceNode.height - 40) exitPort = 'bottom';
-                    else exitPort = 'right';
-                } else if (sourceNode.type === 'heat_exchanger') {
-                    exitPort = (style === 'utility' || style === 'instrument') ? 'bottom' : 'right';
-                } else {
-                    exitPort = 'right';
-                }
-            }
-            if (!entryPort) {
-                if (targetNode.type === 'pump') {
-                    entryPort = 'left';
-                } else if (targetNode.type === 'compressor') {
-                    entryPort = 'bottom';
-                } else if (targetNode.type === 'distillation_column') {
-                    if (sourceNode.y > targetNode.y + targetNode.height - 40) entryPort = 'bottom';
-                    else entryPort = 'left';
-                } else if (targetNode.type === 'heat_exchanger') {
-                    entryPort = (style === 'utility' || style === 'instrument') ? 'top' : 'left';
-                } else {
-                    entryPort = 'left';
-                }
             }
         }
 
@@ -818,9 +748,9 @@ class DiagramBuilder {
             const { validateXml } = require('./validate');
             const result = validateXml(xml, this.type);
             if (result.success) {
-                return { success: true, message: 'Validation passed. No issues found.' };
+                return { success: true, message: 'Validation passed. No issues found.', warnings: result.warnings || [] };
             } else {
-                return { success: false, error: 'Validation failed.', details: result.errors.join('\n') };
+                return { success: false, error: 'Validation failed.', details: result.errors.join('\n'), errors: result.errors, warnings: result.warnings || [] };
             }
         } catch (error) {
             return { success: false, error: `Validation crash: ${error.message}` };
@@ -887,6 +817,21 @@ class DiagramBuilder {
     }
 
     // --- Internal Helpers ---
+
+    isGcpMode() {
+        for (const [, cell] of this.cells) {
+            const type = cell.type || '';
+            const lbl = (cell.label || '').toLowerCase();
+            if (type.includes('gcp') || type.includes('gke') || type.includes('gce') || type.startsWith('cloud_') ||
+                type === 'load_balancing' || type === 'operations_suite' || type === 'artifact_registry' ||
+                lbl.includes('gcp') || lbl.includes('google') || lbl.includes('gke') || lbl.includes('gcs') ||
+                lbl.includes('cloud sql') || lbl.includes('stackdriver') || lbl.includes('artifact registry') ||
+                lbl.includes('cloud storage') || lbl.includes('cloud dns') || lbl.includes('cloud nat')) {
+                return true;
+            }
+        }
+        return false;
+    }
 
     _childrenOf(parentId) {
         const children = [];
@@ -992,11 +937,11 @@ class DiagramBuilder {
         const parent = this.cells.get(parentId);
 
         if (type === 'region') {
-            return { x: 20, y: 150, width: 1280, height: 300 };
+            return { x: 20, y: 150, width: 1000, height: 260 };
         }
 
         if (type === 'vpc') {
-            return { x: 40, y: 180, width: 1200, height: 300 };
+            return { x: 40, y: 180, width: 960, height: 260 };
         }
 
         if (type === 'cluster') {
@@ -1049,10 +994,10 @@ class DiagramBuilder {
 
         if (type === 'az') {
             const azIndex = siblings.filter(s => s.type === 'az').length;
-            const azWidth = 460;
-            // First AZ at x=20, second AZ at x=20+460+AZ_GAP=700
+            const azWidth = 400;
+            // First AZ at x=20, second AZ at x=20+400+AZ_GAP
             const x = 20 + azIndex * (azWidth + AZ_GAP);
-            return { x, y: 160, width: azWidth, height: 200 };
+            return { x, y: 160, width: azWidth, height: 180 };
         }
 
         if (type === 'subnet' || type.startsWith('subnet_')) {
@@ -1266,41 +1211,64 @@ class DiagramBuilder {
     }
 
     _applyTopologicalCorrections() {
-        if (this.type !== 'architecture') {
-            return;
-        }
-        const isCompute = (n) => {
-            if (['apigateway', 'api_gateway', 'route53', 'waf', 'cloudfront', 'dynamodb', 'rds', 'elasticache', 'sqs', 'sns', 'eventbridge',
-                 'cloud_sql', 'cloud_spanner', 'memorystore', 'redis', 'load_balancing', 'cloud_cdn', 'cloud_armor', 'cloud_storage'].includes(n.type)) return false;
-            if (['ecs', 'ec2', 'lambda', 'kubernetes_engine', 'compute_engine', 'cloud_run', 'cloud_functions'].includes(n.type)) return true;
-            const labelLower = (n.label || '').toLowerCase();
-            const idLower = (n.id || '').toLowerCase();
-            return labelLower.includes('api') || labelLower.includes('worker') || idLower.includes('api') || idLower.includes('worker');
-        };
-        const isBroker = (n) => ['sqs', 'sns', 'eventbridge'].includes(n.type);
+        if (this.type !== 'architecture') return;
 
-        const getAz = (cell) => {
-            let curr = cell;
-            while (curr && curr.parentId && curr.parentId !== '1') {
-                if (curr.type === 'az' || curr.type === 'zone') return curr;
-                const cLbl = (curr.label || '').toLowerCase();
-                if (cLbl.includes('zone') || cLbl.includes('az')) return curr;
-                curr = this.cells.get(curr.parentId);
+        // Shared context: helper closures used by all submethods
+        const ctx = {
+            isCompute: (n) => {
+                if (['apigateway', 'api_gateway', 'route53', 'waf', 'cloudfront', 'dynamodb', 'rds', 'elasticache', 'sqs', 'sns', 'eventbridge',
+                     'cloud_sql', 'cloud_spanner', 'memorystore', 'redis', 'load_balancing', 'cloud_cdn', 'cloud_armor', 'cloud_storage',
+                     'cloud_dns', 'cloud_nat', 'artifact_registry', 'pubsub', 'operations_suite'].includes(n.type)) return false;
+                if (['ecs', 'ec2', 'lambda', 'kubernetes_engine', 'compute_engine', 'cloud_run', 'cloud_functions'].includes(n.type)) return true;
+                const labelLower = (n.label || '').toLowerCase();
+                const idLower = (n.id || '').toLowerCase();
+                return labelLower.includes('api') || labelLower.includes('worker') || idLower.includes('api') || idLower.includes('worker');
+            },
+            isBroker: (n) => ['sqs', 'sns', 'eventbridge', 'pubsub'].includes(n.type),
+            getAz: (cell) => {
+                let curr = cell;
+                while (curr && curr.parentId && curr.parentId !== '1') {
+                    if (curr.type === 'az' || curr.type === 'zone') return curr;
+                    const cLbl = (curr.label || '').toLowerCase();
+                    if (cLbl.includes('zone') || cLbl.includes('az')) return curr;
+                    curr = this.cells.get(curr.parentId);
+                }
+                return null;
+            },
+            getAbsoluteCoords: (c) => this._getAbsoluteCoords(c),
+            hasEdge: (srcId, tgtId, bidirectional = false) => {
+                for (const [, e] of this.edges) {
+                    if (e.sourceId === srcId && e.targetId === tgtId) return true;
+                    if (bidirectional && e.sourceId === tgtId && e.targetId === srcId) return true;
+                }
+                return false;
+            },
+            isInternalAlb: (cell) => {
+                const lbl = (cell.label || '').toLowerCase();
+                const id = (cell.id || '').toLowerCase();
+                return lbl.includes('internal') || id.includes('internal');
             }
-            return null;
         };
 
-        const getAbsoluteCoords = (c) => this._getAbsoluteCoords(c);
+        this._executeHooks('beforeLayout', ctx);
 
-        const hasEdge = (srcId, tgtId, bidirectional = false) => {
-            for (const [, e] of this.edges) {
-                if (e.sourceId === srcId && e.targetId === tgtId) return true;
-                if (bidirectional && e.sourceId === tgtId && e.targetId === srcId) return true;
-            }
-            return false;
-        };
+        this._injectUserClient(ctx);
+        this._purgeComputeCrossAZEdges(ctx);
+        this._deduplicateALBs(ctx);
+        this._seatALBsInSubnets(ctx);
+        this._correctIngressSpine(ctx);
+        this._correctALBToCompute(ctx);
+        
+        this._executeHooks('afterLayout', ctx);
 
-        // 0. Inject User Client if missing and Route 53 is present
+        this._mirrorAZSymmetry(ctx);
+        this._relayoutTopLevelNodes(ctx);
+        this._removeEmptySubnets();
+    }
+
+    // --- Topological correction submethods ---
+
+    _injectUserClient(ctx) {
         let hasUser = false;
         for (const [, cell] of this.cells) {
             if (cell.type === 'user') {
@@ -1349,15 +1317,16 @@ class DiagramBuilder {
                 });
             }
         }
+    }
 
-        // Purge any compute-to-compute horizontal edges (no horizontal cross-talk across AZs)
+    _purgeComputeCrossAZEdges(ctx) {
         const computeToComputeEdges = [];
         for (const [edgeId, edge] of this.edges) {
             const src = this.cells.get(edge.sourceId);
             const tgt = this.cells.get(edge.targetId);
-            if (src && tgt && isCompute(src) && isCompute(tgt)) {
-                const srcAz = getAz(src);
-                const tgtAz = getAz(tgt);
+            if (src && tgt && ctx.isCompute(src) && ctx.isCompute(tgt)) {
+                const srcAz = ctx.getAz(src);
+                const tgtAz = ctx.getAz(tgt);
                 if (srcAz && tgtAz && srcAz.id !== tgtAz.id) {
                     computeToComputeEdges.push(edgeId);
                 }
@@ -1366,215 +1335,16 @@ class DiagramBuilder {
         for (const edgeId of computeToComputeEdges) {
             this.edges.delete(edgeId);
         }
-
-        // 1. Force dashed style for broker-to-compute edges
-        for (const [, edge] of this.edges) {
-            const src = this.cells.get(edge.sourceId);
-            const tgt = this.cells.get(edge.targetId);
-            if (src && tgt) {
-                if ((isBroker(src) && isCompute(tgt)) || (isCompute(src) && isBroker(tgt))) {
-                    // Replace entire style to guarantee orthogonal routing + dashed
-                    edge.style = EDGE_STYLES.dashed;
-                    if (edge.label) edge.style += 'labelBackgroundColor=#ffffff;';
-
-                    // Force upward routing for EventBridge with waypoints at y = 250 to avoid AZ crossing detours
-                    if (src.type === 'eventbridge' || tgt.type === 'eventbridge') {
-                        const compNode = isCompute(src) ? src : tgt;
-                        const ebNode = src.type === 'eventbridge' ? src : tgt;
-                        const srcCoords = getAbsoluteCoords(compNode);
-                        const tgtCoords = getAbsoluteCoords(ebNode);
-
-                        edge.style += 'exitX=0.5;exitY=0;exitPerimeter=0;entryX=0.5;entryY=1;entryPerimeter=0;';
-                        edge.points = [
-                            { x: srcCoords.x + (compNode.width || 78) / 2, y: 250 },
-                            { x: tgtCoords.x + (ebNode.width || 78) / 2, y: 250 }
-                        ];
-                    }
-                }
-            }
-        }
-
-        // 2. Explicit Database Tier Matrices
-        let primaryDb = null;
-        let replicaDb = null;
-        for (const [, cell] of this.cells) {
-            if (cell.type === 'rds' || cell.type === 'dynamodb' || cell.type === 'cloud_sql' || cell.type === 'cloud_spanner') {
-                if (this._isPrimary(cell)) primaryDb = cell;
-                if (this._isReplica(cell)) replicaDb = cell;
-            }
-        }
-
-        if (primaryDb && replicaDb) {
-            // A. Clean up ALL existing database connection edges first
-            const existingDbEdges = [];
-            for (const [edgeId, edge] of this.edges) {
-                const tgt = this.cells.get(edge.targetId);
-                if (tgt && (tgt.type === 'rds' || tgt.type === 'dynamodb' || tgt.type === 'cloud_sql' || tgt.type === 'cloud_spanner')) {
-                    existingDbEdges.push(edgeId);
-                }
-            }
-            for (const edgeId of existingDbEdges) {
-                this.edges.delete(edgeId);
-            }
-
-            // B. Clean up ALL existing replication edges first
-            const replicationEdges = [];
-            for (const [edgeId, edge] of this.edges) {
-                const lbl = (edge.label || '').toLowerCase();
-                if (lbl.includes('replication')) {
-                    replicationEdges.push(edgeId);
-                }
-            }
-            for (const edgeId of replicationEdges) {
-                this.edges.delete(edgeId);
-            }
-
-            // C. Establish strict data tier matrix connection
-            for (const [, cell] of this.cells) {
-                if (isCompute(cell)) {
-                    const az = getAz(cell);
-                    const isAzB = az && (az.id.endsWith('b') || az.id.endsWith('2') || /[\s\-\/]b\b|[\s\-\/]2\b|us-east-1b/i.test(az.label || ''));
-
-                    if (!isAzB) {
-                        // AZ-A Compute Node: Local Read/Write to Primary DB (No Cross-AZ)
-                        let style = EDGE_STYLES.solid + 'labelBackgroundColor=#ffffff;';
-                        if (primaryDb.type === 'dynamodb') {
-                            // Force upward routing to regional DynamoDB
-                            style += 'exitX=0.5;exitY=0;exitPerimeter=0;entryX=0.5;entryY=1;entryPerimeter=0;';
-                        }
-                        this.connect(cell.id, primaryDb.id, 'Read/Write', style);
-                    } else {
-                        // AZ-B Compute Node:
-                        // 1. Local Read Only / Read Local to Replica DB (Solid)
-                        const readLbl = primaryDb.type === 'dynamodb' ? 'Read Local' : 'Read Only';
-                        let readStyle = EDGE_STYLES.solid + 'labelBackgroundColor=#ffffff;';
-                        if (primaryDb.type === 'dynamodb') {
-                            readStyle += 'exitX=0.5;exitY=0;exitPerimeter=0;entryX=0.5;entryY=1;entryPerimeter=0;';
-                        }
-                        this.connect(cell.id, replicaDb.id, readLbl, readStyle);
-                        
-                        // 2. Cross-AZ Read/Write / Write Cross-AZ to Primary DB in AZ-A
-                        const writeLbl = primaryDb.type === 'dynamodb' ? 'Write Cross-AZ' : 'Read/Write';
-                        let writeStyle = EDGE_STYLES.solid + 'labelBackgroundColor=#ffffff;';
-                        if (primaryDb.type === 'rds' || primaryDb.type === 'cloud_sql' || primaryDb.type === 'cloud_spanner') {
-                            const isWeb = cell.id.toLowerCase().includes('web') || (cell.label || '').toLowerCase().includes('web');
-                            const entryY = isWeb ? 0.35 : 0.65;
-                            writeStyle += `exitX=0;exitY=0.5;exitPerimeter=0;entryX=1;entryY=${entryY};entryPerimeter=0;`;
-                            const connRes = this.connect(cell.id, primaryDb.id, writeLbl, writeStyle);
-                            
-                            // Force waypoint to route cleanly below the App Subnet (offset Web/Worker to avoid overlap/header collision)
-                            if (connRes.success) {
-                                const createdEdge = this.edges.get(connRes.id);
-                                if (createdEdge) {
-                                    const srcCoords = getAbsoluteCoords(cell);
-                                    const tgtCoords = getAbsoluteCoords(primaryDb);
-                                    const computeBottom = srcCoords.y + (cell.height || 68);
-                                    const dbTop = tgtCoords.y;
-                                    let routeY = isWeb ? 760 : 840;
-                                    if (dbTop > computeBottom) {
-                                        routeY = computeBottom + (dbTop - computeBottom) * (isWeb ? 0.45 : 0.7);
-                                    }
-                                    createdEdge.points = [
-                                        { x: srcCoords.x, y: routeY },
-                                        { x: tgtCoords.x + (primaryDb.width || 78), y: routeY }
-                                    ];
-                                }
-                            }
-                        } else {
-                            // DynamoDB (Regional): Force clean upward routing without waypoints
-                            writeStyle += 'exitX=0.5;exitY=0;exitPerimeter=0;entryX=0.5;entryY=1;entryPerimeter=0;';
-                            this.connect(cell.id, primaryDb.id, writeLbl, writeStyle);
-                        }
-                    }
-                }
-            }
-
-            // Hardcode assertion ensuring every node labeled "Api" and "Worker" in both AZs has an explicitly defined edge targeting the DynamoDB tier
-            if (primaryDb && primaryDb.type === 'dynamodb') {
-                for (const [, cell] of this.cells) {
-                    if (cell.isContainer || !cell.label) continue;
-                    const labelLower = cell.label.toLowerCase();
-                    if (labelLower.includes('api') || labelLower.includes('worker')) {
-                        const az = getAz(cell);
-                        if (az) {
-                            const isAzB = az.id.endsWith('b') || az.id.endsWith('2') || /[\s\-\/]b\b|[\s\-\/]2\b|us-east-1b/i.test(az.label || '');
-                            if (!isAzB) {
-                                if (!hasEdge(cell.id, primaryDb.id)) {
-                                    let style = EDGE_STYLES.solid + 'labelBackgroundColor=#ffffff;';
-                                    style += 'exitX=0.5;exitY=0;exitPerimeter=0;entryX=0.5;entryY=1;entryPerimeter=0;';
-                                    this.connect(cell.id, primaryDb.id, 'Read/Write', style);
-                                }
-                            } else {
-                                if (replicaDb && !hasEdge(cell.id, replicaDb.id)) {
-                                    let readStyle = EDGE_STYLES.solid + 'labelBackgroundColor=#ffffff;';
-                                    readStyle += 'exitX=0.5;exitY=0;exitPerimeter=0;entryX=0.5;entryY=1;entryPerimeter=0;';
-                                    this.connect(cell.id, replicaDb.id, 'Read Local', readStyle);
-                                }
-                                if (!hasEdge(cell.id, primaryDb.id)) {
-                                    let writeStyle = EDGE_STYLES.solid + 'labelBackgroundColor=#ffffff;';
-                                    writeStyle += 'exitX=0.5;exitY=0;exitPerimeter=0;entryX=0.5;entryY=1;entryPerimeter=0;';
-                                    this.connect(cell.id, primaryDb.id, 'Write Cross-AZ', writeStyle);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            // D. Connect DB replication: Primary DB -> Replica DB (Async Replication, dashed)
-            const dbRepRes = this.connect(primaryDb.id, replicaDb.id, 'Async Replication', EDGE_STYLES.dashed + 'labelBackgroundColor=#ffffff;');
-            if (dbRepRes.success && (primaryDb.type === 'rds' || primaryDb.type === 'cloud_sql' || primaryDb.type === 'cloud_spanner')) {
-                const createdEdge = this.edges.get(dbRepRes.id);
-                if (createdEdge) {
-                    const srcCoords = getAbsoluteCoords(primaryDb);
-                    const tgtCoords = getAbsoluteCoords(replicaDb);
-                    const dbBottom = srcCoords.y + (primaryDb.height || 78);
-                    createdEdge.points = [
-                        { x: srcCoords.x + (primaryDb.width || 78) / 2, y: dbBottom + 25 },
-                        { x: tgtCoords.x + (replicaDb.width || 78) / 2, y: dbBottom + 25 }
-                    ];
-                }
-            }
-
-            // E. Connect Cache replication: Cache Primary -> Cache Replica (Async Replication, dashed)
-            let primaryCache = null;
-            let replicaCache = null;
-            for (const [, cell] of this.cells) {
-                if (cell.type === 'elasticache' || cell.type === 'redis' || cell.type === 'memorystore') {
-                    if (this._isPrimary(cell)) primaryCache = cell;
-                    if (this._isReplica(cell)) replicaCache = cell;
-                }
-            }
-            if (primaryCache && replicaCache) {
-                const cacheRepRes = this.connect(primaryCache.id, replicaCache.id, 'Async Replication', EDGE_STYLES.dashed + 'labelBackgroundColor=#ffffff;');
-                if (cacheRepRes.success) {
-                    const createdEdge = this.edges.get(cacheRepRes.id);
-                    if (createdEdge) {
-                        const srcCoords = getAbsoluteCoords(primaryCache);
-                        const tgtCoords = getAbsoluteCoords(replicaCache);
-                        const cacheBottom = srcCoords.y + (primaryCache.height || 78);
-                        createdEdge.points = [
-                            { x: srcCoords.x + (primaryCache.width || 78) / 2, y: cacheBottom + 25 },
-                            { x: tgtCoords.x + (replicaCache.width || 78) / 2, y: cacheBottom + 25 }
-                        ];
-                    }
-                }
-            }
-        }
+    }
 
 
-        // 4. ALB Deduplication: merge only ALBs that are in the SAME AZ.
-        //    Per-AZ ALBs (one per AZ) are architecturally valid — do NOT merge them.
-        const isInternalAlb = (cell) => {
-            const lbl = (cell.label || '').toLowerCase();
-            const id = (cell.id || '').toLowerCase();
-            return lbl.includes('internal') || id.includes('internal');
-        };
+
+    _deduplicateALBs(ctx) {
         const externalAlbs = [];
         const internalAlbs = [];
         for (const [, cell] of this.cells) {
             if (cell.type === 'alb' || cell.type === 'nlb') {
-                if (isInternalAlb(cell)) internalAlbs.push(cell);
+                if (ctx.isInternalAlb(cell)) internalAlbs.push(cell);
                 else externalAlbs.push(cell);
             }
         }
@@ -1583,7 +1353,7 @@ class DiagramBuilder {
         const albsByAz = new Map(); // azId -> [albCell, ...]
         const albsNoAz = [];        // ALBs with no AZ ancestor
         for (const alb of externalAlbs) {
-            const az = getAz(alb);
+            const az = ctx.getAz(alb);
             if (az) {
                 if (!albsByAz.has(az.id)) albsByAz.set(az.id, []);
                 albsByAz.get(az.id).push(alb);
@@ -1632,15 +1402,16 @@ class DiagramBuilder {
                 this.cells.delete(discardAlb.id);
             }
         }
+    }
 
-        // 4.5 Containment: seat EVERY external ALB in its AZ's public subnet.
-        //     Rebuild the live external ALB list after merges.
+    _seatALBsInSubnets(ctx) {
+        // Rebuild the live external ALB list after merges.
         const liveExtAlbs = [];
         for (const [, cell] of this.cells) {
-            if ((cell.type === 'alb' || cell.type === 'nlb') && !isInternalAlb(cell)) liveExtAlbs.push(cell);
+            if ((cell.type === 'alb' || cell.type === 'nlb') && !ctx.isInternalAlb(cell)) liveExtAlbs.push(cell);
         }
         for (const extAlb of liveExtAlbs) {
-            const albAz = getAz(extAlb);
+            const albAz = ctx.getAz(extAlb);
 
             // Find the best public subnet within the same AZ as this ALB
             let pubSubnet = null;
@@ -1650,7 +1421,7 @@ class DiagramBuilder {
                 for (const [, cell] of this.cells) {
                     if (!cell.isContainer) continue;
                     if (cell.type !== 'subnet' && !cell.id.toLowerCase().includes('subnet')) continue;
-                    if (getAz(cell) !== albAz) continue;
+                    if (ctx.getAz(cell) !== albAz) continue;
                     const idLower = cell.id.toLowerCase();
                     const labelLower = (cell.label || '').toLowerCase();
                     if (idLower.includes('pub') || idLower.includes('public') ||
@@ -1663,7 +1434,7 @@ class DiagramBuilder {
                 // 2nd choice: any subnet in the same AZ
                 if (!pubSubnet) {
                     for (const [, cell] of this.cells) {
-                        if (cell.isContainer && getAz(cell) === albAz &&
+                        if (cell.isContainer && ctx.getAz(cell) === albAz &&
                             (cell.type === 'subnet' || cell.id.toLowerCase().includes('subnet'))) {
                             pubSubnet = cell;
                             break;
@@ -1704,25 +1475,9 @@ class DiagramBuilder {
                 this._autoExpand(pubSubnet.id);
             }
         }
+    }
 
-        // 5. Delete horizontal compute-to-compute edges across AZs
-        const edgesToDelete = [];
-        for (const [edgeId, edge] of this.edges) {
-            const src = this.cells.get(edge.sourceId);
-            const tgt = this.cells.get(edge.targetId);
-            if (src && tgt && isCompute(src) && isCompute(tgt)) {
-                const srcAz = getAz(src);
-                const tgtAz = getAz(tgt);
-                if (srcAz && tgtAz && srcAz.id !== tgtAz.id) {
-                    edgesToDelete.push(edgeId);
-                }
-            }
-        }
-        for (const edgeId of edgesToDelete) {
-            this.edges.delete(edgeId);
-        }
-
-        // 6. Ingress Routing Correction (Bypass, CDN & API Gateway path alignment)
+    _correctIngressSpine(ctx) {
         let clientNode = null;
         let r53Node = null;
         let wafNode = null;
@@ -1735,13 +1490,13 @@ class DiagramBuilder {
             if (cell.type === 'waf') wafNode = cell;
             if (cell.type === 'cloudfront') cdnNode = cell;
             if (cell.type === 'apigateway' || cell.type === 'endpoint') apigwNode = cell;
-            if ((cell.type === 'alb' || cell.type === 'nlb') && !isInternalAlb(cell) && !albNode) albNode = cell;
+            if ((cell.type === 'alb' || cell.type === 'nlb') && !ctx.isInternalAlb(cell) && !albNode) albNode = cell;
         }
 
         // Collect ALL live external ALBs (post-merge)
         const allExtAlbs = [];
         for (const [, cell] of this.cells) {
-            if ((cell.type === 'alb' || cell.type === 'nlb') && !isInternalAlb(cell)) allExtAlbs.push(cell);
+            if ((cell.type === 'alb' || cell.type === 'nlb') && !ctx.isInternalAlb(cell)) allExtAlbs.push(cell);
         }
 
         // Flip any reverse proxy edges (e.g. ALB -> APIGW or ALB -> CloudFront)
@@ -1798,7 +1553,7 @@ class DiagramBuilder {
         if (seq.length > 0 && allExtAlbs.length > 0) {
             const lastSpineNode = seq[seq.length - 1];
             for (const alb of allExtAlbs) {
-                if (!hasEdge(lastSpineNode.id, alb.id)) {
+                if (!ctx.hasEdge(lastSpineNode.id, alb.id)) {
                     this.connect(lastSpineNode.id, alb.id, 'Forward', 'solid');
                 }
             }
@@ -1848,7 +1603,7 @@ class DiagramBuilder {
             for (const [edgeId, edge] of this.edges) {
                 if (edge.sourceId === cdnNode.id) {
                     const tgt = this.cells.get(edge.targetId);
-                    if (tgt && isCompute(tgt)) {
+                    if (tgt && ctx.isCompute(tgt)) {
                         cdnToComputeEdges.push(edgeId);
                     }
                 }
@@ -1865,7 +1620,7 @@ class DiagramBuilder {
             for (const [edgeId, edge] of this.edges) {
                 if (edge.sourceId === apigwNode.id) {
                     const tgt = this.cells.get(edge.targetId);
-                    if (tgt && isCompute(tgt)) {
+                    if (tgt && ctx.isCompute(tgt)) {
                         apigwToComputeEdges.push(edgeId);
                     }
                 }
@@ -1881,7 +1636,7 @@ class DiagramBuilder {
             for (const [edgeId, edge] of this.edges) {
                 if (edge.sourceId === apigwNode.id) {
                     const tgt = this.cells.get(edge.targetId);
-                    if (tgt && isBroker(tgt)) {
+                    if (tgt && ctx.isBroker(tgt)) {
                         apigwToBrokerEdges.push(edgeId);
                     }
                 }
@@ -1897,7 +1652,7 @@ class DiagramBuilder {
             for (const [edgeId, edge] of this.edges) {
                 if (edge.sourceId === wafNode.id) {
                     const tgt = this.cells.get(edge.targetId);
-                    if (tgt && (tgt.type === 'alb' || tgt.type === 'nlb' || isCompute(tgt))) {
+                    if (tgt && (tgt.type === 'alb' || tgt.type === 'nlb' || ctx.isCompute(tgt))) {
                         wafBypassEdges.push(edgeId);
                     }
                 }
@@ -1942,17 +1697,25 @@ class DiagramBuilder {
                 }
             }
         }
+    }
+
+    _correctALBToCompute(ctx) {
+        // Collect ALL live external ALBs (post-merge)
+        const allExtAlbs = [];
+        for (const [, cell] of this.cells) {
+            if ((cell.type === 'alb' || cell.type === 'nlb') && !ctx.isInternalAlb(cell)) allExtAlbs.push(cell);
+        }
 
         // Ensure ALB/NLB to Compute connections are solid request traffic.
         // For per-AZ ALBs: each ALB connects only to web tasks in its OWN AZ.
         for (const alb of allExtAlbs) {
-            const albAz = getAz(alb);
+            const albAz = ctx.getAz(alb);
 
             // 1. Fix existing ALB -> Compute edge styles
             for (const [, edge] of this.edges) {
                 const src = this.cells.get(edge.sourceId);
                 const tgt = this.cells.get(edge.targetId);
-                if (src && tgt && src.id === alb.id && isCompute(tgt)) {
+                if (src && tgt && src.id === alb.id && ctx.isCompute(tgt)) {
                     edge.style = EDGE_STYLES.solid + 'labelBackgroundColor=#ffffff;';
                     if (!edge.label || edge.label.toLowerCase().includes('event') || edge.label.toLowerCase().includes('log')) {
                         edge.label = 'Forward';
@@ -1962,11 +1725,11 @@ class DiagramBuilder {
 
             // 2. Guarantee ALB → each Web task in same AZ (or globally if no AZ info)
             for (const [, cell] of this.cells) {
-                if (!isCompute(cell)) continue;
+                if (!ctx.isCompute(cell)) continue;
                 if (!cell.id.toLowerCase().includes('web') && !cell.label.toLowerCase().includes('web')) continue;
-                const taskAz = getAz(cell);
+                const taskAz = ctx.getAz(cell);
                 const sameAz = !albAz || !taskAz || albAz.id === taskAz.id;
-                if (sameAz && !hasEdge(alb.id, cell.id)) {
+                if (sameAz && !ctx.hasEdge(alb.id, cell.id)) {
                     this.connect(alb.id, cell.id, 'Forward', 'solid');
                 }
             }
@@ -1977,7 +1740,7 @@ class DiagramBuilder {
         for (const [edgeId, edge] of this.edges) {
             const src = this.cells.get(edge.sourceId);
             const tgt = this.cells.get(edge.targetId);
-            if (src && tgt && (src.type === 'alb' || src.type === 'nlb') && isBroker(tgt)) {
+            if (src && tgt && (src.type === 'alb' || src.type === 'nlb') && ctx.isBroker(tgt)) {
                 albToBrokerEdges.push(edgeId);
             }
         }
@@ -1991,7 +1754,7 @@ class DiagramBuilder {
             const src = this.cells.get(edge.sourceId);
             const tgt = this.cells.get(edge.targetId);
             if (src && tgt && (src.type === 'alb' || src.type === 'nlb')) {
-                if (isCompute(tgt)) {
+                if (ctx.isCompute(tgt)) {
                     const isWorker = tgt.id.toLowerCase().includes('worker') || tgt.label.toLowerCase().includes('worker');
                     if (isWorker) {
                         albToWorkerEdges.push(edgeId);
@@ -2002,149 +1765,11 @@ class DiagramBuilder {
         for (const edgeId of albToWorkerEdges) {
             this.edges.delete(edgeId);
         }
+    }
 
-        // 7. Event Flow & API Gateway Target Correction
-        let sqsNode = null;
-        for (const [, cell] of this.cells) {
-            if (cell.type === 'sqs' || cell.type === 'sns') {
-                sqsNode = cell;
-                break;
-            }
-        }
 
-        const edgesToPurge = [];
-        for (const [edgeId, edge] of this.edges) {
-            const src = this.cells.get(edge.sourceId);
-            const tgt = this.cells.get(edge.targetId);
-            if (src && tgt && isCompute(src) && (tgt.type === 'apigateway' || tgt.type === 'endpoint')) {
-                const lbl = (edge.label || '').toLowerCase();
-                if (lbl.includes('publish') || lbl.includes('event') || lbl.includes('log') || lbl.includes('queue')) {
-                    if (sqsNode) {
-                        edge.targetId = sqsNode.id;
-                        edge.label = 'Publish Event Logs';
-                        // Replace entire style to guarantee orthogonal routing + dashed
-                        edge.style = EDGE_STYLES.dashed + 'labelBackgroundColor=#ffffff;';
-                    }
-                } else {
-                    edgesToPurge.push(edgeId);
-                }
-            }
-        }
-        for (const edgeId of edgesToPurge) {
-            this.edges.delete(edgeId);
-        }
 
-        // Purge any SQS edges connecting to non-compute nodes (e.g. user, r53, alb)
-        if (sqsNode) {
-            const badSqsEdges = [];
-            for (const [edgeId, edge] of this.edges) {
-                if (edge.targetId === sqsNode.id) {
-                    const src = this.cells.get(edge.sourceId);
-                    if (src && !isCompute(src)) {
-                        badSqsEdges.push(edgeId);
-                    }
-                }
-                if (edge.sourceId === sqsNode.id) {
-                    const tgt = this.cells.get(edge.targetId);
-                    if (tgt && !isCompute(tgt)) {
-                        badSqsEdges.push(edgeId);
-                    }
-                }
-            }
-            for (const edgeId of badSqsEdges) {
-                this.edges.delete(edgeId);
-            }
-        }
-
-        // 7b. Symmetric SQS Wiring — ensure ALL Web Tasks publish and ALL Worker Tasks poll
-        if (sqsNode) {
-            for (const [, cell] of this.cells) {
-                if (!isCompute(cell)) continue;
-                const isWeb = cell.id.toLowerCase().includes('web') || cell.label.toLowerCase().includes('web');
-                const isWorker = cell.id.toLowerCase().includes('worker') || cell.label.toLowerCase().includes('worker');
-
-                if (isWeb && !hasEdge(cell.id, sqsNode.id)) {
-                    this.connect(cell.id, sqsNode.id, 'Publish Event Logs', 'dashed', null, 'top', 'bottom');
-                }
-                if (isWorker && !hasEdge(sqsNode.id, cell.id)) {
-                    this.connect(sqsNode.id, cell.id, 'Poll Tasks', 'dashed', null, 'bottom', 'top');
-                }
-            }
-
-            // 7c. SQS port constraints to avoid crossing top-level rows
-            const getAbsoluteCoords = (c) => this._getAbsoluteCoords(c);
-
-            for (const [, edge] of this.edges) {
-                if (edge.sourceId === sqsNode.id || edge.targetId === sqsNode.id) {
-                    const src = this.cells.get(edge.sourceId);
-                    const tgt = this.cells.get(edge.targetId);
-                    if (src && tgt) {
-                        edge.style = edge.style
-                            .replace(/exitX=[^;]+;/g, '')
-                            .replace(/exitY=[^;]+;/g, '')
-                            .replace(/entryX=[^;]+;/g, '')
-                            .replace(/entryY=[^;]+;/g, '')
-                            .replace(/exitPerimeter=[^;]+;/g, '')
-                            .replace(/entryPerimeter=[^;]+;/g, '');
-                        
-                        if (edge.sourceId === sqsNode.id) {
-                            edge.style += 'exitX=0.5;exitY=1;exitPerimeter=0;entryX=0.5;entryY=0;entryPerimeter=0;';
-                        } else {
-                            edge.style += 'exitX=0.5;exitY=0;exitPerimeter=0;entryX=0.5;entryY=1;entryPerimeter=0;';
-                        }
-
-                        const srcCoords = getAbsoluteCoords(src);
-                        const tgtCoords = getAbsoluteCoords(tgt);
-                        const srcX = srcCoords.x + (src.width || 78) / 2;
-                        const tgtX = tgtCoords.x + (tgt.width || 78) / 2;
-                        
-                        edge.points = [
-                            { x: srcX, y: 620 },
-                            { x: tgtX, y: 620 }
-                        ];
-                    }
-                }
-            }
-        }
-
-        // 8. DNS Direct Routing / Route 53 Hallucination Correction
-        let nextIngressNode = null;
-        
-        for (const [, cell] of this.cells) {
-            if (!nextIngressNode && cell.type === 'waf') nextIngressNode = cell;
-        }
-        
-        if (!nextIngressNode) {
-            for (const [, cell] of this.cells) {
-                if (!nextIngressNode && cell.type === 'cloudfront') nextIngressNode = cell;
-            }
-        }
-        if (!nextIngressNode) {
-            for (const [, cell] of this.cells) {
-                if (!nextIngressNode && cell.type === 'apigateway') nextIngressNode = cell;
-            }
-        }
-        if (!nextIngressNode) {
-            for (const [, cell] of this.cells) {
-                if (!nextIngressNode && (cell.type === 'alb' || cell.type === 'nlb')) nextIngressNode = cell;
-            }
-        }
-        
-        if (r53Node && nextIngressNode) {
-            for (const [, edge] of this.edges) {
-                if (edge.sourceId === r53Node.id) {
-                    const tgt = this.cells.get(edge.targetId);
-                    if (tgt && (isCompute(tgt) || tgt.type === 'alb' || tgt.type === 'nlb' || tgt.type === 'apigateway' || tgt.type === 'endpoint')) {
-                        if (tgt.id !== nextIngressNode.id) {
-                            edge.targetId = nextIngressNode.id;
-                            edge.label = 'Route Traffic';
-                        }
-                    }
-                }
-            }
-        }
-
-        // 9. Mirror Macro Symmetry Constraint (AZ-A / AZ-B Edge Alignment)
+    _mirrorAZSymmetry(ctx) {
         const getBaseName = (str) => {
             return str.toLowerCase()
                 .replace(/_a$/, '').replace(/_b$/, '')
@@ -2156,7 +1781,7 @@ class DiagramBuilder {
 
         const getMirror = (cell) => {
             if (!cell || cell.parentId === '1') return null;
-            const az = getAz(cell);
+            const az = ctx.getAz(cell);
             if (!az) return null;
             
             const isWeb = cell.id.toLowerCase().includes('web') || (cell.label || '').toLowerCase().includes('web');
@@ -2165,7 +1790,7 @@ class DiagramBuilder {
             for (const [, other] of this.cells) {
                 if (other.id === cell.id) continue;
                 if (other.type !== cell.type) continue;
-                const otherAz = getAz(other);
+                const otherAz = ctx.getAz(other);
                 if (!otherAz || otherAz.id === az.id) continue;
 
                 if (cell.type === 'ecs' || cell.type === 'ec2') {
@@ -2203,22 +1828,22 @@ class DiagramBuilder {
 
             // Case A: Target is regional/global (outside VPC)
             if (srcMirror && (!tgt.parentId || tgt.parentId === '1' || this.cells.get(tgt.parentId)?.type === 'region')) {
-                if (!hasEdge(srcMirror.id, tgt.id) && !hasEdge(tgt.id, srcMirror.id)) {
+                if (!ctx.hasEdge(srcMirror.id, tgt.id) && !ctx.hasEdge(tgt.id, srcMirror.id)) {
                     this.connect(srcMirror.id, tgt.id, edge.label, edge.style.includes('dashed') ? 'dashed' : 'solid');
                 }
             }
             // Case B: Source is regional/global (outside VPC), target is in AZ
             else if (tgtMirror && (!src.parentId || src.parentId === '1' || this.cells.get(src.parentId)?.type === 'region')) {
-                if (!hasEdge(src.id, tgtMirror.id) && !hasEdge(tgtMirror.id, src.id)) {
+                if (!ctx.hasEdge(src.id, tgtMirror.id) && !ctx.hasEdge(tgtMirror.id, src.id)) {
                     this.connect(src.id, tgtMirror.id, edge.label, edge.style.includes('dashed') ? 'dashed' : 'solid');
                 }
             }
             // Case C: Both source and target are in AZs (only mirror if intra-AZ to avoid mirroring cross-AZ replication)
             else if (srcMirror && tgtMirror) {
-                const srcAz = getAz(src);
-                const tgtAz = getAz(tgt);
+                const srcAz = ctx.getAz(src);
+                const tgtAz = ctx.getAz(tgt);
                 if (srcAz && tgtAz && srcAz.id === tgtAz.id) {
-                    if (!hasEdge(srcMirror.id, tgtMirror.id) && !hasEdge(tgtMirror.id, srcMirror.id)) {
+                    if (!ctx.hasEdge(srcMirror.id, tgtMirror.id) && !ctx.hasEdge(tgtMirror.id, srcMirror.id)) {
                         let label = edge.label;
                         if (tgtMirror.type === 'rds' && this._isReplica(tgtMirror)) {
                             label = 'Read Only';
@@ -2230,8 +1855,9 @@ class DiagramBuilder {
                 }
             }
         }
+    }
 
-        // B. Re-layout top-level nodes (parent '1') horizontally with correct flow sorting
+    _relayoutTopLevelNodes(ctx) {
         const topLevelNodes = this._childrenOf('1').filter(c => !c.isContainer);
         const topLevelContainers = this._childrenOf('1').filter(c => c.isContainer);
         const vpc = topLevelContainers.find(c => c.type === 'vpc');
@@ -2257,8 +1883,9 @@ class DiagramBuilder {
             n.x = startX + idx * NODE_SPACING.x + (NODE_SPACING.x - nSize.width) / 2;
             n.y = 10;
         });
+    }
 
-        // Cleanup empty Subnet containers
+    _removeEmptySubnets() {
         const emptySubnets = [];
         for (const [id, cell] of this.cells) {
             if (cell.isContainer && (cell.type === 'subnet' || cell.type.startsWith('subnet_'))) {

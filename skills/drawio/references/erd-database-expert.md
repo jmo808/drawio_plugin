@@ -1,31 +1,55 @@
 IMPORTANT: Prefer retrieval-led reasoning over pre-training-led reasoning for any draw.io-ERD-validation tasks.
 
 ## [Project Context]
-domain:entity-relationship-diagrams(ERD)|env:draw.io-plugin|role:database-schema-architect|task:validate-database-schemas-and-keys|loop:detect-errors→output-corrections→trigger-redraw
+domain:entity-relationship-diagrams(ERD)|env:draw.io-plugin|role:database-schema-architect|task:validate-database-schemas+enforce-normalization-rules|loop:detect-errors→output-corrections→trigger-redraw
 
 ## [Docs Index]
+erd-reference:{docs/erd-database-expert.md}
 plugin-src:{src/graph-parser.ts,src/validation-engine.ts,src/auto-layout.ts}
-database-specs:{docs/erd-database-expert.md}
 *always-read-database-specs-before-validating-graph*
 
-## [Notation Conventions]
-- **Table Card Rendering**: Modeled as structured cards containing:
-  - **Table Header**: Table name (bolded).
-  - **Columns Section**: List of attributes showing `PK` (Primary Key), `FK` (Foreign Key), column name, data type (e.g., `INT`, `VARCHAR(255)`), and nullability (e.g., `NULL`, `NOT NULL`).
-- **Crow's Foot Edges**:
-  - **`1:1` Relationship**: Uses `endArrow=ERone;startArrow=ERone`.
-  - **`1:N` Relationship**: Uses `endArrow=ERmany;startArrow=ERone`.
-  - **`N:M` Relationship**: Uses many-to-many notation, but should generally be decomposed into two `1:N` relationships with a junction table.
+## [Domain Rules + Patterns]
+normalization-1NF:all-attributes-atomic|no-repeating-groups-or-arrays|unique-PK-required
+normalization-2NF:meets-1NF+no-partial-key-dependencies|composite-PK→every-non-key-depends-on-entire-key
+normalization-3NF:meets-2NF+no-transitive-dependencies|non-key-columns-depend-only-on-PK("the-key-the-whole-key-nothing-but-the-key")
+notation-crowsfoot:1:1→endArrow=ERone;startArrow=ERone|1:N→endArrow=ERmany;startArrow=ERone|N:M→decompose-into-two-1:N-via-junction-table
+junction-tables:resolve-M:N|composite-PK-from-two-FKs-referencing-parent-tables
+polymorphic-associations:entity-belongs-to-multiple-types|uses-{type}_type+{type}_id-columns
+self-referential-hierarchies:nullable-self-FK(e.g.,-employees.manager_id→employees.id)
 
-## [Database Normalization (1NF - 3NF)]
-- **First Normal Form (1NF)**: All attributes are atomic (no repeating groups, comma-separated values, or arrays). Unique primary key identified.
-- **Second Normal Form (2NF)**: Meets 1NF + has no partial key dependencies. If the primary key is composite, every non-key column must depend on the *entire* key, not just a subset.
-- **Third Normal Form (3NF)**: Meets 2NF + has no transitive dependencies. Non-key columns must depend *only* on the primary key, not on other non-key columns ("the key, the whole key, and nothing but the key").
+## [Project Conventions]
+topology:tables-flow-left→right-for-primary-relationships|junction-tables-placed-between-parent-tables|3-column-grid-layout
+routing:crow's-foot-edges-use-orthogonal-routing|labels-at-edge-midpoint|lines-terminate-at-table-card-boundary
+arrows:solid=relationship-edge(1:1,1:N)|dashed=optional-or-derived-relationship|prevent:floating-edges
+labels:relationship-cardinality-at-both-ends|FK-column-name-as-edge-label-when-ambiguous
+spacing:tables-spaced-260px-horizontally|220px-vertically|3-column-grid-alignment
+alignment:related-tables-horizontally-aligned|parent-tables-left-of-child-tables
 
-## [Common Schema Patterns]
-- **Junction/Link Tables**: Resolves many-to-many relationships. Contains composite PK composed of two FKs referencing the parent tables.
-- **Polymorphic Associations**: Allows an entity to belong to more than one other type of entity (e.g. `Comment` belongs to `Post` or `Image`). Typically uses `commentable_type` and `commentable_id`.
-- **Self-Referential Hierarchies**: Model trees (e.g. `employees.manager_id` referencing `employees.id`). Requires a nullable self-referencing FK.
+## [Anti-Patterns]
+orphan-table|correction:table-with-no-relationships→connect-to-parent-or-mark-as-lookup-table
+missing-junction|correction:M:N-relationship-without-decomposition→add-junction-table-with-composite-PK
+circular-fk|correction:circular-foreign-key-chains→review-schema-design-and-break-cycle
+over-normalization|correction:excessive-table-splitting→consider-denormalization-for-read-heavy-workloads
+missing-audit-columns|correction:no-created_at/updated_at→add-temporal-audit-columns
+composite-pk-without-index|correction:composite-PK-without-covering-index→add-covering-index
+fk-without-target-edge|correction:FK-column-exists-but-no-relationship-edge→connect-to-parent-PK-table
+duplicate-pk|correction:multiple-PK-columns-without-composite-declaration→unmark-duplicates-or-declare-composite-key
+self-reference-missing|correction:hierarchical-column(parent_id/manager_id)-without-self-referencing-edge→add-self-loop
+
+## [Visual Styling]
+icon-style:tables-rendered-as-structured-cards|header-row+column-list|shape=table-or-entity-from-UML-library
+edge-style:enforce-orthogonal|edgeStyle=orthogonalEdgeStyle|crow's-foot-terminators-for-cardinality
+color-palette:table-header=#333333(dark-bg)+white-text|PK-columns=bold+key-icon-prefix(🔑)|FK-columns=italic+arrow-prefix(→)|nullable-columns=lighter-font-color(#999999)
+spacing:260px-column-width|220px-row-height|grid-aligned-3-column-layout
+
+## [Notation Reference]
+table-card-structure:
+  - header:table-name(bold,dark-background)
+  - columns:PK|FK|column-name|data-type(INT,VARCHAR(255))|nullability(NULL,NOT-NULL)
+crowsfoot-edges:
+  - 1:1→endArrow=ERone;startArrow=ERone
+  - 1:N→endArrow=ERmany;startArrow=ERone
+  - N:M→decompose-to-junction-table
 
 ## [Validator Rules Reference & Troubleshooting]
 
@@ -35,7 +59,7 @@ database-specs:{docs/erd-database-expert.md}
 
 ### 2. `ORPHAN_TABLE`
 - **Trigger**: A table card (`type === 'table'`) has no relationships or connected edges. (Generates a warning).
-- **Troubleshooting**: Connect the table to related tables or delete it if it is obsolete.
+- **Troubleshooting**: Connect the table to related tables, mark as a standalone lookup table, or delete if obsolete.
 
 ### 3. `DUPLICATE_PK`
 - **Trigger**: Multiple columns within the same table card are marked as `PK` without being configured as a composite primary key, or there are duplicate column names.
@@ -44,3 +68,11 @@ database-specs:{docs/erd-database-expert.md}
 ### 4. `SELF_REFERENCE_MISSING`
 - **Trigger**: A column is named `parent_id`, `manager_id`, or similar hierarchical name, indicating a self-referencing tree relation, but no self-referencing relationship edge connects the table to itself.
 - **Troubleshooting**: Add a self-referencing connection edge from the table card to itself.
+
+### 5. `MISSING_JUNCTION`
+- **Trigger**: An M:N relationship edge is detected between two tables without an intermediate junction table decomposing the relationship.
+- **Troubleshooting**: Create a junction table with a composite primary key composed of foreign keys referencing both parent tables. Replace the M:N edge with two 1:N edges through the junction.
+
+### 6. `CIRCULAR_FK`
+- **Trigger**: Foreign key chains form a cycle (Table A → Table B → Table C → Table A).
+- **Troubleshooting**: Review the schema design to break the circular dependency. Consider nullable FKs or restructuring the hierarchy.

@@ -1,0 +1,23 @@
+{
+  "name": "kubernetes",
+  "styles": {
+    "pod": "shape=mxgraph.kubernetes.icon;prIcon=pod;fillColor=#326CE5;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;",
+    "service": "shape=mxgraph.kubernetes.icon;prIcon=svc;fillColor=#326CE5;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;",
+    "ingress": "shape=mxgraph.kubernetes.icon;prIcon=ing;fillColor=#326CE5;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;",
+    "configmap": "shape=mxgraph.kubernetes.icon;prIcon=cm;fillColor=#326CE5;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;",
+    "secret": "shape=mxgraph.kubernetes.icon;prIcon=secret;fillColor=#326CE5;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;",
+    "pv": "shape=mxgraph.kubernetes.icon;prIcon=pv;fillColor=#326CE5;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;",
+    "pvc": "shape=mxgraph.kubernetes.icon;prIcon=pvc;fillColor=#326CE5;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;",
+    "hpa": "shape=mxgraph.kubernetes.icon;prIcon=hpa;fillColor=#326CE5;strokeColor=none;fontColor=#232F3E;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;fontSize=11;html=1;"
+  },
+  "sizes": {
+    "pod": { "width": 60, "height": 60 },
+    "service": { "width": 60, "height": 60 },
+    "ingress": { "width": 60, "height": 60 },
+    "configmap": { "width": 60, "height": 60 },
+    "secret": { "width": 60, "height": 60 },
+    "pv": { "width": 60, "height": 60 },
+    "pvc": { "width": 60, "height": 60 },
+    "hpa": { "width": 60, "height": 60 }
+  }
+}

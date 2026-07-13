@@ -1,3 +1,5 @@
+const { findElement, getEdgesForNode, getZoneOrAZ, isInternalLb } = require('./validator-utils');
+
 // Helper to get GCP node type from style string or value label
 function getGcpNodeType(style, value) {
     const s = (style || '').toLowerCase();
@@ -48,10 +50,6 @@ function getGcpNodeType(style, value) {
     return type;
 }
 
-// Helper to determine if a load balancer is internal or external based on its label
-function isInternalLb(value) {
-    return value && value.toLowerCase().includes('internal');
-}
 
 module.exports = function({ cells, mxCells, doc, reportError }) {
     const statelessComputeTypes = ['kubernetes_engine', 'compute_engine', 'cloud_run', 'cloud_functions'];
@@ -84,7 +82,7 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
         const cell = cells[id];
         if (!cell.isEdge) continue;
         
-        const el = doc.getElementById(id) || Array.from(mxCells).find(e => e.getAttribute('id') === id);
+        const el = findElement(id, doc, mxCells);
         if (!el) continue;
         
         const sourceId = el.getAttribute('source');
@@ -133,32 +131,15 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
             }
         }
 
-        // Rule 6: Cloud Armor Bypass
-        if (source.type === 'cloud_armor' && (target.type === 'load_balancing' || statelessComputeTypes.includes(target.type))) {
-            reportError('TOPOLOGY_ERROR', id, `Cloud Armor must route to Cloud CDN or External Load Balancer, not directly to Compute/Application nodes.`);
+        // Rule 6: Cloud Armor direct to Compute bypass
+        if (source.type === 'cloud_armor' && statelessComputeTypes.includes(target.type)) {
+            reportError('TOPOLOGY_ERROR', id, `Cloud Armor must not route directly to compute nodes. Route through Cloud CDN and/or External Load Balancer.`);
         }
         
         // Rule 7: Stateless Horizontal Cross-Zone Routing
         if (statelessComputeTypes.includes(source.type) && statelessComputeTypes.includes(target.type)) {
-            let sourceZone = null;
-            let p1 = cells[source.parent];
-            while (p1 && p1.id !== "1" && p1.id !== "0") {
-                if (p1.value && (p1.value.toLowerCase().includes('zone ') || p1.value.toLowerCase().includes('az '))) { 
-                    sourceZone = p1.id; 
-                    break; 
-                }
-                p1 = cells[p1.parent];
-            }
-            
-            let targetZone = null;
-            let p2 = cells[target.parent];
-            while (p2 && p2.id !== "1" && p2.id !== "0") {
-                if (p2.value && (p2.value.toLowerCase().includes('zone ') || p2.value.toLowerCase().includes('az '))) { 
-                    targetZone = p2.id; 
-                    break; 
-                }
-                p2 = cells[p2.parent];
-            }
+            const sourceZone = getZoneOrAZ(source.id, cells);
+            const targetZone = getZoneOrAZ(target.id, cells);
             
             if (sourceZone && targetZone && sourceZone !== targetZone) {
                 reportError('TOPOLOGY_ERROR', id, `Stateless compute nodes (${source.type} -> ${target.type}) cannot route horizontally across different Zones.`);
@@ -173,7 +154,7 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
         for (const id in cells) {
             const cell = cells[id];
             if (!cell.isEdge) continue;
-            const el = doc.getElementById(id) || Array.from(mxCells).find(e => e.getAttribute('id') === id);
+            const el = findElement(id, doc, mxCells);
             if (el) {
                 if (el.getAttribute('source') === webNodeId) hasOutboundEdge = true;
                 if (el.getAttribute('target') === webNodeId) hasInboundEdge = true;
@@ -209,15 +190,7 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
             
             const valLower = cell.value.toLowerCase();
             if (valLower.includes('api') || valLower.includes('worker') || valLower.includes('compute')) {
-                let zoneId = null;
-                let p = cells[cell.parent];
-                while (p && p.id !== "1" && p.id !== "0") {
-                    if (p.value && (p.value.toLowerCase().includes('zone ') || p.value.toLowerCase().includes('az '))) { 
-                        zoneId = p.id; 
-                        break; 
-                    }
-                    p = cells[p.parent];
-                }
+                const zoneId = getZoneOrAZ(id, cells);
                 
                 if (zoneId) {
                     const isZoneB = zoneId.endsWith('b') || zoneId.endsWith('2') || /[\s\-\/]b\b|[\s\-\/]2\b/i.test(cells[zoneId].value || '');
@@ -227,7 +200,7 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
                         for (const eid in cells) {
                             const edge = cells[eid];
                             if (edge.isEdge) {
-                                const el = doc.getElementById(eid) || Array.from(mxCells).find(e => e.getAttribute('id') === eid);
+                                const el = findElement(eid, doc, mxCells);
                                 if (el && el.getAttribute('source') === id && el.getAttribute('target') === sqlPrimaryId) {
                                     hasEdgeToPrimary = true;
                                     break;
@@ -244,7 +217,7 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
                         for (const eid in cells) {
                             const edge = cells[eid];
                             if (edge.isEdge) {
-                                const el = doc.getElementById(eid) || Array.from(mxCells).find(e => e.getAttribute('id') === eid);
+                                const el = findElement(eid, doc, mxCells);
                                 if (el) {
                                     if (el.getAttribute('source') === id && el.getAttribute('target') === sqlPrimaryId) {
                                         hasEdgeToPrimary = true;
@@ -283,20 +256,12 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
         for (const id in cells) {
             const cell = cells[id];
             if (cell.isEdge) {
-                const el = doc.getElementById(id) || Array.from(mxCells).find(e => e.getAttribute('id') === id);
+                const el = findElement(id, doc, mxCells);
                 if (el && el.getAttribute('source') === gclbId) {
                     const targetNodeId = el.getAttribute('target');
                     const targetNode = gcpNodes[targetNodeId];
                     if (targetNode && statelessComputeTypes.includes(targetNode.type)) {
-                        let zoneId = null;
-                        let p = cells[targetNode.parent];
-                        while (p && p.id !== "1" && p.id !== "0") {
-                            if (p.value && (p.value.toLowerCase().includes('zone ') || p.value.toLowerCase().includes('az '))) { 
-                                zoneId = p.id; 
-                                break; 
-                            }
-                            p = cells[p.parent];
-                        }
+                        const zoneId = getZoneOrAZ(targetNode.id, cells);
                         if (zoneId) {
                             targetZones.add(zoneId);
                         } else {
@@ -316,15 +281,7 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
         for (const nid in gcpNodes) {
             const node = gcpNodes[nid];
             if (statelessComputeTypes.includes(node.type)) {
-                let zoneId = null;
-                let p = cells[node.parent];
-                while (p && p.id !== "1" && p.id !== "0") {
-                    if (p.value && (p.value.toLowerCase().includes('zone ') || p.value.toLowerCase().includes('az '))) { 
-                        zoneId = p.id; 
-                        break; 
-                    }
-                    p = cells[p.parent];
-                }
+                const zoneId = getZoneOrAZ(node.id, cells);
                 if (zoneId) {
                     allZones.add(zoneId);
                 } else {
@@ -360,7 +317,7 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
             for (const id in cells) {
                 const cell = cells[id];
                 if (cell.isEdge) {
-                    const el = doc.getElementById(id) || Array.from(mxCells).find(e => e.getAttribute('id') === id);
+                    const el = findElement(id, doc, mxCells);
                     if (el && el.getAttribute('source') === clientNode.id && el.getAttribute('target') === armorNode.id) {
                         clientToArmor = true;
                         break;
@@ -377,7 +334,7 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
             for (const id in cells) {
                 const cell = cells[id];
                 if (cell.isEdge) {
-                    const el = doc.getElementById(id) || Array.from(mxCells).find(e => e.getAttribute('id') === id);
+                    const el = findElement(id, doc, mxCells);
                     if (el && el.getAttribute('source') === armorNode.id && el.getAttribute('target') === cdnNode.id) {
                         armorToCdn = true;
                         break;
@@ -394,7 +351,7 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
             for (const id in cells) {
                 const cell = cells[id];
                 if (cell.isEdge) {
-                    const el = doc.getElementById(id) || Array.from(mxCells).find(e => e.getAttribute('id') === id);
+                    const el = findElement(id, doc, mxCells);
                     if (el && el.getAttribute('source') === cdnNode.id && el.getAttribute('target') === gclbId) {
                         cdnToGclb = true;
                         break;
@@ -466,5 +423,17 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
             }
         }
         reportError('TOPOLOGY_ERROR', obsTargetId, `Production-grade GCP architectures must include Cloud Operations Suite (Cloud Logging/Monitoring) for observability.`);
+    }
+
+    // Rule 16: Cloud NAT placement validation
+    for (const nid in gcpNodes) {
+        const node = gcpNodes[nid];
+        if (node.type === 'cloud_nat') {
+            const parentCell = cells[node.parent];
+            const pLbl = (parentCell && parentCell.value || '').toLowerCase();
+            if (!pLbl.includes('public') && !pLbl.includes('ingress') && !pLbl.includes('dmz')) {
+                reportError('TOPOLOGY_ERROR', node.id, `Cloud NAT must be placed in a public subnet (e.g. Public Ingress Subnet) to route egress traffic.`);
+            }
+        }
     }
 };
