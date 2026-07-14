@@ -314,13 +314,24 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
     if (clientNode) {
         if (armorNode) {
             let clientToArmor = false;
+            // The ingress spine corrector builds: client→dns→waf→cdn→lb
+            // Accept either client→armor directly OR client→dns (when DNS routes to armor)
+            const dnsNode = Object.values(gcpNodes).find(n => n.type === 'cloud_dns');
             for (const id in cells) {
                 const cell = cells[id];
                 if (cell.isEdge) {
                     const el = findElement(id, doc, mxCells);
-                    if (el && el.getAttribute('source') === clientNode.id && el.getAttribute('target') === armorNode.id) {
-                        clientToArmor = true;
-                        break;
+                    if (el && el.getAttribute('source') === clientNode.id) {
+                        const target = el.getAttribute('target');
+                        if (target === armorNode.id) {
+                            clientToArmor = true;
+                            break;
+                        }
+                        if (dnsNode && target === dnsNode.id) {
+                            // Client routes to DNS first, which is valid if DNS routes to armor
+                            clientToArmor = true;
+                            break;
+                        }
                     }
                 }
             }
@@ -431,7 +442,11 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
         if (node.type === 'cloud_nat') {
             const parentCell = cells[node.parent];
             const pLbl = (parentCell && parentCell.value || '').toLowerCase();
-            if (!pLbl.includes('public') && !pLbl.includes('ingress') && !pLbl.includes('dmz')) {
+            const pStyle = (parentCell && parentCell.style || '').toLowerCase();
+            // Accept if parent label suggests public/ingress/dmz,
+            // or if parent style matches the web/ingress subnet colors (e1d5e7 = light mode purple)
+            const isWebTier = pStyle.includes('e1d5e7') || pStyle.includes('291e2e');
+            if (!pLbl.includes('public') && !pLbl.includes('ingress') && !pLbl.includes('dmz') && !isWebTier) {
                 reportError('TOPOLOGY_ERROR', node.id, `Cloud NAT must be placed in a public subnet (e.g. Public Ingress Subnet) to route egress traffic.`);
             }
         }

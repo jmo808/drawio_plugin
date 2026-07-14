@@ -247,7 +247,7 @@ class DiagramBuilder {
 
         const cell = {
             id, label, type, style, parentId, isContainer: true, isEdge: false,
-            x, y, width, height,
+            x, y, width, height, tier: tier || null,
             childSlots: [],  // tracks which grid positions are occupied
         };
 
@@ -989,29 +989,36 @@ class DiagramBuilder {
 
         if (parent && (parent.type === 'region' || parent.type === 'gcp_region')) {
             if (this._isGcpTheme()) {
-                const col0Types = ['cloud_dns', 'route53', 'cloud_armor', 'waf', 'cloud_cdn', 'cloudfront'];
-                const col1Types = ['cloud_storage', 'artifact_registry', 'operations_suite', 'pubsub'];
+                // Ingress spine services: laid out vertically in column 0 (left gutter)
+                const ingressTypes = ['cloud_dns', 'route53', 'cloud_armor', 'waf', 'cloud_cdn', 'cloudfront'];
+                // Sidebar/support services: laid out vertically in column 1
+                const sidebarTypes = ['cloud_storage', 'artifact_registry', 'operations_suite', 'cloud_nat', 'cloud_router', 'pubsub'];
                 
-                const col0 = siblings.filter(n => col0Types.includes(n.type));
-                const col1 = siblings.filter(n => col1Types.includes(n.type));
-                const others = siblings.filter(n => !col0Types.includes(n.type) && !col1Types.includes(n.type));
+                const ingressNodes = siblings.filter(n => ingressTypes.includes(n.type));
+                const sidebarNodes = siblings.filter(n => sidebarTypes.includes(n.type));
+                const others = siblings.filter(n => !ingressTypes.includes(n.type) && !sidebarTypes.includes(n.type));
                 
-                col0.forEach((n, idx) => {
+                const ROW_HEIGHT = 120; // Enough vertical space for 78px icon + label + gap
+                const COL0_X = 20;      // Ingress spine column
+                const COL1_X = 130;     // Sidebar services column
+                
+                ingressNodes.forEach((n, idx) => {
                     const nSize = NODE_SIZES[n.type] || NODE_SIZE;
-                    n.x = 40 + (78 - nSize.width) / 2;
-                    n.y = CONTAINER_PADDING.top + idx * 150 + (78 - nSize.height) / 2;
+                    n.x = COL0_X + (78 - nSize.width) / 2;
+                    n.y = CONTAINER_PADDING.top + idx * ROW_HEIGHT + (78 - nSize.height) / 2;
                 });
                 
-                col1.forEach((n, idx) => {
+                sidebarNodes.forEach((n, idx) => {
                     const nSize = NODE_SIZES[n.type] || NODE_SIZE;
-                    n.x = 130 + (78 - nSize.width) / 2;
-                    n.y = CONTAINER_PADDING.top + idx * 150 + (78 - nSize.height) / 2;
+                    n.x = COL1_X + (78 - nSize.width) / 2;
+                    n.y = CONTAINER_PADDING.top + idx * ROW_HEIGHT + (78 - nSize.height) / 2;
                 });
                 
+                const maxRows = Math.max(ingressNodes.length, sidebarNodes.length);
                 others.forEach((n, idx) => {
                     const nSize = NODE_SIZES[n.type] || NODE_SIZE;
-                    n.x = 40 + (idx % 2) * 90 + (78 - nSize.width) / 2;
-                    n.y = CONTAINER_PADDING.top + Math.max(col0.length, col1.length) * 150 + Math.floor(idx / 2) * 150 + (78 - nSize.height) / 2;
+                    n.x = COL0_X + (idx % 2) * (COL1_X - COL0_X) + (78 - nSize.width) / 2;
+                    n.y = CONTAINER_PADDING.top + (maxRows + Math.floor(idx / 2)) * ROW_HEIGHT + (78 - nSize.height) / 2;
                 });
             } else {
                 const startX = 20;
@@ -1720,29 +1727,29 @@ class DiagramBuilder {
         // Only add a SINGLE alb to seq when there is no apigw (legacy single-ALB path)
         if (!apigwNode && albNode) seq.push(albNode);
 
-        // Ensure consecutive nodes in the ingress spine are connected
+        // Ensure consecutive nodes in the ingress spine are connected.
+        // First, deduplicate: remove ALL edges between consecutive spine pairs,
+        // then create exactly one canonical edge per pair.
         for (let i = 0; i < seq.length - 1; i++) {
             const src = seq[i];
             const tgt = seq[i+1];
-            let found = false;
-            for (const [, edge] of this.edges) {
-                if (edge.sourceId === src.id && edge.targetId === tgt.id) {
-                    found = true;
-                    if (src.type === 'user') edge.label = 'HTTPS Request';
-                    else if (src.type === 'route53' || src.type === 'cloud_dns') edge.label = 'Resolve & Route';
-                    else if (src.type === 'waf' || src.type === 'cloud_armor') edge.label = 'Inspect & Filter';
-                    else edge.label = 'Forward';
-                    edge.style = EDGE_STYLES.solid + 'labelBackgroundColor=#ffffff;';
-                    break;
+            let label = 'Forward';
+            if (src.type === 'user') label = 'HTTPS Request';
+            else if (src.type === 'route53' || src.type === 'cloud_dns') label = 'Resolve & Route';
+            else if (src.type === 'waf' || src.type === 'cloud_armor') label = 'Inspect & Filter';
+            
+            // Remove ALL existing edges between this pair (regardless of direction or label)
+            const toRemove = [];
+            for (const [edgeId, edge] of this.edges) {
+                if ((edge.sourceId === src.id && edge.targetId === tgt.id) ||
+                    (edge.sourceId === tgt.id && edge.targetId === src.id)) {
+                    toRemove.push(edgeId);
                 }
             }
-            if (!found) {
-                let label = 'Forward';
-                if (src.type === 'user') label = 'HTTPS Request';
-                else if (src.type === 'route53' || src.type === 'cloud_dns') label = 'Resolve & Route';
-                else if (src.type === 'waf' || src.type === 'cloud_armor') label = 'Inspect & Filter';
-                this.connect(src.id, tgt.id, label, 'solid');
-            }
+            for (const eid of toRemove) this.edges.delete(eid);
+            
+            // Create exactly one canonical edge
+            this.connect(src.id, tgt.id, label, 'solid');
         }
 
         // Fan out the last node in the ingress spine to ALL external ALBs
@@ -1781,12 +1788,17 @@ class DiagramBuilder {
                     edgesToPurgeSeq.push(edgeId);
                 }
             }
-            // Strict ingress spine-to-ALB constraint: only the last node in the spine is allowed to connect to ALBs
+            // Strict ingress spine-to-ALB constraint: only the last node in the spine
+            // (or its immediate predecessor if the ALB IS the last spine node) may connect to ALBs.
             if (seqIds.has(edge.sourceId) && allExtAlbIds.has(edge.targetId)) {
                 const lastSpineNode = seq[seq.length - 1];
-                if (edge.sourceId !== lastSpineNode.id) {
-                    edgesToPurgeSeq.push(edgeId);
-                }
+                // Allow if source IS the last spine node (fan-out)
+                if (edge.sourceId === lastSpineNode.id) continue;
+                // Allow if target IS a consecutive spine successor of source (e.g., cdn→lb when lb is last)
+                const srcIdx = seq.findIndex(n => n.id === edge.sourceId);
+                const tgtIdx = seq.findIndex(n => n.id === edge.targetId);
+                if (srcIdx >= 0 && tgtIdx === srcIdx + 1) continue;
+                edgesToPurgeSeq.push(edgeId);
             }
         }
         for (const edgeId of edgesToPurgeSeq) {
@@ -2275,8 +2287,17 @@ class DiagramBuilder {
         }
 
         // Step 3: Generic Node Bypass for vertical/horizontal overlaps
+        // IMPORTANT: Skip edges that already have port styles from Steps 1 or 2,
+        // since appending new styles would override the carefully-distributed ports.
         const activeBypasses = new Map();
         for (const [, edge] of this.edges) {
+            // Skip if edge already has explicit port routing from prior steps
+            const style = edge.style || '';
+            if (style.includes('exitX=') || style.includes('entryX=') ||
+                style.includes('exitY=') || style.includes('entryY=')) {
+                continue;
+            }
+            
             const srcNode = this.cells.get(edge.sourceId);
             const tgtNode = this.cells.get(edge.targetId);
             if (!srcNode || !tgtNode) continue;
@@ -2318,12 +2339,12 @@ class DiagramBuilder {
                 if (Math.abs(srcC.x - tgtC.x) < 20) {
                     const portX = useLeft ? 0 : 1;
                     const offset = useLeft ? -35 : 35;
-                    edge.style = (edge.style || '') + `;exitX=${portX};exitY=0.5;entryX=${portX};entryY=0.5;exitDx=0;entryDx=0;`;
+                    edge.style = style + `;exitX=${portX};exitY=0.5;entryX=${portX};entryY=0.5;exitDx=0;entryDx=0;`;
                     edge.labelOffset = { x: offset, y: 0 };
                 } else {
                     const portY = useLeft ? 0 : 1;
                     const offset = useLeft ? -25 : 25;
-                    edge.style = (edge.style || '') + `;exitX=0.5;exitY=${portY};entryX=0.5;entryY=${portY};exitDx=0;entryDx=0;`;
+                    edge.style = style + `;exitX=0.5;exitY=${portY};entryX=0.5;entryY=${portY};exitDx=0;entryDx=0;`;
                     edge.labelOffset = { x: 0, y: offset };
                 }
             }
