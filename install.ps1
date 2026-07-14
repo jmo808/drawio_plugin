@@ -22,6 +22,14 @@ if ([string]::IsNullOrEmpty($ScriptDir)) {
     $ScriptDir = (Get-Location).Path
 }
 
+Write-Host "Installing local dependencies..." -ForegroundColor Green
+Push-Location $ScriptDir
+try {
+    npm install --silent
+} finally {
+    Pop-Location
+}
+
 # 1. Setup Kiro CLI/IDE
 $KiroDir = Join-Path $HomeDir ".kiro"
 $KiroAgentsDir = Join-Path $KiroDir "agents"
@@ -221,9 +229,10 @@ foreach ($Client in $Paths) {
         $Data | Add-Member -NotePropertyName "mcpServers" -NotePropertyValue ([PSCustomObject]@{})
     }
 
+    $WrapperPath = (Join-Path $ScriptDir "scripts\mcp-wrapper.js").Replace("\", "/")
     $DrawioConfig = [PSCustomObject]@{
-        command = "npx"
-        args = @("-y", "@drawio/mcp@1.3.4")
+        command = "node"
+        args = @($WrapperPath)
     }
 
     $Data.mcpServers | Add-Member -NotePropertyName "drawio" -NotePropertyValue $DrawioConfig -Force
@@ -236,14 +245,19 @@ foreach ($Client in $Paths) {
 }
 
 Write-Host "Verifying @drawio/mcp package..." -ForegroundColor Cyan
-try {
-    $null = & npx -y @drawio/mcp@1.3.4 --help 2>&1
-    if ($LASTEXITCODE -eq 0) {
-        Write-Host "`u{2713} @drawio/mcp package verified successfully" -ForegroundColor Green
-    } else {
+$LocalMcpPath = Join-Path $ScriptDir "node_modules\@drawio\mcp\src\index.js"
+if (Test-Path $LocalMcpPath) {
+    try {
+        $null = & node $LocalMcpPath --help 2>&1
+        if ($LASTEXITCODE -eq 0) {
+            Write-Host "`u{2713} @drawio/mcp package verified successfully" -ForegroundColor Green
+        } else {
+            Write-Host "`u{26A0} WARNING: @drawio/mcp package could not be verified. The MCP server may not work until the package is available." -ForegroundColor Yellow
+        }
+    } catch {
         Write-Host "`u{26A0} WARNING: @drawio/mcp package could not be verified. The MCP server may not work until the package is available." -ForegroundColor Yellow
     }
-} catch {
+} else {
     Write-Host "`u{26A0} WARNING: @drawio/mcp package could not be verified. The MCP server may not work until the package is available." -ForegroundColor Yellow
 }
 
