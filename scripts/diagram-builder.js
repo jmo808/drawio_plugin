@@ -970,22 +970,62 @@ class DiagramBuilder {
         return { x, y };
     }
 
+    _isGcpTheme() {
+        for (const [, cell] of this.cells) {
+            if (cell.type.startsWith('gcp_') || [
+                'cloud_dns', 'cloud_armor', 'cloud_cdn', 'cloud_storage',
+                'artifact_registry', 'operations_suite', 'cloud_nat', 'cloud_router',
+                'pubsub', 'cloud_sql', 'cloud_spanner', 'memorystore', 'kubernetes_engine'
+            ].includes(cell.type)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     _layoutSiblingNodes(parentId) {
         const parent = this.cells.get(parentId);
         const siblings = this._childrenOf(parentId).filter(c => !c.isContainer);
 
         if (parent && (parent.type === 'region' || parent.type === 'gcp_region')) {
-            const startX = 20;
-            const startY = CONTAINER_PADDING.top;
-            const colWidth = 90;
-            const rowHeight = 90;
-            siblings.forEach((n, idx) => {
-                const nSize = NODE_SIZES[n.type] || NODE_SIZE;
-                const col = idx % 2;
-                const row = Math.floor(idx / 2);
-                n.x = startX + col * colWidth + (colWidth - nSize.width) / 2;
-                n.y = startY + row * rowHeight + (rowHeight - nSize.height) / 2;
-            });
+            if (this._isGcpTheme()) {
+                const col0Types = ['cloud_dns', 'route53', 'cloud_armor', 'waf', 'cloud_cdn', 'cloudfront'];
+                const col1Types = ['cloud_storage', 'artifact_registry', 'operations_suite', 'pubsub'];
+                
+                const col0 = siblings.filter(n => col0Types.includes(n.type));
+                const col1 = siblings.filter(n => col1Types.includes(n.type));
+                const others = siblings.filter(n => !col0Types.includes(n.type) && !col1Types.includes(n.type));
+                
+                col0.forEach((n, idx) => {
+                    const nSize = NODE_SIZES[n.type] || NODE_SIZE;
+                    n.x = 40 + (78 - nSize.width) / 2;
+                    n.y = CONTAINER_PADDING.top + idx * 150 + (78 - nSize.height) / 2;
+                });
+                
+                col1.forEach((n, idx) => {
+                    const nSize = NODE_SIZES[n.type] || NODE_SIZE;
+                    n.x = 130 + (78 - nSize.width) / 2;
+                    n.y = CONTAINER_PADDING.top + idx * 150 + (78 - nSize.height) / 2;
+                });
+                
+                others.forEach((n, idx) => {
+                    const nSize = NODE_SIZES[n.type] || NODE_SIZE;
+                    n.x = 40 + (idx % 2) * 90 + (78 - nSize.width) / 2;
+                    n.y = CONTAINER_PADDING.top + Math.max(col0.length, col1.length) * 150 + Math.floor(idx / 2) * 150 + (78 - nSize.height) / 2;
+                });
+            } else {
+                const startX = 20;
+                const startY = CONTAINER_PADDING.top;
+                const colWidth = 90;
+                const rowHeight = 90;
+                siblings.forEach((n, idx) => {
+                    const nSize = NODE_SIZES[n.type] || NODE_SIZE;
+                    const col = idx % 2;
+                    const row = Math.floor(idx / 2);
+                    n.x = startX + col * colWidth + (colWidth - nSize.width) / 2;
+                    n.y = startY + row * rowHeight + (rowHeight - nSize.height) / 2;
+                });
+            }
             return;
         }
 
@@ -1435,7 +1475,7 @@ class DiagramBuilder {
         if (!hasUser) {
             let r53Node = null;
             for (const [, cell] of this.cells) {
-                if (cell.type === 'route53') {
+                if (cell.type === 'route53' || cell.type === 'cloud_dns') {
                     r53Node = cell;
                     break;
                 }
@@ -1642,17 +1682,17 @@ class DiagramBuilder {
         let albNode = null; // first live external ALB (for backward compat)
         for (const [, cell] of this.cells) {
             if (cell.type === 'user') clientNode = cell;
-            if (cell.type === 'route53') r53Node = cell;
-            if (cell.type === 'waf') wafNode = cell;
-            if (cell.type === 'cloudfront') cdnNode = cell;
-            if (cell.type === 'apigateway' || cell.type === 'endpoint') apigwNode = cell;
-            if ((cell.type === 'alb' || cell.type === 'nlb') && !ctx.isInternalAlb(cell) && !albNode) albNode = cell;
+            if (cell.type === 'route53' || cell.type === 'cloud_dns') r53Node = cell;
+            if (cell.type === 'waf' || cell.type === 'cloud_armor') wafNode = cell;
+            if (cell.type === 'cloudfront' || cell.type === 'cloud_cdn') cdnNode = cell;
+            if (cell.type === 'apigateway' || cell.type === 'endpoint' || cell.type === 'api_gateway') apigwNode = cell;
+            if ((cell.type === 'alb' || cell.type === 'nlb' || cell.type === 'load_balancing') && !ctx.isInternalAlb(cell) && !albNode) albNode = cell;
         }
 
         // Collect ALL live external ALBs (post-merge)
         const allExtAlbs = [];
         for (const [, cell] of this.cells) {
-            if ((cell.type === 'alb' || cell.type === 'nlb') && !ctx.isInternalAlb(cell)) allExtAlbs.push(cell);
+            if ((cell.type === 'alb' || cell.type === 'nlb' || cell.type === 'load_balancing') && !ctx.isInternalAlb(cell)) allExtAlbs.push(cell);
         }
 
         // Flip any reverse proxy edges (e.g. ALB -> APIGW or ALB -> CloudFront)
@@ -1661,7 +1701,7 @@ class DiagramBuilder {
                 const src = this.cells.get(edge.sourceId);
                 const tgt = this.cells.get(edge.targetId);
                 if (src && tgt && src.id === alb.id &&
-                    (tgt.type === 'apigateway' || tgt.type === 'endpoint' || tgt.type === 'cloudfront')) {
+                    (tgt.type === 'apigateway' || tgt.type === 'endpoint' || tgt.type === 'api_gateway' || tgt.type === 'cloudfront' || tgt.type === 'cloud_cdn')) {
                     edge.sourceId = tgt.id;
                     edge.targetId = src.id;
                     edge.label = 'Forward';
@@ -1689,8 +1729,8 @@ class DiagramBuilder {
                 if (edge.sourceId === src.id && edge.targetId === tgt.id) {
                     found = true;
                     if (src.type === 'user') edge.label = 'HTTPS Request';
-                    else if (src.type === 'route53') edge.label = 'Resolve & Route';
-                    else if (src.type === 'waf') edge.label = 'Inspect & Filter';
+                    else if (src.type === 'route53' || src.type === 'cloud_dns') edge.label = 'Resolve & Route';
+                    else if (src.type === 'waf' || src.type === 'cloud_armor') edge.label = 'Inspect & Filter';
                     else edge.label = 'Forward';
                     edge.style = EDGE_STYLES.solid + 'labelBackgroundColor=#ffffff;';
                     break;
@@ -1699,8 +1739,8 @@ class DiagramBuilder {
             if (!found) {
                 let label = 'Forward';
                 if (src.type === 'user') label = 'HTTPS Request';
-                else if (src.type === 'route53') label = 'Resolve & Route';
-                else if (src.type === 'waf') label = 'Inspect & Filter';
+                else if (src.type === 'route53' || src.type === 'cloud_dns') label = 'Resolve & Route';
+                else if (src.type === 'waf' || src.type === 'cloud_armor') label = 'Inspect & Filter';
                 this.connect(src.id, tgt.id, label, 'solid');
             }
         }
@@ -2016,18 +2056,38 @@ class DiagramBuilder {
     _relayoutTopLevelNodes(ctx) {
         const topLevelNodes = this._childrenOf('1').filter(c => !c.isContainer);
         const topLevelContainers = this._childrenOf('1').filter(c => c.isContainer);
-        const vpc = topLevelContainers.find(c => c.type === 'vpc');
-        const centerX = vpc ? (vpc.x + vpc.width / 2) : 600;
+        
+        const proj = topLevelContainers.find(c => c.type === 'project' || c.type === 'gcp_project');
+        const reg = topLevelContainers.find(c => c.type === 'region' || c.type === 'gcp_region') || 
+                    (proj && this._childrenOf(proj.id).find(c => c.type === 'region' || c.type === 'gcp_region'));
+        
+        let clientAlignX = null;
+        if (reg) {
+            const regAbs = ctx.getAbsoluteCoords(reg);
+            clientAlignX = regAbs.x + 79; // Center of Column 0 in region
+        }
+        
+        const vpc = topLevelContainers.find(c => c.type === 'vpc' || c.type === 'gcp_vpc') ||
+                    (reg && this._childrenOf(reg.id).find(c => c.type === 'vpc' || c.type === 'gcp_vpc'));
+        const centerX = clientAlignX !== null ? clientAlignX : (vpc ? (ctx.getAbsoluteCoords(vpc).x + vpc.width / 2) : 600);
 
         // Sort by pipeline flow: user -> route53 -> waf -> cloudfront -> apigateway -> eventbridge -> dynamodb/rds
-        const nodeOrder = ['user', 'route53', 'waf', 'cloudfront', 'apigateway', 'api_gateway', 'eventbridge', 'dynamodb', 'rds'];
+        const typeGroups = {
+            'user': 0,
+            'route53': 1, 'cloud_dns': 1,
+            'waf': 2, 'cloud_armor': 2,
+            'cloudfront': 3, 'cloud_cdn': 3,
+            'apigateway': 4, 'api_gateway': 4, 'endpoint': 4,
+            'eventbridge': 6, 'pubsub': 6,
+            'dynamodb': 7, 'rds': 8, 'cloud_sql': 8, 'cloud_spanner': 8
+        };
         const getOrderIdx = (cell) => {
-            if (cell.type === 'dynamodb') {
+            if (cell.type === 'dynamodb' || cell.type === 'cloud_sql' || cell.type === 'cloud_spanner') {
                 if (this._isPrimary(cell)) return 5; // Put primary before EventBridge (index 6)
                 if (this._isReplica(cell)) return 7; // Put replica after EventBridge (index 6)
             }
-            const idx = nodeOrder.indexOf(cell.type);
-            return idx === -1 ? 99 : idx;
+            const idx = typeGroups[cell.type];
+            return idx === undefined ? 99 : idx;
         };
         topLevelNodes.sort((a, b) => getOrderIdx(a) - getOrderIdx(b));
 
@@ -2211,6 +2271,61 @@ class DiagramBuilder {
                         edge.labelOffset = { x: 0, y: (idx % 2 === 0 ? -15 : 15) };
                     }
                 });
+            }
+        }
+
+        // Step 3: Generic Node Bypass for vertical/horizontal overlaps
+        const activeBypasses = new Map();
+        for (const [, edge] of this.edges) {
+            const srcNode = this.cells.get(edge.sourceId);
+            const tgtNode = this.cells.get(edge.targetId);
+            if (!srcNode || !tgtNode) continue;
+            
+            const srcC = ctx.getAbsoluteCoords(srcNode);
+            const tgtC = ctx.getAbsoluteCoords(tgtNode);
+            
+            const minX = Math.min(srcC.x, tgtC.x);
+            const maxX = Math.max(srcC.x, tgtC.x) + 78;
+            const minY = Math.min(srcC.y, tgtC.y);
+            const maxY = Math.max(srcC.y, tgtC.y) + 78;
+            
+            let blockedNode = null;
+            for (const [nodeId, C] of this.cells) {
+                if (C.isContainer || nodeId === edge.sourceId || nodeId === edge.targetId) continue;
+                const CC = ctx.getAbsoluteCoords(C);
+                
+                if (Math.abs(srcC.x - tgtC.x) < 20 && Math.abs(CC.x - srcC.x) < 20) {
+                    if (CC.y > minY && CC.y < maxY) {
+                        blockedNode = C;
+                        break;
+                    }
+                }
+                if (Math.abs(srcC.y - tgtC.y) < 20 && Math.abs(CC.y - srcC.y) < 20) {
+                    if (CC.x > minX && CC.x < maxX) {
+                        blockedNode = C;
+                        break;
+                    }
+                }
+            }
+            
+            if (blockedNode) {
+                const bypassKey = `${blockedNode.id}`;
+                const count = activeBypasses.get(bypassKey) || 0;
+                activeBypasses.set(bypassKey, count + 1);
+                
+                const useLeft = count % 2 === 0;
+                
+                if (Math.abs(srcC.x - tgtC.x) < 20) {
+                    const portX = useLeft ? 0 : 1;
+                    const offset = useLeft ? -35 : 35;
+                    edge.style = (edge.style || '') + `;exitX=${portX};exitY=0.5;entryX=${portX};entryY=0.5;exitDx=0;entryDx=0;`;
+                    edge.labelOffset = { x: offset, y: 0 };
+                } else {
+                    const portY = useLeft ? 0 : 1;
+                    const offset = useLeft ? -25 : 25;
+                    edge.style = (edge.style || '') + `;exitX=0.5;exitY=${portY};entryX=0.5;entryY=${portY};exitDx=0;entryDx=0;`;
+                    edge.labelOffset = { x: 0, y: offset };
+                }
             }
         }
     }
