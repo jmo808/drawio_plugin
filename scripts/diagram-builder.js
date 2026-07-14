@@ -560,8 +560,8 @@ class DiagramBuilder {
 
         // Check for duplicate
         for (const [eId, edge] of this.edges) {
-            if (edge.sourceId === sourceId && edge.targetId === targetId) {
-                return { success: false, error: `Edge from "${sourceId}" to "${targetId}" already exists (${eId}).` };
+            if (edge.sourceId === sourceId && edge.targetId === targetId && edge.label === label) {
+                return { success: false, error: `Edge from "${sourceId}" to "${targetId}" with label "${label}" already exists (${eId}).` };
             }
         }
 
@@ -908,13 +908,18 @@ class DiagramBuilder {
                 style = style.replace(/labelBackgroundColor=[^;]+/g, 'labelBackgroundColor=none');
             }
             lines.push(`    <mxCell id="${this._esc(edge.id)}"${valueAttr} edge="1" parent="1" source="${this._esc(edge.sourceId)}" target="${this._esc(edge.targetId)}" style="${this._esc(style)}">`);
-            if (edge.points && edge.points.length > 0) {
+            if (edge.labelOffset || (edge.points && edge.points.length > 0)) {
                 lines.push('      <mxGeometry relative="1" as="geometry">');
-                lines.push('        <Array as="points">');
-                for (const pt of edge.points) {
-                    lines.push(`          <mxPoint x="${pt.x}" y="${pt.y}"/>`);
+                if (edge.labelOffset) {
+                    lines.push(`        <mxPoint x="${edge.labelOffset.x}" y="${edge.labelOffset.y}" as="offset"/>`);
                 }
-                lines.push('        </Array>');
+                if (edge.points && edge.points.length > 0) {
+                    lines.push('        <Array as="points">');
+                    for (const pt of edge.points) {
+                        lines.push(`          <mxPoint x="${pt.x}" y="${pt.y}"/>`);
+                    }
+                    lines.push('        </Array>');
+                }
                 lines.push('      </mxGeometry>');
             } else {
                 lines.push('      <mxGeometry relative="1" as="geometry"/>');
@@ -1414,6 +1419,7 @@ class DiagramBuilder {
         this._mirrorAZSymmetry(ctx);
         this._relayoutTopLevelNodes(ctx);
         this._removeEmptySubnets();
+        this._resolveEdgeAndLabelCollisions(ctx);
     }
 
     // --- Topological correction submethods ---
@@ -2046,6 +2052,166 @@ class DiagramBuilder {
         }
         for (const id of emptySubnets) {
             this.cells.delete(id);
+        }
+    }
+
+    _resolveEdgeAndLabelCollisions(ctx) {
+        // Step 1: General Inbound/Outbound Port Distribution per node
+        for (const [nodeId, node] of this.cells) {
+            if (node.isContainer) continue;
+            
+            const nodeCoords = ctx.getAbsoluteCoords(node);
+            
+            // Outbound edges from this node
+            const outbound = [];
+            for (const [, edge] of this.edges) {
+                if (edge.sourceId === nodeId) {
+                    const tgtNode = this.cells.get(edge.targetId);
+                    if (tgtNode) {
+                        const tgtCoords = ctx.getAbsoluteCoords(tgtNode);
+                        outbound.push({ edge, coords: tgtCoords });
+                    }
+                }
+            }
+            
+            // Group outbound by exit face
+            const outGroups = { top: [], bottom: [], left: [], right: [] };
+            for (const item of outbound) {
+                const dx = item.coords.x - nodeCoords.x;
+                const dy = item.coords.y - nodeCoords.y;
+                if (Math.abs(dy) > Math.abs(dx)) {
+                    if (dy < 0) outGroups.top.push(item);
+                    else outGroups.bottom.push(item);
+                } else {
+                    if (dx < 0) outGroups.left.push(item);
+                    else outGroups.right.push(item);
+                }
+            }
+            
+            // Distribute Top/Bottom (sort by target X)
+            for (const side of ['top', 'bottom']) {
+                const items = outGroups[side];
+                if (items.length > 1) {
+                    items.sort((a, b) => a.coords.x - b.coords.x);
+                    items.forEach((item, idx) => {
+                        const ratio = (idx + 1) / (items.length + 1);
+                        const exitY = side === 'top' ? 0 : 1;
+                        item.edge.style = (item.edge.style || '') + `;exitX=${ratio.toFixed(2)};exitY=${exitY};exitDx=0;`;
+                    });
+                }
+            }
+            // Distribute Left/Right (sort by target Y)
+            for (const side of ['left', 'right']) {
+                const items = outGroups[side];
+                if (items.length > 1) {
+                    items.sort((a, b) => a.coords.y - b.coords.y);
+                    items.forEach((item, idx) => {
+                        const ratio = (idx + 1) / (items.length + 1);
+                        const exitX = side === 'left' ? 0 : 1;
+                        item.edge.style = (item.edge.style || '') + `;exitX=${exitX};exitY=${ratio.toFixed(2)};exitDy=0;`;
+                    });
+                }
+            }
+            
+            // Inbound edges to this node
+            const inbound = [];
+            for (const [, edge] of this.edges) {
+                if (edge.targetId === nodeId) {
+                    const srcNode = this.cells.get(edge.sourceId);
+                    if (srcNode) {
+                        const srcCoords = ctx.getAbsoluteCoords(srcNode);
+                        inbound.push({ edge, coords: srcCoords });
+                    }
+                }
+            }
+            
+            // Group inbound by entry face
+            const inGroups = { top: [], bottom: [], left: [], right: [] };
+            for (const item of inbound) {
+                const dx = item.coords.x - nodeCoords.x;
+                const dy = item.coords.y - nodeCoords.y;
+                if (Math.abs(dy) > Math.abs(dx)) {
+                    if (dy < 0) inGroups.top.push(item);
+                    else inGroups.bottom.push(item);
+                } else {
+                    if (dx < 0) inGroups.left.push(item);
+                    else inGroups.right.push(item);
+                }
+            }
+            
+            // Distribute Top/Bottom (sort by source X)
+            for (const side of ['top', 'bottom']) {
+                const items = inGroups[side];
+                if (items.length > 1) {
+                    items.sort((a, b) => a.coords.x - b.coords.x);
+                    items.forEach((item, idx) => {
+                        const ratio = (idx + 1) / (items.length + 1);
+                        const entryY = side === 'top' ? 0 : 1;
+                        item.edge.style = (item.edge.style || '') + `;entryX=${ratio.toFixed(2)};entryY=${entryY};entryDx=0;`;
+                    });
+                }
+            }
+            // Distribute Left/Right (sort by source Y)
+            for (const side of ['left', 'right']) {
+                const items = inGroups[side];
+                if (items.length > 1) {
+                    items.sort((a, b) => a.coords.y - b.coords.y);
+                    items.forEach((item, idx) => {
+                        const ratio = (idx + 1) / (items.length + 1);
+                        const entryX = side === 'left' ? 0 : 1;
+                        item.edge.style = (item.edge.style || '') + `;entryX=${entryX};entryY=${ratio.toFixed(2)};entryDy=0;`;
+                    });
+                }
+            }
+        }
+
+        // Step 2: Specific Parallel/Duplicate Edge Offsets & Label Offsets
+        const duplicateGroups = new Map();
+        for (const [, edge] of this.edges) {
+            const idA = edge.sourceId;
+            const idB = edge.targetId;
+            const key = idA < idB ? `${idA}-${idB}` : `${idB}-${idA}`;
+            if (!duplicateGroups.has(key)) {
+                duplicateGroups.set(key, []);
+            }
+            duplicateGroups.get(key).push(edge);
+        }
+
+        for (const [key, group] of duplicateGroups) {
+            if (group.length > 1) {
+                const srcNode = this.cells.get(group[0].sourceId);
+                const tgtNode = this.cells.get(group[0].targetId);
+                if (!srcNode || !tgtNode) continue;
+                
+                const srcCoords = ctx.getAbsoluteCoords(srcNode);
+                const tgtCoords = ctx.getAbsoluteCoords(tgtNode);
+                
+                const dx = Math.abs(srcCoords.x - tgtCoords.x);
+                const dy = Math.abs(srcCoords.y - tgtCoords.y);
+                const isVertical = dy > dx;
+                
+                group.forEach((edge, idx) => {
+                    const offset = (idx - (group.length - 1) / 2) * 20;
+                    
+                    if (isVertical) {
+                        const sourceAbove = srcCoords.y < tgtCoords.y;
+                        const exitY = sourceAbove ? 1 : 0;
+                        const entryY = sourceAbove ? 0 : 1;
+                        edge.style = (edge.style || '') + `;exitX=0.5;exitY=${exitY};exitDx=${offset};entryX=0.5;entryY=${entryY};entryDx=${offset};`;
+                        
+                        // Shift labels horizontally
+                        edge.labelOffset = { x: (idx % 2 === 0 ? -40 : 40), y: 0 };
+                    } else {
+                        const sourceLeft = srcCoords.x < tgtCoords.x;
+                        const exitX = sourceLeft ? 1 : 0;
+                        const entryX = sourceLeft ? 0 : 1;
+                        edge.style = (edge.style || '') + `;exitX=${exitX};exitY=0.5;exitDy=${offset};entryX=${entryX};entryY=0.5;entryDy=${offset};`;
+                        
+                        // Shift labels vertically
+                        edge.labelOffset = { x: 0, y: (idx % 2 === 0 ? -15 : 15) };
+                    }
+                });
+            }
         }
     }
 }
