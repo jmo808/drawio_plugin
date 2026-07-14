@@ -9,8 +9,13 @@ const path = require('path');
 
 // ---------------------------------------------------------------------------
 // Style Template Registry
-// ---------------------------------------------------------------------------
 const CONTAINER_STYLES = {
+    project: 'swimlane;startSize=24;fillColor=light-dark(#f8f9fa,#18191a);strokeColor=light-dark(#bdc1c6,#5f6368);html=1;whiteSpace=wrap;fontSize=12;fontStyle=1;fontColor=light-dark(#000000,#ffffff);',
+    gcp_project: 'swimlane;startSize=24;fillColor=light-dark(#f8f9fa,#18191a);strokeColor=light-dark(#bdc1c6,#5f6368);html=1;whiteSpace=wrap;fontSize=12;fontStyle=1;fontColor=light-dark(#000000,#ffffff);',
+    gcp_region: 'swimlane;startSize=24;fillColor=light-dark(#f5f5f5,#1a1a1a);strokeColor=light-dark(#cccccc,#444444);html=1;whiteSpace=wrap;fontSize=12;fontStyle=1;fontColor=light-dark(#000000,#ffffff);',
+    gcp_vpc: 'swimlane;startSize=24;fillColor=light-dark(#dae8fc,#1e2a38);strokeColor=light-dark(#6c8ebf,#3c4f6b);html=1;whiteSpace=wrap;fontSize=12;fontStyle=1;fontColor=light-dark(#000000,#ffffff);',
+    gcp_zone: 'swimlane;startSize=24;fillColor=light-dark(#fff2cc,#2b2618);strokeColor=light-dark(#d6b656,#8f742c);html=1;whiteSpace=wrap;fontSize=11;fontStyle=1;fontColor=light-dark(#000000,#ffffff);',
+    zone: 'swimlane;startSize=24;fillColor=light-dark(#fff2cc,#2b2618);strokeColor=light-dark(#d6b656,#8f742c);html=1;whiteSpace=wrap;fontSize=11;fontStyle=1;fontColor=light-dark(#000000,#ffffff);',
     region: 'swimlane;startSize=24;fillColor=light-dark(#f5f5f5,#1a1a1a);strokeColor=light-dark(#cccccc,#444444);html=1;whiteSpace=wrap;fontSize=12;fontStyle=1;fontColor=light-dark(#000000,#ffffff);',
     vpc: 'swimlane;startSize=24;fillColor=light-dark(#dae8fc,#1e2a38);strokeColor=light-dark(#6c8ebf,#3c4f6b);html=1;whiteSpace=wrap;fontSize=12;fontStyle=1;fontColor=light-dark(#000000,#ffffff);',
     az: 'swimlane;startSize=24;fillColor=light-dark(#fff2cc,#2b2618);strokeColor=light-dark(#d6b656,#8f742c);html=1;whiteSpace=wrap;fontSize=11;fontStyle=1;fontColor=light-dark(#000000,#ffffff);',
@@ -964,14 +969,29 @@ class DiagramBuilder {
         const parent = this.cells.get(parentId);
         const siblings = this._childrenOf(parentId).filter(c => !c.isContainer);
 
-        // 1. If root or region/group row:
-        if (parentId === '1' || !parent || ['region', 'group'].includes(parent.type)) {
+        if (parent && (parent.type === 'region' || parent.type === 'gcp_region')) {
+            const startX = 20;
+            const startY = CONTAINER_PADDING.top;
+            const colWidth = 90;
+            const rowHeight = 90;
+            siblings.forEach((n, idx) => {
+                const nSize = NODE_SIZES[n.type] || NODE_SIZE;
+                const col = idx % 2;
+                const row = Math.floor(idx / 2);
+                n.x = startX + col * colWidth + (colWidth - nSize.width) / 2;
+                n.y = startY + row * rowHeight + (rowHeight - nSize.height) / 2;
+            });
+            return;
+        }
+
+        // 1. If root or project/group row:
+        if (parentId === '1' || !parent || ['project', 'gcp_project', 'group'].includes(parent.type)) {
             const startY = (parentId === '1' || !parent) ? 10 : CONTAINER_PADDING.top;
             const siblingContainers = this._childrenOf(parentId).filter(c => c.isContainer);
             
             let centerX = 400;
             if (parentId === '1' || !parent) {
-                const mainContainer = siblingContainers.find(c => c.type === 'vpc' || c.type === 'region');
+                const mainContainer = siblingContainers.find(c => c.type === 'vpc' || c.type === 'gcp_vpc' || c.type === 'region' || c.type === 'gcp_region' || c.type === 'project' || c.type === 'gcp_project');
                 centerX = mainContainer ? (mainContainer.x + mainContainer.width / 2) : 600;
             } else {
                 centerX = parent.width / 2;
@@ -1042,11 +1062,21 @@ class DiagramBuilder {
     _layoutContainer(type, parentId, siblings, tier) {
         const parent = this.cells.get(parentId);
 
-        if (type === 'region') {
-            return { x: 20, y: 150, width: 1000, height: 260 };
+        if (type === 'project' || type === 'gcp_project') {
+            return { x: 20, y: 150, width: 1240, height: 640 };
         }
 
-        if (type === 'vpc') {
+        if (type === 'region' || type === 'gcp_region') {
+            if (parent && (parent.type === 'project' || parent.type === 'gcp_project')) {
+                return { x: 20, y: 40, width: parent.width - 40, height: parent.height - 60 };
+            }
+            return { x: 20, y: 150, width: 1200, height: 580 };
+        }
+
+        if (type === 'vpc' || type === 'gcp_vpc') {
+            if (parent && (parent.type === 'region' || parent.type === 'gcp_region')) {
+                return { x: 220, y: 40, width: parent.width - 240, height: parent.height - 60 };
+            }
             return { x: 40, y: 180, width: 960, height: 260 };
         }
 
@@ -1098,11 +1128,10 @@ class DiagramBuilder {
             return { x: 20, y, width: parentWidth - 40, height: 200 };
         }
 
-        if (type === 'az') {
-            const azIndex = siblings.filter(s => s.type === 'az').length;
+        if (type === 'az' || type === 'gcp_zone' || type === 'zone') {
+            const azIndex = siblings.filter(s => s.type === 'az' || s.type === 'gcp_zone' || s.type === 'zone').length;
             if (this.type === 'pfd') {
                 const azWidth = 460;
-                // Employ a "page sized wraparound" for PFD diagrams
                 const colsPerRow = 2;
                 const col = azIndex % colsPerRow;
                 const row = Math.floor(azIndex / colsPerRow);
@@ -1110,8 +1139,12 @@ class DiagramBuilder {
                 const y = 160 + row * 340;
                 return { x, y, width: azWidth, height: 200 };
             } else {
+                if (parent && (parent.type === 'subnet' || parent.type.startsWith('subnet_'))) {
+                    const azWidth = 380;
+                    const x = 20 + azIndex * (azWidth + 40);
+                    return { x, y: CONTAINER_PADDING.top, width: azWidth, height: parent.height - 60 };
+                }
                 const azWidth = 400;
-                // First AZ at x=20, second AZ at x=20+400+AZ_GAP
                 const x = 20 + azIndex * (azWidth + AZ_GAP);
                 return { x, y: 160, width: azWidth, height: 180 };
             }
