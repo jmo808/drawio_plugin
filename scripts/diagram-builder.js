@@ -869,6 +869,7 @@ class DiagramBuilder {
         if (!this.initialized) return { success: false, error: 'Call init_diagram first.' };
 
         this._applyTopologicalCorrections();
+        this._applyQuickFixes();
 
         const validation = this.validate();
         if (!validation.success) {
@@ -1410,6 +1411,44 @@ class DiagramBuilder {
             if (lbl.endsWith(' b') || lbl.endsWith(' 2')) return true;
         }
         return false;
+    }
+
+    _applyQuickFixes() {
+        // 1. Fix overlapping edges (multiple edges between same two nodes)
+        const edgePairs = new Map();
+        for (const [id, edge] of this.edges) {
+            if (!edge.sourceId || !edge.targetId) continue;
+            const pairId = [edge.sourceId, edge.targetId].sort().join("-");
+            if (!edgePairs.has(pairId)) edgePairs.set(pairId, []);
+            edgePairs.get(pairId).push(edge);
+        }
+        
+        for (const [pairId, edges] of edgePairs) {
+            if (edges.length > 1) {
+                edges.forEach((edge, index) => {
+                    if (index === 0) return;
+                    let newStyle = edge.style || "";
+                    if (!newStyle.includes("exitX=")) newStyle += "exitX=1;exitY=0.5;exitDx=0;exitDy=0;";
+                    if (!newStyle.includes("entryX=")) newStyle += "entryX=1;entryY=0.5;entryDx=0;entryDy=0;";
+                    if (!newStyle.includes("edgeStyle=")) newStyle += "edgeStyle=orthogonalEdgeStyle;";
+                    edge.style = newStyle;
+                });
+            }
+        }
+
+        // 2. Fix labels overlapping lines (push them up and give solid background)
+        for (const [id, edge] of this.edges) {
+            if (edge.label && edge.label.trim() !== "") {
+                let newStyle = edge.style || "";
+                if (!newStyle.includes("verticalAlign=")) {
+                    newStyle += "verticalAlign=bottom;";
+                }
+                if (!newStyle.includes("labelBackgroundColor=")) {
+                    newStyle += "labelBackgroundColor=#ffffff;";
+                }
+                edge.style = newStyle;
+            }
+        }
     }
 
     _applyTopologicalCorrections() {
