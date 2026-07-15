@@ -1,4 +1,20 @@
 module.exports = function({ cells, mxCells, doc, reportError, nodeIds }) {
+    // Cross-validator isolation: skip if cloud-specific shapes are present
+    const hasCloudNodes = Object.values(cells).some(c => c.style && (
+        c.style.includes('mxgraph.gcp2') || c.style.includes('mxgraph.aws') ||
+        c.style.includes('cloudfront') || c.style.includes('apigateway')
+    ));
+    if (hasCloudNodes) return;
+
+    // Skip if no PFD-relevant shapes exist (avoid false positives on generic diagrams)
+    const hasPfdShapes = Object.values(cells).some(c => c.style && (
+        c.style.includes('mxgraph.pid') || c.style.includes('pump') ||
+        c.style.includes('compressor') || c.style.includes('vessel') ||
+        c.style.includes('column') || c.style.includes('heat_exchanger') ||
+        c.style.includes('cyclone') || c.style.includes('tank')
+    ));
+    if (!hasPfdShapes) return;
+
     // 1. Process Edges / Streams
     for (const id in cells) {
         const cell = cells[id];
@@ -61,7 +77,10 @@ module.exports = function({ cells, mxCells, doc, reportError, nodeIds }) {
             const isProcessLine = !cellStyle.includes('dashed=1') && !cellStyle.includes('dashPattern=') && (cellStyle.includes('strokeWidth=3') || !cellStyle.includes('strokeWidth='));
             const isRecycle = (cell.value || '').toLowerCase().includes('recycle') || (cell.value || '').toLowerCase().includes('return');
             if (isProcessLine && !isRecycle) {
-                if (source.abs_x > target.abs_x + 100) {
+                // Allow backward-horizontal routing when the target is on a lower row
+                // (page-wrap connection from end of one row to start of next)
+                const isRowWrap = target.abs_y > source.abs_y + 100;
+                if (source.abs_x > target.abs_x + 100 && !isRowWrap) {
                     reportError('OPPOSING_FLOW', id, `Process stream routes backward from right to left (from ${sourceId} to ${targetId}). In PFDs, normal process streams flow left-to-right. Use 'recycle' or 'return' in the stream label if this is an intentional backward/recycle loop.`);
                 }
             }

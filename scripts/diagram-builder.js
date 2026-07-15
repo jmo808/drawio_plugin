@@ -423,8 +423,13 @@ class DiagramBuilder {
         } else if (this.type === 'pfd' || type === 'pump' || type === 'vessel' || type === 'compressor') {
             const pfdNodes = this._childrenOf(parentId).filter(c => !c.isContainer);
             const idx = pfdNodes.length;
-            x = 40 + idx * 220;
-            y = 150;
+            const PFD_COLS = 4;       // max equipment per row before wrapping
+            const PFD_COL_W = 240;    // horizontal spacing between nodes
+            const PFD_ROW_H = 280;    // vertical spacing between rows
+            const col = idx % PFD_COLS;
+            const row = Math.floor(idx / PFD_COLS);
+            x = 40 + col * PFD_COL_W;
+            y = 150 + row * PFD_ROW_H;
         } else if (type === 'participant') {
             const participants = this._childrenOf(parentId).filter(n => n.type === 'participant');
             const idx = participants.length;
