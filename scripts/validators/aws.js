@@ -31,6 +31,8 @@ function getAwsNodeType(style, value) {
         else if (v.includes('eventbridge') || v.includes('event bridge')) type = 'eventbridge';
         else if (v.includes('s3') || v.includes('bucket') || v.includes('storage')) type = 's3';
         else if (v.includes('nat') || v.includes('nat gateway')) type = 'nat_gateway';
+        else if (v.includes('ecr') || v.includes('registry') || v.includes('container registry')) type = 'ecr';
+        else if (v.includes('cloudwatch') || v.includes('cloud watch') || v.includes('logging') || v.includes('monitoring')) type = 'cloudwatch';
     }
     
     if (type === 'application_load_balancer' || type === 'alb') return 'application_load_balancer';
@@ -49,6 +51,8 @@ function getAwsNodeType(style, value) {
     if (type && (type.includes('eventbridge') || type.includes('event_bridge'))) return 'eventbridge';
     if (type && (type.includes('s3') || type.includes('bucket'))) return 's3';
     if (type && (type.includes('nat') || type.includes('nat_gateway'))) return 'nat_gateway';
+    if (type && (type.includes('ecr') || type.includes('registry') || type.includes('container_registry'))) return 'ecr';
+    if (type && (type.includes('cloudwatch') || type.includes('logging') || type.includes('monitoring'))) return 'cloudwatch';
     
     return type;
 }
@@ -73,7 +77,10 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
         }
     }
 
-    // Early return if no AWS-specific nodes found (avoid false positives on non-AWS diagrams)
+    // Early return if no AWS-specific nodes found (avoid false positives on non-AWS diagrams) or if GCP nodes are present
+    const hasGcpNodes = Object.values(cells).some(c => c.style && c.style.includes('mxgraph.gcp2'));
+    if (hasGcpNodes) return;
+
     const hasAwsSpecificNodes = Object.values(awsNodes).some(n => n.type !== 'user');
     if (!hasAwsSpecificNodes) return;
 
@@ -251,6 +258,214 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    // Rule: High Availability Load Balancing (Multi-AZ target routing)
+    let hasAlb = false;
+    let albId = null;
+    for (const nid in awsNodes) {
+        const node = awsNodes[nid];
+        if (node.type === 'application_load_balancer' && !isInternalLb(node.value)) {
+            hasAlb = true;
+            albId = node.id;
+            break;
+        }
+    }
+    if (hasAlb && albId) {
+        const targetAzs = new Set();
+        for (const id in cells) {
+            const cell = cells[id];
+            if (cell.isEdge) {
+                const el = findElement(id, doc, mxCells);
+                if (el && el.getAttribute('source') === albId) {
+                    const targetNodeId = el.getAttribute('target');
+                    const targetNode = awsNodes[targetNodeId];
+                    if (targetNode && statelessComputeTypes.includes(targetNode.type)) {
+                        const azId = getZoneOrAZ(targetNode.id, cells);
+                        if (azId) {
+                            targetAzs.add(azId);
+                        } else {
+                            const valLower = (targetNode.value || '').toLowerCase();
+                            if (valLower.includes('az a') || valLower.includes('az-a') || valLower.includes('az_a')) {
+                                targetAzs.add('az_a');
+                            } else if (valLower.includes('az b') || valLower.includes('az-b') || valLower.includes('az_b')) {
+                                targetAzs.add('az_b');
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        const allAzs = new Set();
+        for (const nid in awsNodes) {
+            const node = awsNodes[nid];
+            if (statelessComputeTypes.includes(node.type)) {
+                const azId = getZoneOrAZ(node.id, cells);
+                if (azId) {
+                    allAzs.add(azId);
+                } else {
+                    const valLower = (node.value || '').toLowerCase();
+                    if (valLower.includes('az a') || valLower.includes('az-a') || valLower.includes('az_a')) {
+                        allAzs.add('az_a');
+                    } else if (valLower.includes('az b') || valLower.includes('az-b') || valLower.includes('az_b')) {
+                        allAzs.add('az_b');
+                    }
+                }
+            }
+        }
+        
+        if (allAzs.size >= 2 && targetAzs.size < 2) {
+            reportError('TOPOLOGY_ERROR', albId, `External ALB must route to compute targets in at least two different Availability Zones (AZs) for high availability.`);
+        }
+    }
+
+    // Rule: Linear public ingress chain (Client -> WAF -> CDN -> ALB)
+    let wafNode = null;
+    let cdnNode = null;
+    let clientNode = null;
+    for (const nid in awsNodes) {
+        const node = awsNodes[nid];
+        if (node.type === 'waf') wafNode = node;
+        if (node.type === 'cloudfront') cdnNode = node;
+        if (node.type === 'user') clientNode = node;
+    }
+    
+    if (clientNode) {
+        if (wafNode) {
+            let clientToWaf = false;
+            const dnsNode = Object.values(awsNodes).find(n => n.type === 'route53');
+            for (const id in cells) {
+                const cell = cells[id];
+                if (cell.isEdge) {
+                    const el = findElement(id, doc, mxCells);
+                    if (el && el.getAttribute('source') === clientNode.id) {
+                        const target = el.getAttribute('target');
+                        if (target === wafNode.id) {
+                            clientToWaf = true;
+                            break;
+                        }
+                        if (dnsNode && target === dnsNode.id) {
+                            clientToWaf = true;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (!clientToWaf) {
+                reportError('TOPOLOGY_ERROR', clientNode.id, `Client must route to WAF & Shield first for secure public ingress.`);
+            }
+        }
+        
+        if (wafNode && cdnNode) {
+            let wafToCdn = false;
+            for (const id in cells) {
+                const cell = cells[id];
+                if (cell.isEdge) {
+                    const el = findElement(id, doc, mxCells);
+                    if (el && el.getAttribute('source') === wafNode.id && el.getAttribute('target') === cdnNode.id) {
+                        wafToCdn = true;
+                        break;
+                    }
+                }
+            }
+            if (!wafToCdn) {
+                reportError('TOPOLOGY_ERROR', wafNode.id, `WAF & Shield must connect to CloudFront CDN for caching inspected edge traffic.`);
+            }
+        }
+        
+        if (cdnNode && hasAlb && albId) {
+            let cdnToAlb = false;
+            for (const id in cells) {
+                const cell = cells[id];
+                if (cell.isEdge) {
+                    const el = findElement(id, doc, mxCells);
+                    if (el && el.getAttribute('source') === cdnNode.id && el.getAttribute('target') === albId) {
+                        cdnToAlb = true;
+                        break;
+                    }
+                }
+            }
+            if (!cdnToAlb) {
+                reportError('TOPOLOGY_ERROR', cdnNode.id, `CloudFront CDN must route backend requests to External Load Balancer (ALB).`);
+            }
+        }
+    }
+
+    // Rule: Production Ingress requires Route 53 (DNS)
+    if (clientNode) {
+        const hasDns = Object.values(awsNodes).some(n => n.type === 'route53');
+        if (!hasDns) {
+            reportError('TOPOLOGY_ERROR', clientNode.id, `Production-grade AWS architectures must include Route 53 to resolve client requests.`);
+        }
+    }
+
+    // Rule: Private compute nodes require NAT Gateway
+    let hasPrivateCompute = false;
+    let privateComputeNodeId = null;
+    for (const nid in awsNodes) {
+        const node = awsNodes[nid];
+        if (statelessComputeTypes.includes(node.type)) {
+            const parentCell = cells[node.parent];
+            const pLbl = (parentCell && parentCell.value || '').toLowerCase();
+            if (!pLbl.includes('public') && !pLbl.includes('ingress') && !pLbl.includes('dmz')) {
+                hasPrivateCompute = true;
+                privateComputeNodeId = node.id;
+                break;
+            }
+        }
+    }
+    if (hasPrivateCompute) {
+        const hasNat = Object.values(awsNodes).some(n => n.type === 'nat_gateway');
+        if (!hasNat) {
+            reportError('TOPOLOGY_ERROR', privateComputeNodeId, `Compute nodes in private subnets require NAT Gateway in the VPC to fetch outbound updates/packages.`);
+        }
+    }
+
+    // Rule: ECS/EKS clusters require ECR (Elastic Container Registry)
+    let hasContainerCluster = false;
+    let clusterNodeId = null;
+    for (const nid in awsNodes) {
+        const node = awsNodes[nid];
+        // ecs acts as our general container cluster type
+        if (node.type === 'ecs') {
+            hasContainerCluster = true;
+            clusterNodeId = node.id;
+            break;
+        }
+    }
+    if (hasContainerCluster) {
+        const hasEcr = Object.values(awsNodes).some(n => n.type === 'ecr');
+        if (!hasEcr) {
+            reportError('TOPOLOGY_ERROR', clusterNodeId, `ECS/EKS clusters require Elastic Container Registry (ECR) in the account to store and pull container images.`);
+        }
+    }
+
+    // Rule: Observability requirements (CloudWatch)
+    const hasObservability = Object.values(awsNodes).some(n => n.type === 'cloudwatch');
+    if (!hasObservability) {
+        let obsTargetId = '1';
+        for (const nid in awsNodes) {
+            if (statelessComputeTypes.includes(awsNodes[nid].type)) {
+                obsTargetId = awsNodes[nid].id;
+                break;
+            }
+        }
+        reportError('TOPOLOGY_ERROR', obsTargetId, `Production-grade AWS architectures must include CloudWatch (Cloud Logging/Monitoring) for observability.`);
+    }
+
+    // Rule: NAT Gateway placement validation
+    for (const nid in awsNodes) {
+        const node = awsNodes[nid];
+        if (node.type === 'nat_gateway') {
+            const parentCell = cells[node.parent];
+            const pLbl = (parentCell && parentCell.value || '').toLowerCase();
+            const pStyle = (parentCell && parentCell.style || '').toLowerCase();
+            const isWebTier = pStyle.includes('e1d5e7') || pStyle.includes('291e2e');
+            if (!pLbl.includes('public') && !pLbl.includes('ingress') && !pLbl.includes('dmz') && !isWebTier) {
+                reportError('TOPOLOGY_ERROR', node.id, `NAT Gateway must be placed in a public subnet to route egress traffic.`);
             }
         }
     }

@@ -999,9 +999,9 @@ class DiagramBuilder {
                 const sidebarNodes = siblings.filter(n => sidebarTypes.includes(n.type));
                 const others = siblings.filter(n => !ingressTypes.includes(n.type) && !sidebarTypes.includes(n.type));
                 
-                const ROW_HEIGHT = 120; // Enough vertical space for 78px icon + label + gap
-                const COL0_X = 20;      // Ingress spine column
-                const COL1_X = 130;     // Sidebar services column
+                const ROW_HEIGHT = 160; // Enough vertical space for 78px icon + label + gap
+                const COL0_X = 30;      // Ingress spine column
+                const COL1_X = 145;     // Sidebar services column
                 
                 ingressNodes.forEach((n, idx) => {
                     const nSize = NODE_SIZES[n.type] || NODE_SIZE;
@@ -1128,7 +1128,7 @@ class DiagramBuilder {
 
         if (type === 'vpc' || type === 'gcp_vpc') {
             if (parent && (parent.type === 'region' || parent.type === 'gcp_region')) {
-                return { x: 220, y: 40, width: parent.width - 240, height: parent.height - 60 };
+                return { x: 260, y: 40, width: parent.width - 280, height: parent.height - 60 };
             }
             return { x: 40, y: 180, width: 960, height: 260 };
         }
@@ -1258,7 +1258,8 @@ class DiagramBuilder {
         let maxBottom = 0;
         let maxRight = 0;
         for (const child of children) {
-            const bottom = child.y + child.height;
+            // Non-containers (shapes) have labels placed below them, so add 35px of extra margin for labels
+            const bottom = child.y + child.height + (child.isContainer ? 0 : 35);
             const right = child.x + child.width;
             if (bottom > maxBottom) maxBottom = bottom;
             if (right > maxRight) maxRight = right;
@@ -1414,6 +1415,17 @@ class DiagramBuilder {
     }
 
     _applyQuickFixes() {
+        // 0. Fix data URI semicolons in cell styles (draw.io splits on ';' which
+        //    truncates 'data:image/svg+xml;base64,...' — encode inner ';' as '%3B')
+        for (const [, cell] of this.cells) {
+            if (cell.style && cell.style.includes('data:image/svg+xml;base64')) {
+                cell.style = cell.style.replace(
+                    /data:image\/svg\+xml;base64,/g,
+                    'data:image/svg+xml%3Bbase64,'
+                );
+            }
+        }
+
         // 1. Fix overlapping edges (multiple edges between same two nodes)
         const edgePairs = new Map();
         for (const [id, edge] of this.edges) {

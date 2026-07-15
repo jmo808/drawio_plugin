@@ -31,20 +31,22 @@ function getGcpNodeType(style, value) {
         else if (v.includes('client') || v.includes('user')) type = 'user';
     }
     
-    if (type === 'load_balancing' || type === 'loadbalancer' || type === 'gclb') return 'load_balancing';
-    if (type && (type.includes('kubernetes') || type.includes('gke'))) return 'kubernetes_engine';
+    if (type && (type.includes('load_balancing') || type.includes('loadbalancer') || type.includes('gclb'))) return 'load_balancing';
+    if (type && (type.includes('kubernetes') || type.includes('gke') || type.includes('kubernetes_logo'))) return 'kubernetes_engine';
     if (type && (type.includes('compute_engine') || type.includes('gce') || type.includes('virtual_machine') || type === 'vm')) return 'compute_engine';
     if (type && (type.includes('cloud_run') || type.includes('cloudrun'))) return 'cloud_run';
     if (type && (type.includes('cloud_functions') || type.includes('gcf'))) return 'cloud_functions';
     if (type && (type.includes('cloud_sql') || type.includes('database') || type.includes('mysql') || type.includes('postgres'))) return 'cloud_sql';
     if (type && type.includes('spanner')) return 'cloud_spanner';
+    if (type && (type.includes('cloud_memorystore') || type.includes('memorystore') || type.includes('redis') || type.includes('cache'))) return 'memorystore';
     if (type && (type.includes('cloud_storage') || type.includes('bucket') || type.includes('gcs'))) return 'cloud_storage';
     if (type && (type.includes('cloud_dns') || type.includes('dns'))) return 'cloud_dns';
     if (type && (type.includes('cloud_cdn') || type.includes('cdn'))) return 'cloud_cdn';
     if (type && (type.includes('cloud_armor') || type.includes('armor') || type.includes('waf'))) return 'cloud_armor';
-    if (type && (type.includes('artifact_registry') || type.includes('registry') || type.includes('artifact registry'))) return 'artifact_registry';
-    if (type && (type.includes('cloud_nat') || type.includes('nat') || type.includes('router'))) return 'cloud_nat';
-    if (type && (type.includes('operations_suite') || type.includes('logging') || type.includes('monitoring') || type.includes('ops_suite'))) return 'operations_suite';
+    if (type && (type.includes('artifact_registry') || type.includes('registry') || type.includes('artifact registry') || type.includes('container_registry'))) return 'artifact_registry';
+    if (type && (type.includes('cloud_nat') || type.includes('nat') || type.includes('router') || type.includes('cloud_router'))) return 'cloud_nat';
+    if (type && (type.includes('operations_suite') || type.includes('logging') || type.includes('monitoring') || type.includes('ops_suite') || type.includes('stackdriver'))) return 'operations_suite';
+    if (type && (type.includes('pubsub') || type.includes('pub_sub') || type.includes('pub/sub'))) return 'pubsub';
     if (type && (type.includes('user') || type.includes('client'))) return 'user';
     
     return type;
@@ -71,6 +73,9 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
             }
         }
     }
+
+    const hasAwsNodes = Object.values(cells).some(c => c.style && (c.style.includes('mxgraph.aws') || c.style.includes('cloudfront') || c.style.includes('apigateway')));
+    if (hasAwsNodes) return;
 
     const hasGcpSpecificNodes = Object.values(gcpNodes).some(n => n.type !== 'user');
     if (!hasGcpSpecificNodes) {
