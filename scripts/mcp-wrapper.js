@@ -287,16 +287,65 @@ exports.validatePath = validatePath;
 let child;
 
 if (require.main === module) {
+    const ALLOWED_ENV_VARS = [
+        'PATH',
+        'NODE_PATH',
+        'HOME',
+        'TMPDIR',
+        'TEMP',
+        'TMP',
+        'DRAWIO_MCP_PATH',
+        'MCP_WORKSPACE_ROOT',
+        'LANG',
+        'LC_ALL',
+        'USER',
+        'LOGNAME',
+        'PWD'
+    ];
+    const filteredEnv = {};
+    for (const key of ALLOWED_ENV_VARS) {
+        if (process.env[key] !== undefined) {
+            filteredEnv[key] = process.env[key];
+        }
+    }
+    filteredEnv['NODE_OPTIONS'] = '--max-old-space-size=512';
+
     if (useNpx) {
-        child = spawn('npx', ['-y', '@drawio/mcp@1.3.4'], { stdio: ['pipe', 'pipe', 'pipe'] });
+        child = spawn('npx', ['-y', '@drawio/mcp@1.3.4'], { stdio: ['pipe', 'pipe', 'pipe'], env: filteredEnv });
     } else {
-        child = spawn('node', [mcpPath], { stdio: ['pipe', 'pipe', 'pipe'] });
+        child = spawn('node', ['--max-old-space-size=512', mcpPath], { stdio: ['pipe', 'pipe', 'pipe'], env: filteredEnv });
     }
 
     child.stderr.on('data', chunk => process.stderr.write(chunk));
 
 // Keep track of pending finalize requests
 const pendingFinalize = new Map();
+
+// Timeouts for forwarded requests
+const forwardedTimeouts = new Map();
+
+function registerForwardTimeout(msgId, toolName) {
+    if (msgId === undefined || msgId === null) return;
+    const envTimeout = process.env.MCP_TIMEOUT_LIMIT_MS;
+    const defaultDuration = (toolName === 'finalize' || toolName === 'open_drawio_xml') ? 60000 : 30000;
+    const duration = envTimeout ? parseInt(envTimeout, 10) : defaultDuration;
+    
+    const timer = setTimeout(() => {
+        forwardedTimeouts.delete(msgId);
+        pendingFinalize.delete(msgId);
+        const errResponse = {
+            jsonrpc: '2.0',
+            id: msgId,
+            error: {
+                code: -32603,
+                message: `Request timed out after ${duration / 1000}s`
+            }
+        };
+        process.stdout.write(JSON.stringify(errResponse) + '\n');
+    }, duration);
+    
+    forwardedTimeouts.set(msgId, timer);
+}
 
 // ---------------------------------------------------------------------------
 // Child stdout interception — augment tools/list responses
@@ -315,6 +364,14 @@ child.stdout.on('data', chunk => {
 
         try {
             const msg = JSON.parse(lineStr);
+
+            if (msg.id !== undefined) {
+                const timer = forwardedTimeouts.get(msg.id);
+                if (timer) {
+                    clearTimeout(timer);
+                    forwardedTimeouts.delete(msg.id);
+                }
+            }
 
             // Replace any external diagrams.net or draw.io links with local relative path /draw/
             if (msg.result && msg.result.content && Array.isArray(msg.result.content)) {
@@ -555,6 +612,11 @@ let inputBuffer = Buffer.alloc(0);
 process.stdin.on('data', chunk => {
     inputBuffer = Buffer.concat([inputBuffer, chunk]);
 
+    if (inputBuffer.length > 10 * 1024 * 1024) {
+        console.error('[WRAPPER] Error: Accumulated input buffer exceeds 10MB limit');
+        process.exit(1);
+    }
+
     while (true) {
         const index = inputBuffer.indexOf('\n');
         if (index === -1) break;
@@ -576,11 +638,6 @@ process.stdin.on('data', chunk => {
 
                 if (outcome.finalize) {
                     // Forward as open_drawio_xml to the downstream server.
-                    // NOTE: We deliberately omit routing='libavoid' here because:
-                    //   1. libavoid runs a WASM module with a slow cold-start (~10-30s)
-                    //   2. The resulting XML is returned directly to the frontend via
-                    //      setGraphXml(), not opened in a browser — draw.io handles
-                    //      client-side edge routing on its own when the diagram renders.
                     console.error(`[BUILDER] Finalize: forwarding validated XML (${Buffer.byteLength(outcome.xml)} bytes) for type "${outcome.type}" (no libavoid — headless path)`);
                     const forwardMsg = {
                         jsonrpc: '2.0',
@@ -591,6 +648,7 @@ process.stdin.on('data', chunk => {
                             arguments: { content: outcome.xml },
                         },
                     };
+                    registerForwardTimeout(msg.id, 'finalize');
                     child.stdin.write(JSON.stringify(forwardMsg) + '\n');
                 }
                 continue;
@@ -603,6 +661,7 @@ process.stdin.on('data', chunk => {
                 console.error(`[WRAPPER] Intercepted open_drawio_xml (${byteLen} bytes)`);
 
                 if (!validationEnabled) {
+                    registerForwardTimeout(msg.id, 'open_drawio_xml');
                     child.stdin.write(lineBuf);
                     continue;
                 }
@@ -616,6 +675,7 @@ process.stdin.on('data', chunk => {
                         if (result.warnings && result.warnings.length) {
                             console.error(`[WRAPPER] ${result.warnings.length} warnings: ${result.warnings.join('; ')}`);
                         }
+                        registerForwardTimeout(msg.id, 'open_drawio_xml');
                         child.stdin.write(lineBuf);
                     } else {
                         console.error(`[WRAPPER] Validation FAILED — returning ${result.errors.length} errors to agent`);
@@ -633,12 +693,14 @@ process.stdin.on('data', chunk => {
                     }
                 } catch (error) {
                     console.error(`[WRAPPER] Validation CRASHED — ${error.message}`);
+                    registerForwardTimeout(msg.id, 'open_drawio_xml');
                     child.stdin.write(lineBuf);
                 }
                 continue;
             }
 
             // Everything else: forward to child
+            registerForwardTimeout(msg.id, msg.params ? msg.params.name : null);
             child.stdin.write(lineBuf);
         } catch (e) {
             child.stdin.write(lineBuf);
