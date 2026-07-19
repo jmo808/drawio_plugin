@@ -105,6 +105,10 @@ try {
         // Run timeout limit test
         console.log('Running timeout limit tests...');
         await testTimeoutLimit();
+
+        // Run no npx fallback test
+        console.log('Running no npx fallback tests...');
+        await testNoNpxFallback();
         
         cleanup();
     } catch (e) {
@@ -226,8 +230,22 @@ function testTimeoutLimit() {
 
         setTimeout(() => {
             try {
-                const response = JSON.parse(stdoutData.trim());
-                assert.strictEqual(response.id, 999, 'Response ID should match');
+                const lines = stdoutData.split('\n').filter(l => l.trim() !== '');
+                let response = null;
+                for (const line of lines) {
+                    try {
+                        const parsed = JSON.parse(line);
+                        if (parsed.id === 999) {
+                            response = parsed;
+                            break;
+                        }
+                    } catch (e) {}
+                }
+
+                if (!response) {
+                    throw new Error('Could not find response with ID 999 in: ' + stdoutData);
+                }
+
                 assert.ok(response.error, 'Response should contain error');
                 assert.match(response.error.message, /timed out/, 'Error message should indicate timeout');
                 console.log('Timeout limit tests PASSED!');
@@ -238,6 +256,58 @@ function testTimeoutLimit() {
                 reject(err);
             }
         }, 500);
+    });
+}
+
+function testNoNpxFallback() {
+    const { spawn } = require('child_process');
+    const localMcpDir = path.resolve(__dirname, '..', 'node_modules', '@drawio', 'mcp');
+    const localMcpBackup = localMcpDir + '.bak';
+    
+    let isBackupCreated = false;
+    if (fs.existsSync(localMcpDir)) {
+        fs.renameSync(localMcpDir, localMcpBackup);
+        isBackupCreated = true;
+    }
+
+    const restore = () => {
+        if (isBackupCreated && fs.existsSync(localMcpBackup)) {
+            fs.renameSync(localMcpBackup, localMcpDir);
+            isBackupCreated = false;
+        }
+    };
+
+    return new Promise((resolve, reject) => {
+        const wrapperPath = path.resolve(__dirname, 'mcp-wrapper.js');
+        // Spawn wrapper with DRAWIO_MCP_PATH pointing to non-existent file
+        const childProc = spawn('node', [wrapperPath], {
+            env: {
+                PATH: process.env.PATH,
+                DRAWIO_MCP_PATH: '/nonexistent/path/to/mcp.js'
+            }
+        });
+
+        let stderrData = '';
+        childProc.stderr.on('data', data => {
+            stderrData += data.toString();
+        });
+
+        childProc.on('close', code => {
+            restore();
+            try {
+                assert.strictEqual(code, 1, 'Wrapper should exit with code 1');
+                assert.match(stderrData, /Fallback to npx is disabled/, 'Error message should indicate npx fallback is disabled');
+                console.log('No npx fallback tests PASSED!');
+                resolve();
+            } catch (err) {
+                reject(err);
+            }
+        });
+
+        childProc.on('error', err => {
+            restore();
+            reject(err);
+        });
     });
 }
 

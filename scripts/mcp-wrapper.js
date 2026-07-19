@@ -16,7 +16,6 @@ const validateScript = path.join(__dirname, 'validate.js');
 
 // --- Resolve @drawio/mcp path ---
 let mcpPath = null;
-let useNpx = false;
 
 if (process.env.DRAWIO_MCP_PATH) {
     if (fs.existsSync(process.env.DRAWIO_MCP_PATH)) {
@@ -34,11 +33,11 @@ if (!mcpPath) {
 }
 
 if (!mcpPath) {
-    console.error('[WRAPPER] WARNING: @drawio/mcp not found locally — falling back to npx');
-    useNpx = true;
+    console.error('[WRAPPER] ERROR: @drawio/mcp not found locally. Fallback to npx is disabled for security reasons.');
+    process.exit(1);
 }
 
-console.error(`[WRAPPER] @drawio/mcp: ${useNpx ? 'npx -y @drawio/mcp@1.3.4' : mcpPath}`);
+console.error(`[WRAPPER] @drawio/mcp: ${mcpPath}`);
 
 // --- Check validate.js ---
 let validationEnabled = true;
@@ -65,7 +64,7 @@ if (validationEnabled) {
 }
 
 console.error(
-    `[WRAPPER] @drawio/mcp: ${useNpx ? 'npx' : mcpPath} | ` +
+    `[WRAPPER] @drawio/mcp: ${mcpPath} | ` +
     `validate.js: ${validateExists ? 'OK' : 'MISSING'} | ` +
     `xmldom: ${xmldomOk ? 'OK' : (validateExists ? 'MISSING' : 'SKIPPED')} | ` +
     `builder: OK`
@@ -310,11 +309,7 @@ if (require.main === module) {
     }
     filteredEnv['NODE_OPTIONS'] = '--max-old-space-size=512';
 
-    if (useNpx) {
-        child = spawn('npx', ['-y', '@drawio/mcp@1.3.4'], { stdio: ['pipe', 'pipe', 'pipe'], env: filteredEnv });
-    } else {
-        child = spawn('node', ['--max-old-space-size=512', mcpPath], { stdio: ['pipe', 'pipe', 'pipe'], env: filteredEnv });
-    }
+    child = spawn('node', ['--max-old-space-size=512', mcpPath], { stdio: ['pipe', 'pipe', 'pipe'], env: filteredEnv });
 
     child.stderr.on('data', chunk => process.stderr.write(chunk));
 

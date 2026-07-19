@@ -12,6 +12,8 @@ function validateXml(xmlStr, diagramType = null) {
             diagramType = 'erd';
         } else if (xmlStr.includes('network.type') || xmlStr.includes('shape=mxgraph.cisco') || xmlStr.includes('vlan')) {
             diagramType = 'network';
+        } else if (xmlStr.includes('mxgraph.azure') || xmlStr.includes('traffic-manager') || xmlStr.includes('app-gateway') || xmlStr.includes('aks-node')) {
+            diagramType = 'azure';
         } else if (xmlStr.includes('mxgraph.aws') || xmlStr.includes('cloudfront') || xmlStr.includes('apigateway')) {
             diagramType = 'architecture';
         }
