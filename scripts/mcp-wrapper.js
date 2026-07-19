@@ -251,17 +251,49 @@ const BUILDER_TOOLS = [
 
 const BUILDER_TOOL_NAMES = new Set(BUILDER_TOOLS.map(t => t.name));
 
+function validatePath(userPath, baseDir) {
+    if (!userPath) return { valid: false, error: 'Path is empty' };
+
+    const resolvedBase = path.resolve(baseDir);
+    const resolvedPath = path.resolve(resolvedBase, userPath);
+
+    const baseWithTrailing = resolvedBase.endsWith(path.sep) ? resolvedBase : resolvedBase + path.sep;
+    const inside = resolvedPath === resolvedBase || resolvedPath.startsWith(baseWithTrailing);
+
+    if (!inside) {
+        return { valid: false, error: `Path traversal detected: path '${userPath}' resolves outside sandbox boundary '${baseDir}'` };
+    }
+
+    try {
+        if (fs.existsSync(resolvedPath)) {
+            const realPath = fs.realpathSync(resolvedPath);
+            const realInside = realPath === resolvedBase || realPath.startsWith(baseWithTrailing);
+            if (!realInside) {
+                return { valid: false, error: `Symlink traversal detected: path '${userPath}' points outside sandbox boundary` };
+            }
+        }
+    } catch (e) {
+        // If file doesn't exist yet (like output_path), realpathSync will throw, which is fine since we validate the resolved path.
+    }
+
+    return { valid: true, resolvedPath };
+}
+
+exports.validatePath = validatePath;
+
 // ---------------------------------------------------------------------------
 // Spawn the @drawio/mcp child process
 // ---------------------------------------------------------------------------
 let child;
-if (useNpx) {
-    child = spawn('npx', ['-y', '@drawio/mcp@1.3.4'], { stdio: ['pipe', 'pipe', 'pipe'] });
-} else {
-    child = spawn('node', [mcpPath], { stdio: ['pipe', 'pipe', 'pipe'] });
-}
 
-child.stderr.on('data', chunk => process.stderr.write(chunk));
+if (require.main === module) {
+    if (useNpx) {
+        child = spawn('npx', ['-y', '@drawio/mcp@1.3.4'], { stdio: ['pipe', 'pipe', 'pipe'] });
+    } else {
+        child = spawn('node', [mcpPath], { stdio: ['pipe', 'pipe', 'pipe'] });
+    }
+
+    child.stderr.on('data', chunk => process.stderr.write(chunk));
 
 // Keep track of pending finalize requests
 const pendingFinalize = new Map();
@@ -420,10 +452,17 @@ function handleBuilderTool(toolName, args, msgId) {
             break;
         case 'validate_file':
             try {
-                if (!args.file_path || !fs.existsSync(args.file_path)) {
+                const workspaceRoot = process.env.MCP_WORKSPACE_ROOT || '/app/mcp-workspace';
+                const pathVal = validatePath(args.file_path, workspaceRoot);
+                if (!pathVal.valid) {
+                    result = { success: false, error: pathVal.error };
+                    break;
+                }
+                const targetPath = pathVal.resolvedPath;
+                if (!fs.existsSync(targetPath)) {
                     result = { success: false, error: `File not found: ${args.file_path}` };
                 } else {
-                    const xml = fs.readFileSync(args.file_path, 'utf8');
+                    const xml = fs.readFileSync(targetPath, 'utf8');
                     result = validateXml(xml);
                 }
             } catch (e) {
@@ -432,15 +471,22 @@ function handleBuilderTool(toolName, args, msgId) {
             break;
         case 'compile_json_spec':
             try {
+                const workspaceRoot = process.env.MCP_WORKSPACE_ROOT || '/app/mcp-workspace';
                 let config;
                 if (args.spec) {
                     config = args.spec;
                 } else {
-                    if (!args.spec_path || !fs.existsSync(args.spec_path)) {
+                    const pathVal = validatePath(args.spec_path, workspaceRoot);
+                    if (!pathVal.valid) {
+                        result = { success: false, error: pathVal.error };
+                        break;
+                    }
+                    const targetSpecPath = pathVal.resolvedPath;
+                    if (!fs.existsSync(targetSpecPath)) {
                         result = { success: false, error: `File not found: ${args.spec_path}` };
                         break;
                     }
-                    config = JSON.parse(fs.readFileSync(args.spec_path, 'utf8'));
+                    config = JSON.parse(fs.readFileSync(targetSpecPath, 'utf8'));
                 }
                 const compileRes = compileSpecToBuilder(builder, config);
                 if (!compileRes.success) {
@@ -459,7 +505,12 @@ function handleBuilderTool(toolName, args, msgId) {
                         xml: builder.toXml()
                     };
                     if (args.output_path) {
-                        fs.writeFileSync(args.output_path, result.xml, 'utf8');
+                        const outVal = validatePath(args.output_path, workspaceRoot);
+                        if (!outVal.valid) {
+                            result = { success: false, error: outVal.error };
+                            break;
+                        }
+                        fs.writeFileSync(outVal.resolvedPath, result.xml, 'utf8');
                     }
                 }
             } catch (e) {
@@ -595,9 +646,10 @@ process.stdin.on('data', chunk => {
     }
 });
 
-// ---------------------------------------------------------------------------
-// Signal handling
-// ---------------------------------------------------------------------------
-process.on('SIGINT', () => child.kill('SIGINT'));
-process.on('SIGTERM', () => child.kill('SIGTERM'));
-child.on('exit', (code) => process.exit(code !== null ? code : 1));
+    // ---------------------------------------------------------------------------
+    // Signal handling
+    // ---------------------------------------------------------------------------
+    process.on('SIGINT', () => child.kill('SIGINT'));
+    process.on('SIGTERM', () => child.kill('SIGTERM'));
+    child.on('exit', (code) => process.exit(code !== null ? code : 1));
+}

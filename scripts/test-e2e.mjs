@@ -69,6 +69,10 @@ async function main() {
     transport = new StdioClientTransport({
       command: 'node',
       args: [WRAPPER_PATH],
+      env: {
+        ...process.env,
+        MCP_WORKSPACE_ROOT: os.tmpdir()
+      }
     });
 
     client = new Client({
