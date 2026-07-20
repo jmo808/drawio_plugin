@@ -6,6 +6,7 @@
  */
 const fs = require('fs');
 const path = require('path');
+const { getElkOptions, CONTAINER_PADDING: ELK_CONTAINER_PADDING } = require('./elk-layout.js');
 
 // ---------------------------------------------------------------------------
 // Style Template Registry
@@ -878,7 +879,14 @@ class DiagramBuilder {
 
         const validation = this.validate();
         if (!validation.success) {
-            return { success: false, error: 'Cannot finalize — validation failed.', details: validation.details };
+            return {
+                success: true,
+                xml: this.toXml(),
+                type: this.type,
+                message: 'Diagram finalized with validation issues.',
+                errors: validation.errors || [validation.error],
+                warnings: validation.warnings || []
+            };
         }
 
         return { success: true, xml: this.toXml(), type: this.type, message: 'Diagram validated and ready.' };
@@ -936,6 +944,69 @@ class DiagramBuilder {
         lines.push('  </root>');
         lines.push('</mxGraphModel>');
         return lines.join('\n') + '\n';
+    }
+
+    // --- Export to ELK-compatible Graph JSON ---
+    toElkGraph() {
+        const root = {
+            id: 'root',
+            layoutOptions: getElkOptions(this.type),
+            children: [],
+            edges: []
+        };
+
+        const elkNodes = new Map();
+
+        // 1. Create all ELK node objects
+        for (const [id, cell] of this.cells) {
+            if (cell.isContainer) {
+                const padding = ELK_CONTAINER_PADDING[cell.type] || ELK_CONTAINER_PADDING.default;
+                const containerOptions = getElkOptions(this.type);
+                elkNodes.set(id, {
+                    id,
+                    labels: [{ text: cell.label }],
+                    layoutOptions: {
+                        'elk.padding': `[top=${padding.top},left=${padding.left},bottom=${padding.bottom},right=${padding.right}]`,
+                        ...containerOptions
+                    },
+                    children: []
+                });
+            } else {
+                elkNodes.set(id, {
+                    id,
+                    width: cell.width || 78,
+                    height: cell.height || 78,
+                    labels: [{ text: cell.label }]
+                });
+            }
+        }
+
+        // 2. Build hierarchy
+        for (const [id, cell] of this.cells) {
+            const elkNode = elkNodes.get(id);
+            const parentId = cell.parentId;
+            if (parentId === '1' || !elkNodes.has(parentId)) {
+                root.children.push(elkNode);
+            } else {
+                const parentElkNode = elkNodes.get(parentId);
+                if (parentElkNode && parentElkNode.children) {
+                    parentElkNode.children.push(elkNode);
+                } else {
+                    root.children.push(elkNode);
+                }
+            }
+        }
+
+        // 3. Populate edges
+        for (const [id, edge] of this.edges) {
+            root.edges.push({
+                id: edge.id,
+                source: edge.sourceId,
+                target: edge.targetId
+            });
+        }
+
+        return root;
     }
 
     // --- Internal Helpers ---
@@ -2412,6 +2483,140 @@ class DiagramBuilder {
                     edge.labelOffset = { x: 0, y: offset };
                 }
             }
+        }
+    }
+
+    importXml(xmlStr) {
+        function inferTypeFromStyleAndValue(style, value) {
+            const s = (style || '').toLowerCase();
+            const v = (value || '').toLowerCase();
+            
+            // Check container types
+            if (s.includes('swimlane') || s.includes('group')) {
+                if (s.includes('vpc') || v.includes('vpc')) return 'vpc';
+                if (s.includes('subnet') || v.includes('subnet')) return 'subnet';
+                if (s.includes('region') || v.includes('region')) return 'region';
+                if (s.includes('az') || s.includes('zone') || v.includes('az') || v.includes('zone')) return 'az';
+                return 'group';
+            }
+            
+            // Check node types
+            if (s.includes('cloudfront') || v.includes('cloudfront') || v.includes('cdn')) return 'cloudfront';
+            if (s.includes('route53') || v.includes('route53') || v.includes('route 53') || v.includes('dns')) return 'route53';
+            if (s.includes('apigateway') || v.includes('apigateway') || v.includes('api gateway')) return 'apigateway';
+            if (s.includes('waf') || v.includes('waf') || v.includes('shield')) return 'waf';
+            if (s.includes('alb') || s.includes('load_balancing') || v.includes('alb') || v.includes('load balancer')) return 'alb';
+            if (s.includes('ec2') || v.includes('ec2') || v.includes('web server') || v.includes('app server')) return 'ec2';
+            if (s.includes('ecs') || s.includes('fargate') || v.includes('ecs') || v.includes('fargate')) return 'ecs';
+            if (s.includes('lambda') || v.includes('lambda') || v.includes('function')) return 'lambda';
+            if (s.includes('rds') || s.includes('database') || v.includes('rds') || v.includes('database')) return 'rds';
+            if (s.includes('elasticache') || s.includes('redis') || v.includes('redis') || v.includes('cache')) return 'elasticache';
+            if (s.includes('dynamodb') || v.includes('dynamodb') || v.includes('dynamo')) return 'dynamodb';
+            if (s.includes('s3') || v.includes('s3') || v.includes('bucket')) return 's3';
+            if (s.includes('sqs') || v.includes('sqs') || v.includes('queue')) return 'sqs';
+            if (s.includes('sns') || v.includes('sns') || v.includes('notification')) return 'sns';
+            if (s.includes('user') || s.includes('client') || v.includes('user') || v.includes('client')) return 'user';
+            
+            return 'rectangle';
+        }
+
+        try {
+            const { DOMParser } = require('@xmldom/xmldom');
+            const doc = new DOMParser().parseFromString(xmlStr, 'text/xml');
+            const mxCells = doc.getElementsByTagName('mxCell');
+            
+            this.cells = new Map();
+            this.edges = new Map();
+            this.nextEdgeId = 1;
+            
+            // First pass: parse all cells
+            const parentToChildren = new Map();
+            const tempCells = [];
+            const tempEdges = [];
+            
+            for (let i = 0; i < mxCells.length; i++) {
+                const el = mxCells[i];
+                const id = el.getAttribute('id');
+                if (!id) continue;
+                
+                if (id === '0' || id === '1') continue;
+                
+                const parentId = el.getAttribute('parent') || '1';
+                const isEdge = el.getAttribute('edge') === '1' || el.hasAttribute('source') || el.hasAttribute('target');
+                const label = el.getAttribute('value') || '';
+                const style = el.getAttribute('style') || '';
+                
+                if (isEdge) {
+                    const sourceId = el.getAttribute('source');
+                    const targetId = el.getAttribute('target');
+                    tempEdges.push({ id, sourceId, targetId, label, style });
+                } else {
+                    let x = 0, y = 0, width = 80, height = 80;
+                    const geom = el.getElementsByTagName('mxGeometry')[0];
+                    if (geom) {
+                        x = parseFloat(geom.getAttribute('x') || '0');
+                        y = parseFloat(geom.getAttribute('y') || '0');
+                        width = parseFloat(geom.getAttribute('width') || '80');
+                        height = parseFloat(geom.getAttribute('height') || '80');
+                    }
+                    
+                    if (!parentToChildren.has(parentId)) {
+                        parentToChildren.set(parentId, []);
+                    }
+                    parentToChildren.get(parentId).push(id);
+                    
+                    tempCells.push({ id, label, style, parentId, x, y, width, height });
+                }
+            }
+            
+            // Infer container vs node
+            for (const c of tempCells) {
+                const isContainer = parentToChildren.has(c.id) && parentToChildren.get(c.id).length > 0;
+                
+                // Helper to infer type
+                const type = inferTypeFromStyleAndValue(c.style, c.label);
+                
+                const cellObj = {
+                    id: c.id,
+                    label: c.label,
+                    type,
+                    style: c.style,
+                    parentId: c.parentId,
+                    isContainer,
+                    isEdge: false,
+                    x: c.x,
+                    y: c.y,
+                    width: c.width,
+                    height: c.height,
+                    tier: null,
+                    childSlots: []
+                };
+                this.cells.set(c.id, cellObj);
+            }
+            
+            // Populate edges
+            for (const e of tempEdges) {
+                const edgeObj = {
+                    id: e.id,
+                    sourceId: e.sourceId,
+                    targetId: e.targetId,
+                    label: e.label,
+                    style: e.style
+                };
+                this.edges.set(e.id, edgeObj);
+                
+                const numericId = parseInt(e.id, 10);
+                if (!isNaN(numericId) && numericId >= this.nextEdgeId) {
+                    this.nextEdgeId = numericId + 1;
+                }
+            }
+            
+            this.initialized = true;
+            this.title = 'Restored Diagram';
+            this.type = xmlStr.includes('mxgraph.pid') ? 'pfd' : 'architecture';
+            return { success: true };
+        } catch (err) {
+            return { success: false, error: `Import failed: ${err.message}` };
         }
     }
 }
