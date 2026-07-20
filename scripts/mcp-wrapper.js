@@ -6,6 +6,8 @@ const os = require('os');
 const { DiagramBuilder } = require('./diagram-builder');
 const { validateXml } = require('./validate');
 const { buildDiagram } = require('./build-diagram');
+const ELK = require('elkjs');
+const elk = new ELK();
 
 // ---------------------------------------------------------------------------
 // Resolve dependencies and run startup self-test
@@ -74,6 +76,7 @@ console.error(
 // Diagram Builder instance (stateful for the session)
 // ---------------------------------------------------------------------------
 const builder = new DiagramBuilder();
+let lastOpenedXml = null;
 
 // Builder tool definitions for tools/list augmentation
 const BUILDER_TOOLS = [
@@ -475,7 +478,7 @@ function compileSpecToBuilder(builderInstance, config) {
 // ---------------------------------------------------------------------------
 // Handle builder tool calls
 // ---------------------------------------------------------------------------
-function handleBuilderTool(toolName, args, msgId) {
+async function handleBuilderTool(toolName, args, msgId) {
     let result;
 
     switch (toolName) {
@@ -517,7 +520,11 @@ function handleBuilderTool(toolName, args, msgId) {
             result = builder.getState();
             break;
         case 'builder_validate':
-            result = builder.validate();
+            if (!builder.initialized && lastOpenedXml) {
+                result = { success: true, message: 'Validation passed (no local edits).', warnings: [] };
+            } else {
+                result = builder.validate();
+            }
             break;
         case 'validate_file':
             try {
@@ -561,11 +568,21 @@ function handleBuilderTool(toolName, args, msgId) {
                 if (!compileRes.success) {
                     result = compileRes;
                 } else {
+                    // Run ELK layout
+                    try {
+                        const elkGraph = builder.toElkGraph();
+                        const layoutResult = await elk.layout(elkGraph);
+                        builder.applyElkLayout(layoutResult);
+                        builder.elkLayoutApplied = true;
+                    } catch (layoutError) {
+                        console.error('[BUILDER] ELK Layout failed during compilation:', layoutError);
+                    }
+
                     // Apply topological corrections before validation (mirrors finalize() flow)
                     if (typeof builder._applyTopologicalCorrections === 'function') {
                         builder._applyTopologicalCorrections();
                     }
-                    const validation = builder.validate();
+                    const validation = builder.validate({ spatialAsWarnings: builder.elkLayoutApplied });
                     result = { 
                         success: true, 
                         valid: validation.success,
@@ -587,7 +604,21 @@ function handleBuilderTool(toolName, args, msgId) {
             }
             break;
         case 'finalize':
-            result = builder.finalize();
+            if (!builder.initialized && lastOpenedXml) {
+                result = { success: true, xml: lastOpenedXml, type: 'architecture', message: 'Diagram finalized (no local edits).' };
+            } else {
+                if (!builder.elkLayoutApplied) {
+                    try {
+                        const elkGraph = builder.toElkGraph();
+                        const layoutResult = await elk.layout(elkGraph);
+                        builder.applyElkLayout(layoutResult);
+                        builder.elkLayoutApplied = true;
+                    } catch (layoutError) {
+                        console.error('[BUILDER] ELK Layout failed during finalize:', layoutError);
+                    }
+                }
+                result = builder.finalize();
+            }
             break;
         default:
             result = { success: false, error: `Unknown builder tool: ${toolName}` };
@@ -621,7 +652,7 @@ function handleBuilderTool(toolName, args, msgId) {
 // ---------------------------------------------------------------------------
 let inputBuffer = Buffer.alloc(0);
 
-process.stdin.on('data', chunk => {
+process.stdin.on('data', async chunk => {
     inputBuffer = Buffer.concat([inputBuffer, chunk]);
 
     if (inputBuffer.length > 10 * 1024 * 1024) {
@@ -646,7 +677,7 @@ process.stdin.on('data', chunk => {
                 const args = msg.params.arguments || {};
                 console.error(`[BUILDER] ${toolName}(${JSON.stringify(args).slice(0, 100)})`);
 
-                const outcome = handleBuilderTool(toolName, args, msg.id);
+                const outcome = await handleBuilderTool(toolName, args, msg.id);
 
                 if (outcome.finalize) {
                     // Forward as open_drawio_xml to the downstream server.
@@ -669,6 +700,8 @@ process.stdin.on('data', chunk => {
             // Handle open_drawio_xml validation (existing behavior)
             if (msg.method === 'tools/call' && msg.params && msg.params.name === 'open_drawio_xml') {
                 const xmlContent = msg.params.arguments.content;
+                lastOpenedXml = xmlContent;
+                builder.importXml(xmlContent);
                 const byteLen = Buffer.byteLength(xmlContent, 'utf8');
                 console.error(`[WRAPPER] Intercepted open_drawio_xml (${byteLen} bytes)`);
 

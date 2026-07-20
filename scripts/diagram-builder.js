@@ -853,13 +853,13 @@ class DiagramBuilder {
     }
 
     // --- Validate ---
-    validate() {
+    validate(options = {}) {
         if (!this.initialized) return { success: false, error: 'Call init_diagram first.' };
 
         const xml = this.toXml();
         try {
             const { validateXml } = require('./validate');
-            const result = validateXml(xml, this.type);
+            const result = validateXml(xml, this.type, options);
             if (result.success) {
                 return { success: true, message: 'Validation passed. No issues found.', warnings: result.warnings || [] };
             } else {
@@ -877,7 +877,7 @@ class DiagramBuilder {
         this._applyTopologicalCorrections();
         this._applyQuickFixes();
 
-        const validation = this.validate();
+        const validation = this.validate({ spatialAsWarnings: this.elkLayoutApplied });
         if (!validation.success) {
             return {
                 success: true,

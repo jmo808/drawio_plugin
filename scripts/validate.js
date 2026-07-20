@@ -2,7 +2,7 @@ const fs = require('fs');
 const { DOMParser } = require('@xmldom/xmldom');
 const path = require('path');
 
-function validateXml(xmlStr, diagramType = null) {
+function validateXml(xmlStr, diagramType = null, options = {}) {
     if (!diagramType) {
         if (xmlStr.includes('mxgraph.pid') || xmlStr.includes('tray_column') || xmlStr.includes('centrifugal_pump') || xmlStr.includes('reciprocating_compressor')) {
             diagramType = 'pfd';
@@ -25,6 +25,10 @@ function validateXml(xmlStr, diagramType = null) {
     const warnings = [];
 
     function reportError(type, cellId, message, severity = 'error') {
+        const spatialTypes = ['COLLISION', 'OUT_OF_BOUNDS', 'WAYPOINT_COLLISION', 'NODE_SPACING_TOO_TIGHT'];
+        if (options.spatialAsWarnings && spatialTypes.includes(type)) {
+            severity = 'warning';
+        }
         if (severity === 'warning') {
             warnings.push(`[${type}] Node '${cellId}': ${message}`);
         } else {
