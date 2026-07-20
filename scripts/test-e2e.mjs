@@ -1345,16 +1345,19 @@ async function main() {
       const doc = new DOMParser().parseFromString(xmlContent, 'text/xml');
       const cells = doc.getElementsByTagName('mxCell');
       let awsX = null, azureX = null;
+      let awsY = null, azureY = null;
       for (let i = 0; i < cells.length; i++) {
         const id = cells[i].getAttribute('id');
         const geom = cells[i].getElementsByTagName('mxGeometry')[0];
         if (geom) {
           const x = parseFloat(geom.getAttribute('x') || '0');
-          if (id === 'aws_region') awsX = x;
-          if (id === 'azure_region') azureX = x;
+          const y = parseFloat(geom.getAttribute('y') || '0');
+          if (id === 'aws_region') { awsX = x; awsY = y; }
+          if (id === 'azure_region') { azureX = x; azureY = y; }
         }
       }
-      if (awsX !== null && azureX !== null && Math.abs(awsX - azureX) >= 1200) {
+      if (awsX !== null && azureX !== null && awsY !== null && azureY !== null &&
+          (Math.abs(awsX - azureX) >= 100 || Math.abs(awsY - azureY) >= 100)) {
         coordsOk = true;
       }
       fs.unlinkSync(tempOutPath);
