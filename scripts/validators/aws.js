@@ -417,7 +417,7 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
     if (clientNode && !isHybridOrNetwork) {
         const hasDns = Object.values(awsNodes).some(n => n.type === 'route53');
         if (!hasDns) {
-            reportError('TOPOLOGY_ERROR', clientNode.id, `Production-grade AWS architectures must include Route 53 to resolve client requests.`);
+            reportError('TOPOLOGY_WARNING', clientNode.id, `Production-grade AWS architectures must include Route 53 to resolve client requests.`, 'warning');
         }
     }
 
@@ -439,7 +439,7 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
     if (hasPrivateCompute && !isHybridOrNetwork) {
         const hasNat = Object.values(awsNodes).some(n => n.type === 'nat_gateway');
         if (!hasNat) {
-            reportError('TOPOLOGY_ERROR', privateComputeNodeId, `Compute nodes in private subnets require NAT Gateway in the VPC to fetch outbound updates/packages.`);
+            reportError('TOPOLOGY_WARNING', privateComputeNodeId, `Compute nodes in private subnets require NAT Gateway in the VPC to fetch outbound updates/packages.`, 'warning');
         }
     }
 
@@ -458,7 +458,7 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
     if (hasContainerCluster && !isHybridOrNetwork) {
         const hasEcr = Object.values(awsNodes).some(n => n.type === 'ecr');
         if (!hasEcr) {
-            reportError('TOPOLOGY_ERROR', clusterNodeId, `ECS/EKS clusters require Elastic Container Registry (ECR) in the account to store and pull container images.`);
+            reportError('TOPOLOGY_WARNING', clusterNodeId, `ECS/EKS clusters require Elastic Container Registry (ECR) in the account to store and pull container images.`, 'warning');
         }
     }
 
@@ -472,7 +472,7 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
                 break;
             }
         }
-        reportError('TOPOLOGY_ERROR', obsTargetId, `Production-grade AWS architectures must include CloudWatch (Cloud Logging/Monitoring) for observability.`);
+        reportError('TOPOLOGY_WARNING', obsTargetId, `Production-grade AWS architectures must include CloudWatch (Cloud Logging/Monitoring) for observability.`, 'warning');
     }
 
     // Rule: NAT Gateway placement validation

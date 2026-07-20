@@ -16,7 +16,6 @@ const validateScript = path.join(__dirname, 'validate.js');
 
 // --- Resolve @drawio/mcp path ---
 let mcpPath = null;
-let useNpx = false;
 
 if (process.env.DRAWIO_MCP_PATH) {
     if (fs.existsSync(process.env.DRAWIO_MCP_PATH)) {
@@ -34,11 +33,11 @@ if (!mcpPath) {
 }
 
 if (!mcpPath) {
-    console.error('[WRAPPER] WARNING: @drawio/mcp not found locally — falling back to npx');
-    useNpx = true;
+    console.error('[WRAPPER] ERROR: @drawio/mcp not found locally. Fallback to npx is disabled for security reasons.');
+    process.exit(1);
 }
 
-console.error(`[WRAPPER] @drawio/mcp: ${useNpx ? 'npx -y @drawio/mcp@1.3.4' : mcpPath}`);
+console.error(`[WRAPPER] @drawio/mcp: ${mcpPath}`);
 
 // --- Check validate.js ---
 let validationEnabled = true;
@@ -65,7 +64,7 @@ if (validationEnabled) {
 }
 
 console.error(
-    `[WRAPPER] @drawio/mcp: ${useNpx ? 'npx' : mcpPath} | ` +
+    `[WRAPPER] @drawio/mcp: ${mcpPath} | ` +
     `validate.js: ${validateExists ? 'OK' : 'MISSING'} | ` +
     `xmldom: ${xmldomOk ? 'OK' : (validateExists ? 'MISSING' : 'SKIPPED')} | ` +
     `builder: OK`
@@ -251,20 +250,114 @@ const BUILDER_TOOLS = [
 
 const BUILDER_TOOL_NAMES = new Set(BUILDER_TOOLS.map(t => t.name));
 
+function validatePath(userPath, baseDir) {
+    if (!userPath) return { valid: false, error: 'Path is empty' };
+
+    let resolvedBase = path.resolve(baseDir);
+    try {
+        if (fs.existsSync(resolvedBase)) {
+            resolvedBase = fs.realpathSync(resolvedBase);
+        }
+    } catch (e) {}
+    
+    let resolvedPath = path.resolve(resolvedBase, userPath);
+    try {
+        let current = path.dirname(resolvedPath);
+        while (current && current !== path.dirname(current)) {
+            if (fs.existsSync(current)) {
+                const realCurrent = fs.realpathSync(current);
+                resolvedPath = path.resolve(realCurrent, path.relative(current, resolvedPath));
+                break;
+            }
+            current = path.dirname(current);
+        }
+    } catch (e) {}
+
+    const baseWithTrailing = resolvedBase.endsWith(path.sep) ? resolvedBase : resolvedBase + path.sep;
+    const inside = resolvedPath === resolvedBase || resolvedPath.startsWith(baseWithTrailing);
+
+    if (!inside) {
+        return { valid: false, error: `Path traversal detected: path '${userPath}' resolves outside sandbox boundary '${baseDir}'` };
+    }
+
+    try {
+        if (fs.existsSync(resolvedPath)) {
+            const realPath = fs.realpathSync(resolvedPath);
+            const realInside = realPath === resolvedBase || realPath.startsWith(baseWithTrailing);
+            if (!realInside) {
+                return { valid: false, error: `Symlink traversal detected: path '${userPath}' points outside sandbox boundary` };
+            }
+        }
+    } catch (e) {
+        // If file doesn't exist yet (like output_path), realpathSync will throw, which is fine since we validate the resolved path.
+    }
+
+    return { valid: true, resolvedPath };
+}
+
+exports.validatePath = validatePath;
+
 // ---------------------------------------------------------------------------
 // Spawn the @drawio/mcp child process
 // ---------------------------------------------------------------------------
 let child;
-if (useNpx) {
-    child = spawn('npx', ['-y', '@drawio/mcp@1.3.4'], { stdio: ['pipe', 'pipe', 'pipe'] });
-} else {
-    child = spawn('node', [mcpPath], { stdio: ['pipe', 'pipe', 'pipe'] });
-}
 
-child.stderr.on('data', chunk => process.stderr.write(chunk));
+if (require.main === module) {
+    const ALLOWED_ENV_VARS = [
+        'PATH',
+        'NODE_PATH',
+        'HOME',
+        'TMPDIR',
+        'TEMP',
+        'TMP',
+        'DRAWIO_MCP_PATH',
+        'MCP_WORKSPACE_ROOT',
+        'LANG',
+        'LC_ALL',
+        'USER',
+        'LOGNAME',
+        'PWD'
+    ];
+    const filteredEnv = {};
+    for (const key of ALLOWED_ENV_VARS) {
+        if (process.env[key] !== undefined) {
+            filteredEnv[key] = process.env[key];
+        }
+    }
+    filteredEnv['NODE_OPTIONS'] = '--max-old-space-size=512';
+
+    child = spawn('node', ['--max-old-space-size=512', mcpPath], { stdio: ['pipe', 'pipe', 'pipe'], env: filteredEnv });
+
+    child.stderr.on('data', chunk => process.stderr.write(chunk));
 
 // Keep track of pending finalize requests
 const pendingFinalize = new Map();
+
+// Timeouts for forwarded requests
+const forwardedTimeouts = new Map();
+
+function registerForwardTimeout(msgId, toolName) {
+    if (msgId === undefined || msgId === null) return;
+    const envTimeout = process.env.MCP_TIMEOUT_LIMIT_MS;
+    const defaultDuration = (toolName === 'finalize' || toolName === 'open_drawio_xml') ? 60000 : 30000;
+    const duration = envTimeout ? parseInt(envTimeout, 10) : defaultDuration;
+    
+    const timer = setTimeout(() => {
+        forwardedTimeouts.delete(msgId);
+        pendingFinalize.delete(msgId);
+        const errResponse = {
+            jsonrpc: '2.0',
+            id: msgId,
+            error: {
+                code: -32603,
+                message: `Request timed out after ${duration / 1000}s`
+            }
+        };
+        process.stdout.write(JSON.stringify(errResponse) + '\n');
+    }, duration);
+    
+    forwardedTimeouts.set(msgId, timer);
+}
 
 // ---------------------------------------------------------------------------
 // Child stdout interception — augment tools/list responses
@@ -283,6 +376,14 @@ child.stdout.on('data', chunk => {
 
         try {
             const msg = JSON.parse(lineStr);
+
+            if (msg.id !== undefined) {
+                const timer = forwardedTimeouts.get(msg.id);
+                if (timer) {
+                    clearTimeout(timer);
+                    forwardedTimeouts.delete(msg.id);
+                }
+            }
 
             // Replace any external diagrams.net or draw.io links with local relative path /draw/
             if (msg.result && msg.result.content && Array.isArray(msg.result.content)) {
@@ -420,10 +521,17 @@ function handleBuilderTool(toolName, args, msgId) {
             break;
         case 'validate_file':
             try {
-                if (!args.file_path || !fs.existsSync(args.file_path)) {
+                const workspaceRoot = process.env.MCP_WORKSPACE_ROOT || '/app/mcp-workspace';
+                const pathVal = validatePath(args.file_path, workspaceRoot);
+                if (!pathVal.valid) {
+                    result = { success: false, error: pathVal.error };
+                    break;
+                }
+                const targetPath = pathVal.resolvedPath;
+                if (!fs.existsSync(targetPath)) {
                     result = { success: false, error: `File not found: ${args.file_path}` };
                 } else {
-                    const xml = fs.readFileSync(args.file_path, 'utf8');
+                    const xml = fs.readFileSync(targetPath, 'utf8');
                     result = validateXml(xml);
                 }
             } catch (e) {
@@ -432,15 +540,22 @@ function handleBuilderTool(toolName, args, msgId) {
             break;
         case 'compile_json_spec':
             try {
+                const workspaceRoot = process.env.MCP_WORKSPACE_ROOT || '/app/mcp-workspace';
                 let config;
                 if (args.spec) {
                     config = args.spec;
                 } else {
-                    if (!args.spec_path || !fs.existsSync(args.spec_path)) {
+                    const pathVal = validatePath(args.spec_path, workspaceRoot);
+                    if (!pathVal.valid) {
+                        result = { success: false, error: pathVal.error };
+                        break;
+                    }
+                    const targetSpecPath = pathVal.resolvedPath;
+                    if (!fs.existsSync(targetSpecPath)) {
                         result = { success: false, error: `File not found: ${args.spec_path}` };
                         break;
                     }
-                    config = JSON.parse(fs.readFileSync(args.spec_path, 'utf8'));
+                    config = JSON.parse(fs.readFileSync(targetSpecPath, 'utf8'));
                 }
                 const compileRes = compileSpecToBuilder(builder, config);
                 if (!compileRes.success) {
@@ -459,7 +574,12 @@ function handleBuilderTool(toolName, args, msgId) {
                         xml: builder.toXml()
                     };
                     if (args.output_path) {
-                        fs.writeFileSync(args.output_path, result.xml, 'utf8');
+                        const outVal = validatePath(args.output_path, workspaceRoot);
+                        if (!outVal.valid) {
+                            result = { success: false, error: outVal.error };
+                            break;
+                        }
+                        fs.writeFileSync(outVal.resolvedPath, result.xml, 'utf8');
                     }
                 }
             } catch (e) {
@@ -504,6 +624,11 @@ let inputBuffer = Buffer.alloc(0);
 process.stdin.on('data', chunk => {
     inputBuffer = Buffer.concat([inputBuffer, chunk]);
 
+    if (inputBuffer.length > 10 * 1024 * 1024) {
+        console.error('[WRAPPER] Error: Accumulated input buffer exceeds 10MB limit');
+        process.exit(1);
+    }
+
     while (true) {
         const index = inputBuffer.indexOf('\n');
         if (index === -1) break;
@@ -525,11 +650,6 @@ process.stdin.on('data', chunk => {
 
                 if (outcome.finalize) {
                     // Forward as open_drawio_xml to the downstream server.
-                    // NOTE: We deliberately omit routing='libavoid' here because:
-                    //   1. libavoid runs a WASM module with a slow cold-start (~10-30s)
-                    //   2. The resulting XML is returned directly to the frontend via
-                    //      setGraphXml(), not opened in a browser — draw.io handles
-                    //      client-side edge routing on its own when the diagram renders.
                     console.error(`[BUILDER] Finalize: forwarding validated XML (${Buffer.byteLength(outcome.xml)} bytes) for type "${outcome.type}" (no libavoid — headless path)`);
                     const forwardMsg = {
                         jsonrpc: '2.0',
@@ -540,6 +660,7 @@ process.stdin.on('data', chunk => {
                             arguments: { content: outcome.xml },
                         },
                     };
+                    registerForwardTimeout(msg.id, 'finalize');
                     child.stdin.write(JSON.stringify(forwardMsg) + '\n');
                 }
                 continue;
@@ -552,6 +673,7 @@ process.stdin.on('data', chunk => {
                 console.error(`[WRAPPER] Intercepted open_drawio_xml (${byteLen} bytes)`);
 
                 if (!validationEnabled) {
+                    registerForwardTimeout(msg.id, 'open_drawio_xml');
                     child.stdin.write(lineBuf);
                     continue;
                 }
@@ -565,6 +687,7 @@ process.stdin.on('data', chunk => {
                         if (result.warnings && result.warnings.length) {
                             console.error(`[WRAPPER] ${result.warnings.length} warnings: ${result.warnings.join('; ')}`);
                         }
+                        registerForwardTimeout(msg.id, 'open_drawio_xml');
                         child.stdin.write(lineBuf);
                     } else {
                         console.error(`[WRAPPER] Validation FAILED — returning ${result.errors.length} errors to agent`);
@@ -582,12 +705,14 @@ process.stdin.on('data', chunk => {
                     }
                 } catch (error) {
                     console.error(`[WRAPPER] Validation CRASHED — ${error.message}`);
+                    registerForwardTimeout(msg.id, 'open_drawio_xml');
                     child.stdin.write(lineBuf);
                 }
                 continue;
             }
 
             // Everything else: forward to child
+            registerForwardTimeout(msg.id, msg.params ? msg.params.name : null);
             child.stdin.write(lineBuf);
         } catch (e) {
             child.stdin.write(lineBuf);
@@ -595,9 +720,10 @@ process.stdin.on('data', chunk => {
     }
 });
 
-// ---------------------------------------------------------------------------
-// Signal handling
-// ---------------------------------------------------------------------------
-process.on('SIGINT', () => child.kill('SIGINT'));
-process.on('SIGTERM', () => child.kill('SIGTERM'));
-child.on('exit', (code) => process.exit(code !== null ? code : 1));
+    // ---------------------------------------------------------------------------
+    // Signal handling
+    // ---------------------------------------------------------------------------
+    process.on('SIGINT', () => child.kill('SIGINT'));
+    process.on('SIGTERM', () => child.kill('SIGTERM'));
+    child.on('exit', (code) => process.exit(code !== null ? code : 1));
+}

@@ -70,6 +70,10 @@ async function main() {
     transport = new StdioClientTransport({
       command: 'node',
       args: [WRAPPER_PATH],
+      env: {
+        ...process.env,
+        MCP_WORKSPACE_ROOT: os.tmpdir()
+      }
     });
 
     client = new Client({
@@ -106,7 +110,7 @@ async function main() {
 
     record(
       'Test 2: List Tools',
-      hasAllTools && tools.length >= 17 && descOk,
+      hasAllTools && tools.length >= 20 && descOk,
       `Got ${tools.length} tools. Descriptions interception matched: ${descOk}`,
     );
 
