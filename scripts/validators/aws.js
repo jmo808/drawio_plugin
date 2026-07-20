@@ -59,6 +59,25 @@ function getAwsNodeType(style, value) {
 
 
 module.exports = function({ cells, mxCells, doc, reportError }) {
+    // Check if this is a hybrid, multi-cloud, or network-centric diagram
+    let isHybridOrNetwork = false;
+    for (const id in cells) {
+        const cell = cells[id];
+        if (cell.isEdge) continue;
+        const valLower = (cell.value || '').toLowerCase();
+        const styleLower = (cell.style || '').toLowerCase();
+        const idLower = (cell.id || '').toLowerCase();
+        if (valLower.includes('azure') || valLower.includes('gcp') || valLower.includes('google') ||
+            valLower.includes('skytap') || valLower.includes('kyndryl') || valLower.includes('on-prem') ||
+            valLower.includes('on_prem') || valLower.includes('on premises') || valLower.includes('datacenter') ||
+            valLower.includes('cisco') || valLower.includes('sdwan') || valLower.includes('sd-wan') ||
+            idLower.includes('azure') || idLower.includes('gcp') || idLower.includes('skytap') || idLower.includes('on_prem') ||
+            styleLower.includes('mxgraph.gcp') || styleLower.includes('mxgraph.azure') || styleLower.includes('mxgraph.cisco')) {
+            isHybridOrNetwork = true;
+            break;
+        }
+    }
+
     const statelessComputeTypes = ['ec2', 'ecs', 'lambda'];
     // Find all AWS nodes and categorize them
     const awsNodes = {};
@@ -395,7 +414,7 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
     }
 
     // Rule: Production Ingress requires Route 53 (DNS)
-    if (clientNode) {
+    if (clientNode && !isHybridOrNetwork) {
         const hasDns = Object.values(awsNodes).some(n => n.type === 'route53');
         if (!hasDns) {
             reportError('TOPOLOGY_ERROR', clientNode.id, `Production-grade AWS architectures must include Route 53 to resolve client requests.`);
@@ -417,7 +436,7 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
             }
         }
     }
-    if (hasPrivateCompute) {
+    if (hasPrivateCompute && !isHybridOrNetwork) {
         const hasNat = Object.values(awsNodes).some(n => n.type === 'nat_gateway');
         if (!hasNat) {
             reportError('TOPOLOGY_ERROR', privateComputeNodeId, `Compute nodes in private subnets require NAT Gateway in the VPC to fetch outbound updates/packages.`);
@@ -436,7 +455,7 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
             break;
         }
     }
-    if (hasContainerCluster) {
+    if (hasContainerCluster && !isHybridOrNetwork) {
         const hasEcr = Object.values(awsNodes).some(n => n.type === 'ecr');
         if (!hasEcr) {
             reportError('TOPOLOGY_ERROR', clusterNodeId, `ECS/EKS clusters require Elastic Container Registry (ECR) in the account to store and pull container images.`);
@@ -445,7 +464,7 @@ module.exports = function({ cells, mxCells, doc, reportError }) {
 
     // Rule: Observability requirements (CloudWatch)
     const hasObservability = Object.values(awsNodes).some(n => n.type === 'cloudwatch');
-    if (!hasObservability) {
+    if (!hasObservability && !isHybridOrNetwork) {
         let obsTargetId = '1';
         for (const nid in awsNodes) {
             if (statelessComputeTypes.includes(awsNodes[nid].type)) {

@@ -1128,14 +1128,22 @@ class DiagramBuilder {
             if (parent && (parent.type === 'project' || parent.type === 'gcp_project')) {
                 return { x: 20, y: 40, width: parent.width - 40, height: parent.height - 60 };
             }
-            return { x: 20, y: 150, width: 1200, height: 580 };
+            let x = 20;
+            for (const s of siblings) {
+                x = Math.max(x, s.x + s.width + 40);
+            }
+            return { x, y: 150, width: 1200, height: 580 };
         }
 
         if (type === 'vpc' || type === 'gcp_vpc') {
             if (parent && (parent.type === 'region' || parent.type === 'gcp_region')) {
                 return { x: 260, y: 40, width: parent.width - 280, height: parent.height - 60 };
             }
-            return { x: 40, y: 180, width: 960, height: 260 };
+            let x = 40;
+            for (const s of siblings) {
+                x = Math.max(x, s.x + s.width + 40);
+            }
+            return { x, y: 180, width: 960, height: 260 };
         }
 
         if (type === 'cluster') {

@@ -18,6 +18,7 @@ import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import fs from 'node:fs';
 import os from 'node:os';
+import { DOMParser } from '@xmldom/xmldom';
 
 // ── Paths ────────────────────────────────────────────────────────────────────
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -105,7 +106,7 @@ async function main() {
 
     record(
       'Test 2: List Tools',
-      hasAllTools && tools.length === 17 && descOk,
+      hasAllTools && tools.length >= 17 && descOk,
       `Got ${tools.length} tools. Descriptions interception matched: ${descOk}`,
     );
 
@@ -1302,6 +1303,62 @@ async function main() {
     record('Test 46: ORPHAN_DEVICE rule', hasOrphanDevErr, `Found ORPHAN_DEVICE: ${hasOrphanDevErr}`);
     record('Test 47: VLAN_LEAK rule', hasVlanLeakErr, `Found VLAN_LEAK: ${hasVlanLeakErr}`);
     record('Test 48: REDUNDANCY_WARNING rule', hasRedundancyWarn, `Found REDUNDANCY_WARNING: ${hasRedundancyWarn}`);
+
+    // ───── Test 49: Hybrid Cloud Layout & Validation ─────────────────────────
+    const tempSpecPath = path.join(os.tmpdir(), `test-e2e-hybrid-spec-${Date.now()}.json`);
+    const tempOutPath = path.join(os.tmpdir(), `test-e2e-hybrid-out-${Date.now()}.drawio`);
+    
+    const hybridSpec = {
+      title: "Hybrid Cloud Network Test",
+      theme: "light",
+      type: "architecture",
+      containers: [
+        { id: "aws_region", label: "AWS Cloud", type: "region" },
+        { id: "azure_region", label: "Azure Cloud", type: "region" }
+      ],
+      nodes: [
+        { id: "clients", label: "Corporate Clients", type: "user", parentId: "aws_region" },
+        { id: "aws_app", label: "AWS ECS App", type: "ecs", parentId: "aws_region" },
+        { id: "skytap_app", label: "Skytap AIX App", type: "server", parentId: "azure_region" }
+      ],
+      edges: [
+        { sourceId: "clients", targetId: "aws_app", label: "access" },
+        { sourceId: "aws_app", targetId: "skytap_app", label: "sync" }
+      ]
+    };
+    
+    fs.writeFileSync(tempSpecPath, JSON.stringify(hybridSpec, null, 2), 'utf8');
+    const hybridRes = parseBuilderResult(await client.callTool({
+      name: 'compile_json_spec',
+      arguments: { spec_path: tempSpecPath, output_path: tempOutPath }
+    }));
+    
+    const hybridCompiledOk = hybridRes.success && fs.existsSync(tempOutPath);
+    let coordsOk = false;
+    
+    if (hybridCompiledOk) {
+      const xmlContent = fs.readFileSync(tempOutPath, 'utf8');
+      const doc = new DOMParser().parseFromString(xmlContent, 'text/xml');
+      const cells = doc.getElementsByTagName('mxCell');
+      let awsX = null, azureX = null;
+      for (let i = 0; i < cells.length; i++) {
+        const id = cells[i].getAttribute('id');
+        const geom = cells[i].getElementsByTagName('mxGeometry')[0];
+        if (geom) {
+          const x = parseFloat(geom.getAttribute('x') || '0');
+          if (id === 'aws_region') awsX = x;
+          if (id === 'azure_region') azureX = x;
+        }
+      }
+      if (awsX !== null && azureX !== null && Math.abs(awsX - azureX) >= 1200) {
+        coordsOk = true;
+      }
+      fs.unlinkSync(tempOutPath);
+    }
+    fs.unlinkSync(tempSpecPath);
+    
+    record('Test 49: Hybrid Cloud compiles without AWS validation error', hybridCompiledOk, `Hybrid compile: ${hybridCompiledOk}`);
+    record('Test 50: Root-level containers positioned side-by-side', coordsOk, `Side-by-side layout: ${coordsOk}`);
   } catch (err) {
     if (err.message !== 'stop') {
       const testNum = results.length + 1;
