@@ -109,7 +109,7 @@ async function main() {
 
     record(
       'Test 2: List Tools',
-      hasAllTools && tools.length === 17 && descOk,
+      hasAllTools && tools.length === 20 && descOk,
       `Got ${tools.length} tools. Descriptions interception matched: ${descOk}`,
     );
 
