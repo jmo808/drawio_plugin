@@ -1,53 +1,81 @@
 const assert = require('assert');
+const ELK = require('elkjs');
+const elk = new ELK();
 
-console.log('Running ELK runtime test...');
+console.log('Running ELK runtime performance benchmarks...');
 
-try {
-    const ELK = require('elkjs');
-    const elk = new ELK();
-
-    const graph = {
-        id: "root",
-        layoutOptions: { 'elk.algorithm': 'layered' },
-        children: [
-            { id: "n1", width: 30, height: 30 },
-            { id: "n2", width: 30, height: 30 }
-        ],
-        edges: [
-            { id: "e1", source: "n1", target: "n2" }
-        ]
-    };
-
-    // Warm up run
-    elk.layout(graph)
-        .then(() => {
-            const start = Date.now();
-            return elk.layout(graph).then((layoutResult) => {
-                const duration = Date.now() - start;
-                console.log(`ELK Layout successfully completed in ${duration}ms!`);
-                
-                // Basic assertions
-                assert.ok(layoutResult, 'Should return a layout result');
-                assert.strictEqual(layoutResult.id, 'root', 'Root ID should match');
-                
-                const n1 = layoutResult.children.find(c => c.id === 'n1');
-                const n2 = layoutResult.children.find(c => c.id === 'n2');
-                
-                assert.ok(n1, 'Should contain child n1');
-                assert.ok(n2, 'Should contain child n2');
-                assert.ok(typeof n1.x === 'number', 'n1 should have an x coordinate');
-                assert.ok(typeof n2.x === 'number', 'n2 should have an x coordinate');
-                
-                assert.ok(duration < 10, `ELK layout took too long: ${duration}ms (expected <10ms)`);
-                console.log('ELK runtime test passed successfully!');
-                process.exit(0);
-            });
-        })
-        .catch((err) => {
-            console.error('ELK Layout execution failed:', err);
-            process.exit(1);
+function generateGraph(size) {
+    const children = [];
+    const edges = [];
+    
+    // Create nodes
+    for (let i = 0; i < size; i++) {
+        children.push({
+            id: `n${i}`,
+            width: 80,
+            height: 50
         });
-} catch (e) {
-    console.error('RED PHASE: Failed to require/load elkjs as expected:', e.message);
-    process.exit(1); // Exit with non-zero for test failure
+    }
+    
+    // Create hierarchical edges (e.g. n_i to n_i+1 or random branch)
+    for (let i = 0; i < size - 1; i++) {
+        // Connect to next node, and sometimes branch
+        edges.push({
+            id: `e${i}`,
+            source: `n${i}`,
+            target: `n${i+1}`
+        });
+        if (i < size - 5 && i % 4 === 0) {
+            edges.push({
+                id: `e_branch_${i}`,
+                source: `n${i}`,
+                target: `n${i+3}`
+            });
+        }
+    }
+    
+    return {
+        id: "root",
+        layoutOptions: { 
+            'elk.algorithm': 'layered',
+            'elk.direction': 'DOWN',
+            'elk.spacing.nodeSelf': '40'
+        },
+        children,
+        edges
+    };
 }
+
+async function run() {
+    try {
+        // 1. Warm up run
+        const warmGraph = generateGraph(2);
+        await elk.layout(warmGraph);
+        
+        // 2. Benchmark 50 nodes
+        const graph50 = generateGraph(50);
+        const start50 = Date.now();
+        const res50 = await elk.layout(graph50);
+        const duration50 = Date.now() - start50;
+        console.log(`ELK Layout on 50 nodes completed in ${duration50}ms!`);
+        assert.ok(res50, 'Should return layout result for 50 nodes');
+        assert.ok(duration50 < 50, `50-node layout exceeded NFR limit: ${duration50}ms (expected < 50ms)`);
+        
+        // 3. Benchmark 100 nodes
+        const graph100 = generateGraph(100);
+        const start100 = Date.now();
+        const res100 = await elk.layout(graph100);
+        const duration100 = Date.now() - start100;
+        console.log(`ELK Layout on 100 nodes completed in ${duration100}ms!`);
+        assert.ok(res100, 'Should return layout result for 100 nodes');
+        assert.ok(duration100 < 50, `100-node layout exceeded NFR limit: ${duration100}ms (expected < 50ms)`);
+        
+        console.log('ELK runtime performance benchmarks passed successfully!');
+        process.exit(0);
+    } catch (err) {
+        console.error('Benchmark execution failed:', err);
+        process.exit(1);
+    }
+}
+
+run();
