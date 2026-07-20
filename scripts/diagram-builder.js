@@ -1009,6 +1009,52 @@ class DiagramBuilder {
         return root;
     }
 
+    // --- Apply ELK-computed Positions back to cells/edges ---
+    applyElkLayout(elkResult) {
+        if (!elkResult) return;
+
+        const updatePositions = (node) => {
+            if (node.id !== 'root') {
+                const cell = this.cells.get(node.id);
+                if (cell) {
+                    cell.x = node.x;
+                    cell.y = node.y;
+                    if (cell.isContainer) {
+                        cell.width = node.width;
+                        cell.height = node.height;
+                    }
+                }
+            }
+
+            if (node.children) {
+                for (const child of node.children) {
+                    updatePositions(child);
+                }
+            }
+        };
+
+        updatePositions(elkResult);
+
+        // Map edge sections/bendPoints to mxGraph relative points
+        if (elkResult.edges) {
+            for (const elkEdge of elkResult.edges) {
+                const edge = this.edges.get(elkEdge.id);
+                if (edge) {
+                    edge.points = [];
+                    if (elkEdge.sections) {
+                        for (const sec of elkEdge.sections) {
+                            if (sec.bendPoints) {
+                                for (const bp of sec.bendPoints) {
+                                    edge.points.push({ x: bp.x, y: bp.y });
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     // --- Internal Helpers ---
 
     isGcpMode() {
