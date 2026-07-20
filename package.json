@@ -20,6 +20,7 @@
   "homepage": "https://github.com/jmo808/drawio_plugin#readme",
   "dependencies": {
     "@drawio/mcp": "^1.4.0",
-    "@xmldom/xmldom": "^0.9.10"
+    "@xmldom/xmldom": "^0.9.10",
+    "elkjs": "^0.9.3"
   }
 }
